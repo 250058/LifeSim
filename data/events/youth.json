@@ -201,7 +201,7 @@
       "choices": [
         {
           "text": "눈높이를 낮춘다",
-          "if": "edu.degree != 'none'",
+          "if": "edu.degree == 'high' || edu.degree == 'college' || edu.degree == 'university'",
           "result": "집 근처 중소기업에 붙었다.",
           "effects": { "do": [{ "type": "getJob", "job": "sme_office" }] }
         },

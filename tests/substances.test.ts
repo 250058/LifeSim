@@ -175,6 +175,7 @@ describe('고르지 않으면 쓰지 않는다 (R-008)', () => {
 
     // 회식에서 첫 잔만 받은 정도로는 숙취가 없다
     const sip = personAt('HANGOVER-SIP', 30);
+    sip.ch.edu.degree = 'high'; // takeJob은 임용 자격(고졸 이상)을 본다 (R-018)
     takeJob(sip, 'sme_office');
     expect(presentCard(sip, { eventId: 'sub_hoesik', ctx: {} })).toBe(true);
     choose(sip, sip.card!.choices.findIndex((c) => c.text.includes('첫 잔만')));
@@ -273,6 +274,7 @@ describe('저장과 재개', () => {
   it('저장했다 불러와도 기록이 같고, 같은 선택과 연말 결산이 두 번 적용되지 않는다', () => {
     const storage = memoryStorage();
     const s = personAt('SUB-SAVE', 30);
+    s.ch.edu.degree = 'high'; // takeJob은 임용 자격(고졸 이상)을 본다 (R-018)
     takeJob(s, 'sme_office');
     doActivity(s, 'smoke');
     doActivity(s, 'smoke');
@@ -395,6 +397,7 @@ describe('미성년자 (R-009)', () => {
 describe('거절과 법적 결과', () => {
   it('회식 권유를 거절하면 거절이 기록되고 사용 이력은 생기지 않는다', () => {
     const s = personAt('REFUSE', 30);
+    s.ch.edu.degree = 'high'; // takeJob은 임용 자격(고졸 이상)을 본다 (R-018)
     takeJob(s, 'sme_office');
     expect(presentCard(s, { eventId: 'sub_hoesik', ctx: {} })).toBe(true);
     choose(s, s.card!.choices.findIndex((c) => c.text.includes('거절')));
@@ -448,6 +451,7 @@ describe('재현', () => {
   it('같은 시드·같은 선택이면 술·담배 기록도 같다', () => {
     const run = () => {
       const s = personAt('SAME-SUB', 26);
+      s.ch.edu.degree = 'high'; // takeJob은 임용 자격(고졸 이상)을 본다 (R-018)
       takeJob(s, 'sme_office');
       doActivity(s, 'drink_alone');
       doActivity(s, 'smoke');

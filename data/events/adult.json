@@ -130,7 +130,7 @@
       "impact": 12,
       "trigger": {
         "age": [27, 60],
-        "if": "job.employed && !job.business && job.id != 'youtuber' && job.id != 'entertainer'"
+        "if": "job.employed && !job.business && job.ladder && job.id != 'youtuber' && job.id != 'entertainer'"
       },
       "weight": {
         "base": 0.12,
@@ -325,7 +325,7 @@
       "text": "회식 1차가 끝났다. 부장이 넥타이를 머리에 두르며 외친다. \"2차는 노래방! 빠지는 사람 없지?\"",
       "tone": "neutral",
       "impact": 4,
-      "trigger": { "age": [22, 60], "if": "job.employed && !job.business && job.id != 'youtuber'" },
+      "trigger": { "age": [22, 60], "if": "job.employed && !job.business && job.org && job.id != 'youtuber'" },
       "weight": { "base": 0.25, "noMode": true },
       "limit": { "max": 3, "cooldown": 4 },
       "choices": [

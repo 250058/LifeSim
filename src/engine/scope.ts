@@ -3,11 +3,12 @@
 
 import { contraceptionMethod } from './contraception';
 import { dailyScope } from './daily';
-import { JOB_BY_ID, REGION_BY_ID } from './data';
+import { REGION_BY_ID } from './data';
 import { familySupport, alive, npcAge, partnerOf, spouseOf } from './relations';
 import { ELITE_HIGH, stageOf } from './format';
 import { electionBarred, publicSectorBarred } from './records';
 import { substanceScope } from './substances';
+import { jobScope } from './work';
 import { isPresidentialYear } from './world';
 import type { Scope } from './conditions';
 import type { GameState } from './types';
@@ -82,7 +83,6 @@ export function buildScope(state: GameState, ctx: Record<string, string> = {}): 
   const spouse = spouseOf(ch);
   const childAges = alive(ch, 'child').map((k) => npcAge(k, year));
   const femaleAge = ch.sex === 'F' ? ch.age : spouse ? npcAge(spouse, year) : 99;
-  const job = ch.career.jobId ? JOB_BY_ID.get(ch.career.jobId) : undefined;
   const region = REGION_BY_ID.get(ch.region);
   const csat = ch.edu.csat;
   const mil = ch.military;
@@ -158,18 +158,8 @@ export function buildScope(state: GameState, ctx: Record<string, string> = {}): 
         ch.edu.status === 'university' && ch.edu.univ && ch.age >= ch.edu.univ.startAge + ch.edu.univ.years && !ch.edu.onLeave,
       ),
     },
-    job: {
-      id: ch.career.jobId ?? 'none',
-      employed: Boolean(ch.career.jobId),
-      salary: ch.career.salary,
-      years: ch.career.years,
-      business: Boolean(ch.career.business),
-      retired: ch.career.retired,
-      layoffRisk: job ? job.layoffRisk : 0,
-      stress: job ? job.stress : 0,
-      retireAge: job ? job.retireAge : 0,
-      atRetireAge: Boolean(job && !ch.career.business && ch.age >= job.retireAge),
-    },
+    // 직업·고용 형태·근무 형태·산재 등급·계약·부업·면허 (work.ts): job.id, job.type, job.shift, job.injury, job.contractEnding …
+    job: jobScope(state),
     military: {
       status: mil.status,
       grade: mil.grade ?? 0,

@@ -26,6 +26,7 @@ import disaster from '../../data/events/disaster.json';
 import lifestyle from '../../data/events/lifestyle.json';
 import substances from '../../data/events/substances.json';
 import daily from '../../data/events/daily.json';
+import work from '../../data/events/work.json';
 import schoolViolence from '../../data/arcs/school_violence.json';
 import militaryAbuse from '../../data/arcs/military_abuse.json';
 import voicePhishing from '../../data/arcs/voice_phishing.json';
@@ -72,6 +73,9 @@ export const EVENT_FILES: Record<string, EventDef[]> = {
   ...CATALOG_FILES,
   // 하루 사슬: 빨래와 다음 날 일정 (daily.ts와 짝). 맨 끝에 두어 기존 사건의 추첨 순서를 밀지 않는다
   'events/daily.json': (daily as unknown as EventFile).events,
+  // 일터: 직업마다 따로 쓰지 않고 job.* 성질(고용 형태·교대·산재 등급)로 고르는 공통 사건 (work.ts와 짝).
+  // 맨 끝에 둬서 기존 사건의 추첨 난수 순서를 바꾸지 않는다
+  'events/work.json': (work as unknown as EventFile).events,
 };
 
 export const EVENTS: EventDef[] = Object.values(EVENT_FILES).flat();
@@ -80,8 +84,29 @@ export const EVENT_BY_ID: Map<string, EventDef> = new Map(EVENTS.map((e) => [e.i
 export const TAGS: TagDef[] = [...(tagsJson as unknown as { tags: TagDef[] }).tags, ...CATALOG_TAGS];
 export const TAG_BY_ID: Map<string, TagDef> = new Map(TAGS.map((t) => [t.id, t]));
 
-export const JOBS: JobDef[] = (jobsJson as unknown as { jobs: JobDef[] }).jobs;
+/** data/jobs.json: 직업 정의와 분야·면허·연봉 근거 표 (표의 모양은 work.ts가 안다) */
+interface JobsFile {
+  jobs: JobDef[];
+  fields?: unknown[];
+  licenses?: unknown[];
+  sources?: Record<string, string>;
+}
+const jobsFile = jobsJson as unknown as JobsFile;
+
+export const JOBS: JobDef[] = jobsFile.jobs;
 export const JOB_BY_ID: Map<string, JobDef> = new Map(JOBS.map((j) => [j.id, j]));
+/** 분야·면허·연봉 근거 표 (work.ts가 형식을 정해 읽는다) */
+export const JOB_TABLES = {
+  fields: jobsFile.fields ?? [],
+  licenses: jobsFile.licenses ?? [],
+  sources: jobsFile.sources ?? {},
+};
+
+// 일터 사건(data/events/work.json)이 쓰는 태그: 계약·체불·산재·부업·훈련 의사 표시
+for (const tag of (work as unknown as { tags?: TagDef[] }).tags ?? []) {
+  TAGS.push(tag);
+  TAG_BY_ID.set(tag.id, tag);
+}
 
 export const REGIONS: RegionDef[] = (regionsJson as unknown as { regions: RegionDef[] }).regions;
 export const REGION_BY_ID: Map<string, RegionDef> = new Map(REGIONS.map((r) => [r.id, r]));

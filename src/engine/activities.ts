@@ -14,6 +14,7 @@ import type { ActivityDef } from './schema';
 import { ADULT_AGE, substanceActivity } from './substances';
 import { TALENT_LABEL } from './text';
 import type { Change, GameState, Npc, PendingCard } from './types';
+import { sidePoints, workTimePoints } from './work';
 
 function npcAgeOf(state: GameState, npc: Npc | undefined): number {
   return npc ? npcAge(npc, state.year) : 99;
@@ -32,8 +33,8 @@ export function timePointsFor(state: GameState): number {
   if (a <= 17) return 2;
   if (a === 18 && ch.edu.status === 'high') return 1;
   if (a >= 65) return ch.stats.health < 30 ? 3 : 5;
-  if (ch.edu.status === 'university') return 5;
-  if (ch.career.jobId) return 2;
+  if (ch.edu.status === 'university') return 5 - sidePoints(state);
+  if (ch.career.jobId) return workTimePoints(state); // 근로시간·부업에 따라 1~3 (work.ts)
   return a < 30 ? 5 : 4;
 }
 

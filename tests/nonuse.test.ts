@@ -76,6 +76,8 @@ function personAt(seed: string, age: number): GameState {
 function personFor(ev: EventDef, age: number, seed: string): GameState {
   const s = personAt(seed, age);
   const cond = ev.trigger?.if ?? '';
+  // 직장 조건: takeJob은 임용 자격(중소기업 사무직은 고졸 이상)을 보므로 학력을 갖춘다 (R-018)
+  if (cond.includes('job.employed')) s.ch.edu.degree = 'high';
   if (cond.includes('job.employed')) takeJob(s, 'sme_office');
   if (cond.includes('family.partnerAdult')) startPartner(s, rngFor(seed, 'partner'));
   if (cond.includes("edu.status == 'university'")) s.ch.edu.status = 'university';

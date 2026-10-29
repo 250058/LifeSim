@@ -2,17 +2,15 @@
 
 import { useEffect, useRef, useState, type ReactNode } from 'react';
 import { activityViews } from '../engine/activities';
-import { csatSummary, jobOpenings, jobSalary, DEGREE_LABEL, TIER_LABEL } from '../engine/career';
+import { csatSummary, DEGREE_LABEL, TIER_LABEL } from '../engine/career';
 import { REGION_BY_ID, TAG_BY_ID } from '../engine/data';
 import { formatWon, formatWonShort, HIGH_TYPE_LABEL } from '../engine/format';
 import {
-  applyForJob,
   buyHome,
   buyStocks,
   doActivity,
   homePrice,
   prepareCsat,
-  quitJob,
   repayDebt,
   sellHome,
   sellStocks,
@@ -23,6 +21,7 @@ import { npcAge, roleLabel } from '../engine/relations';
 import { annualIncome, inPrison, netWorth } from '../engine/scope';
 import { TALENT_LABEL } from '../engine/text';
 import { PERSONALITY_KEYS, type GameState, type Npc, type PersonalityKey } from '../engine/types';
+import { JobBrowser, LicensesAndTraining, Openings, WorkNow } from './CareerWork';
 import { Changes } from './GameScreen';
 import { IconClose } from './icons';
 import { ECONOMY_LABEL, GROUP_LABEL, MODE_INFO, SCHOOL_LABEL } from './labels';
@@ -298,7 +297,6 @@ function CareerSheet({ game }: { game: GameState }) {
   const c = ch.career;
   const busy = game.phase !== 'action';
   const canSeek = ch.age >= 19 && ch.military.status !== 'serving' && !inPrison(game) && !(edu.status === 'university' && !edu.onLeave && ch.age < 21);
-  const openings = canSeek ? jobOpenings(game) : [];
   const canRetake = ch.age >= 18 && ch.age <= 25 && edu.status !== 'university' && !c.jobId && !ch.flags.retake && !!edu.csat;
   return (
     <>
@@ -365,65 +363,13 @@ function CareerSheet({ game }: { game: GameState }) {
 
       <section className="group">
         <h3 className="label">일</h3>
-        {c.jobId ? (
-          <dl className="ledger">
-            <div>
-              <dt>직업</dt>
-              <dd>{c.title}</dd>
-            </div>
-            <div>
-              <dt>연봉</dt>
-              <dd className="num">{formatWon(Math.round(c.salary / 10_000) * 10_000)}</dd>
-            </div>
-            <div>
-              <dt>근속</dt>
-              <dd className="num">{c.years}년</dd>
-            </div>
-          </dl>
-        ) : (
-          <p className="plain">{ch.age < 15 ? '아직 일할 나이가 아니다.' : c.retired ? '은퇴했다.' : '지금은 일이 없다.'}</p>
-        )}
-        {c.jobId && !c.business && (
-          <div className="actions">
-            <button type="button" className="btn" disabled={busy} onClick={() => run(quitJob)}>
-              사표 내기
-            </button>
-          </div>
-        )}
-        {c.history.length > 1 && (
-          <p className="quiet">
-            지난 일: {c.history.slice(0, -1).map((h) => h.title).join(' → ')}
-          </p>
-        )}
+        {/* 고용 형태·근무·계약·부업·체불·소득 기록 (CareerWork.tsx) */}
+        <WorkNow game={game} />
       </section>
 
-      {canSeek && (
-        <section className="group">
-          <h3 className="label">올해 채용 공고</h3>
-          {openings.length === 0 ? (
-            <p className="plain">조건에 맞는 공고가 없다.</p>
-          ) : (
-            <ul className="rows">
-              {openings.map(({ job, chance }) => {
-                const applied = c.appliedThisYear.includes(job.id);
-                return (
-                  <li key={job.id}>
-                    <button type="button" className="row-btn" disabled={busy || applied} onClick={() => run((s) => applyForJob(s, job.id))}>
-                      <span className="row-main">
-                        <strong>{job.title}</strong>
-                        <span>
-                          초봉 {formatWonShort(jobSalary(job, 0, game.world.economy.priceIndex, 1))} · {job.desc ?? job.category}
-                        </span>
-                      </span>
-                      <span className="row-side num">{applied ? <span className="done">지원함</span> : <span>합격 {Math.round(chance * 100)}%</span>}</span>
-                    </button>
-                  </li>
-                );
-              })}
-            </ul>
-          )}
-        </section>
-      )}
+      {canSeek && <Openings game={game} />}
+      {canSeek && <JobBrowser game={game} />}
+      <LicensesAndTraining game={game} />
     </>
   );
 }

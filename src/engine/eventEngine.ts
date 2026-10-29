@@ -15,7 +15,7 @@
 import { evaluate, type Scope } from './conditions';
 import { EVENTS, getEvent } from './data';
 import { addImpact, BIG_IMPACT, directorFactor, fillerMinimum, updatePace } from './director';
-import { applyEffects } from './effects';
+import { applyEffects, type EffectContext } from './effects';
 import { STAGES, stageOf } from './format';
 import { rngFor, type Rng } from './rng';
 import { buildScope } from './scope';
@@ -613,7 +613,7 @@ export function chooseOption(state: GameState, displayIndex: number): void {
   const choice = ev.choices![shown.index];
   const rng = rngFor(state.seed, 'card', card.serial, 'choice', shown.index);
   const changes: Change[] = [];
-  const ec = { ctx: card.ctx, rng, changes };
+  const ec: EffectContext = { ctx: card.ctx, rng, changes };
   // 고치기 전 엔진이 대상 없이 띄운 채 저장한 카드: 지금, 카드를 띄울 때와 같은 난수 줄기로 묶는다 (R-011)
   if (!targetsReady(card.ctx, choice.effects, choice.onSuccess?.effects, choice.onFail?.effects)) {
     bindTargets(state, ev, card.ctx, targetRngOf(state, card.serial));
@@ -632,6 +632,8 @@ export function chooseOption(state: GameState, displayIndex: number): void {
       if (out.next) next = out.next;
     }
   }
+  // 사건이 주려던 직업이 임용 자격에 걸렸으면 '첫 출근' 같은 문장 대신 무산된 까닭을 보여 준다 (R-018)
+  if (ec.refusal) text = ec.refusal;
   const resultText = render(text, state, card.ctx);
   card.result = {
     choice: shown.text,

@@ -4,6 +4,7 @@ import type {
   AttrKey,
   Branch,
   Degree,
+  EmploymentType,
   HighType,
   Mode,
   NpcRole,
@@ -15,6 +16,7 @@ import type {
   TalentKey,
   Tone,
   UnivTier,
+  WorkSchedule,
 } from './types';
 
 /** 고정값 또는 [최소, 최대] 범위의 정수 */
@@ -288,6 +290,62 @@ export interface JobDef {
   listed: boolean;
   epitaph?: string;
   desc?: string;
+
+  // ── 일하는 방식 (work.ts). 모두 선택 항목이라 예전 정의도 그대로 읽힌다 ──
+
+  /** 분야 (data/jobs.json fields의 id: agri·manuf·constr …) */
+  field?: string;
+  /** 한국표준직업분류(KSCO 7차) 중분류 코드. 예: '87' 운전 및 운송 관련직 */
+  ksco?: string;
+  /** 고용 형태별 채용 비중. 처음 적은 형태가 표준이고 salary·hours는 표준 형태 기준이다 */
+  employment?: Partial<Record<EmploymentType, number>>;
+  /** 표준 형태의 주당 근로시간 */
+  hours?: number;
+  /** 근무 형태: 교대·야간·재택·현장·출장·계절·불규칙 */
+  schedule?: WorkSchedule[];
+  /** 계약직·파견으로 뽑을 때 계약 기간 (년). 없으면 2년 */
+  contractYears?: number;
+  /** 반드시 있어야 하는 면허·자격 (data/jobs.json licenses의 id) */
+  licenses?: string[];
+  /** 있으면 채용에 유리한 면허·자격 */
+  prefers?: string[];
+  /** 이 고교 유형 출신만 지원할 수 있다 */
+  highTypes?: HighType[];
+  /** 같은 분야 경력 햇수 (career.history로 센다) */
+  minExp?: number;
+  /** 경력을 세는 분야. 없으면 field */
+  expField?: string;
+  /** 작품·실적: 이 재능을 발견했어야 한다 */
+  portfolio?: TalentKey;
+  /** 이 분야 직업훈련을 마치면 학력 조건을 대신한다 */
+  training?: string;
+  /** 자영업·장비 지입으로 시작할 때 드는 돈 (2026년 원). 30%는 현금, 나머지는 사업 대출 */
+  capital?: number;
+  /** 산재 위험 등급 0~4 (사무 0 … 건설·벌목·어선 4) */
+  injury?: number;
+  /** 고객 응대가 많다 (감정노동) */
+  customer?: boolean;
+  /** 임금 체불 위험 배수 (1 = 평균, 0 = 거의 없음) */
+  arrears?: number;
+  /** 자동화 노출 0~1 */
+  automation?: number;
+  /** 부업으로 할 수 있다 */
+  side?: boolean;
+  /** 겸직이 금지된 직업 (공무원·군인·공기업 등) */
+  noSide?: boolean;
+  /**
+   * 공공 부문 결격(국가공무원법 33조: 집행유예가 끝나고 2년, 실형은 출소하고 5년)을 따르는 직업.
+   * 공무원·군인·교원과 인사규정이 이를 준용하는 공공기관. records.ts의 결격 직업 목록에 더한다 (career.ts jobBarred)
+   */
+  publicBar?: boolean;
+  /** 승진 사다리가 없는 직업 (운동선수·작가 등) */
+  flat?: boolean;
+  /** 나이 든 사람도 많이 뽑는다: 45세 이상 감점이 없다 (경비·청소·돌봄·농업·운전 등) */
+  ageFriendly?: boolean;
+  /** 취업자 규모 (천 명, 근사). 그해 공고에 얼마나 자주 나오는지를 정한다 */
+  workers?: number;
+  /** 연봉 근거 (data/jobs.json sources의 열쇠) */
+  source?: string;
 }
 
 export interface RegionDef {
