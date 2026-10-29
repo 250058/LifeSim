@@ -2,138 +2,221 @@
   "schema_version": 1,
   "repository": "250058/LifeSim",
   "current_plan_path": "docs/PLAN.md",
-  "latest_report_path": "docs/reviews/2026-10-29T18-57-14Z.md",
+  "latest_report_path": "docs/reviews/2026-10-29T19-56-38Z.md",
   "handoff_issue_number": 1,
   "initial_full_review_pending": true,
-  "last_completed_review_at": "2026-10-29T18:58:34Z",
+  "last_completed_review_at": "2026-10-29T20:11:48Z",
   "reviewed_refs": {
     "ccr-d37c47c4-qxyoxr": {
-      "base_sha": "bae61c365b31ef5ac6b01a99cac04bce6fe9c177",
-      "head_sha": "b60a6d153a5cde1c2e7f95a29eeaf7ec6dd58903",
+      "base_sha": "b60a6d153a5cde1c2e7f95a29eeaf7ec6dd58903",
+      "head_sha": "90648fb051094aedef0e368957ec483e9eceb42a",
       "review_kind": "incremental_scoped",
-      "report_path": "docs/reviews/2026-10-29T15-59-33Z.md",
-      "completed_at": "2026-10-29T16:06:34Z",
-      "scope_note": "New implementation changes in 10 files, plus previously reviewed c8e97c0 response-only overlap. Changed source, data patches, full new test file and selected callers read; no complete initial code/catalog review. No readiness request received.",
+      "report_path": "docs/reviews/2026-10-29T19-56-38Z.md",
+      "completed_at": "2026-10-29T20:11:48Z",
+      "scope_note": "27-commit/50-file change inventory and relevant patches/callers; selected sections of large work/crime/daily modules, representative data and test assertions. Not a complete full-file or full-catalog audit. Claude explicitly reports paused work and no readiness request.",
       "diff_files": [
+        "data/activities.json",
+        "data/catalog/crime.json",
         "data/catalog/medical.json",
-        "data/catalog/parenting.json",
+        "data/catalog/nutrition.json",
         "data/catalog/romance.json",
-        "data/events/high.json",
-        "data/events/midlife.json",
+        "data/events/adult.json",
+        "data/events/daily.json",
+        "data/events/disaster.json",
+        "data/events/work.json",
+        "data/events/youth.json",
+        "data/jobs.json",
+        "data/jobs/calibrate.ts",
+        "data/tags.json",
+        "docs/review/CRIME.md",
+        "docs/review/JOBS.md",
         "docs/review/RESPONSE.md",
         "src/engine/activities.ts",
-        "src/engine/catalog/parenting.ts",
+        "src/engine/career.ts",
+        "src/engine/catalog/crime.ts",
+        "src/engine/catalog/index.ts",
         "src/engine/catalog/romance.ts",
-        "src/engine/validate.ts",
-        "tests/narrative-use.test.ts"
-      ],
-      "already_reviewed_document_overlap": {
-        "sha": "c8e97c0103606dac45fb5f4339f8f46722175a94",
-        "path": "docs/review/RESPONSE.md",
-        "report_path": "docs/reviews/2026-10-29T14-57-24Z.md"
-      },
-      "full_source_reads": [
-        "tests/narrative-use.test.ts"
-      ],
-      "related_paths_read": [
-        "src/engine/activities.ts",
-        "src/engine/catalog/parenting.ts",
-        "src/engine/catalog/romance.ts",
-        "src/engine/catalog/medical.ts",
-        "src/engine/validate.ts",
-        "src/engine/substances.ts",
+        "src/engine/contraception.ts",
+        "src/engine/crime.ts",
+        "src/engine/daily.ts",
+        "src/engine/data.ts",
         "src/engine/effects.ts",
         "src/engine/eventEngine.ts",
+        "src/engine/game.ts",
+        "src/engine/heir.ts",
         "src/engine/save.ts",
-        "src/engine/types.ts",
+        "src/engine/schema.ts",
         "src/engine/scope.ts",
-        "src/engine/data.ts"
+        "src/engine/sim.ts",
+        "src/engine/substances.ts",
+        "src/engine/text.ts",
+        "src/engine/types.ts",
+        "src/engine/validate.ts",
+        "src/engine/work.ts",
+        "src/ui/CareerWork.tsx",
+        "src/ui/Sheets.tsx",
+        "tests/care.test.ts",
+        "tests/contraception.test.ts",
+        "tests/crime.test.ts",
+        "tests/daily-chain.test.ts",
+        "tests/jobs.test.ts",
+        "tests/nonuse.test.ts",
+        "tests/substances.test.ts",
+        "tests/targets.test.ts",
+        "tools/daily-stats.ts",
+        "tools/simulator/substances.ts"
+      ],
+      "already_reviewed_document_overlap": {
+        "sha": "c90a09a13a5d747fbd27878330463ac81a6debc8",
+        "path": "docs/review/RESPONSE.md",
+        "report_path": "docs/reviews/2026-10-29T15-59-33Z.md"
+      },
+      "full_source_reads": [],
+      "related_paths_read": [
+        "src/engine/career.ts",
+        "src/engine/work.ts",
+        "src/engine/crime.ts",
+        "src/engine/catalog/crime.ts",
+        "src/engine/daily.ts",
+        "src/engine/contraception.ts",
+        "src/engine/substances.ts",
+        "src/engine/eventEngine.ts",
+        "src/engine/effects.ts",
+        "src/engine/game.ts",
+        "src/engine/save.ts",
+        "src/engine/scope.ts",
+        "src/engine/heir.ts",
+        "src/engine/relations.ts",
+        "src/engine/justice.ts",
+        "src/engine/types.ts",
+        "src/engine/schema.ts",
+        "src/engine/validate.ts",
+        "src/engine/text.ts",
+        "src/engine/data.ts",
+        "src/ui/CareerWork.tsx",
+        "tools/daily-stats.ts",
+        "tools/simulator/substances.ts"
       ],
       "full_document_reads": [
         "package.json",
-        "README.md"
+        "README.md",
+        "docs/review/RESPONSE.md"
       ],
       "partial_static_scope": [
-        "Five changed data files: changed sections and representative generated cards only, not complete semantic catalog reread.",
-        "Changed engine functions and relevant payment/action/choice/save callers; not full-file reads.",
-        "Old R-006/R-019/R-020 edge fixtures and R-018 exam rerun; other previous resolutions retain prior static scope plus current suite regression.",
-        "Main README absent (404 and tree); work-head README read."
+        "Large new work/crime/daily modules: models and transition/settlement/side-income, identity/protection/repeat/recovery, time/NPC/cancel/borrow/return/save boundaries; not every line.",
+        "jobs/crime and other changed data: structure, counts, changed boundaries and representative entries; no complete semantic catalog audit.",
+        "docs/review/JOBS.md and CRIME.md: selected count/model/remaining-work and evidence sections.",
+        "Tests: selected fixtures and assertions inspected; all 13 test files executed. Optional crime-rate test skipped.",
+        "UI search/filter/paging/expanded state partially inspected; no browser execution.",
+        "Main README absent; work-head README read and stale counts recorded."
       ],
       "validation": {
         "node": "24.19.0",
         "npm": "11.9.0",
+        "package_version": "0.1.0",
+        "engine_version": "0.1.0",
+        "save_version": 1,
+        "data_sha1": "9202e23a22",
         "dependency_install": {
           "command": "npm ci --ignore-scripts",
           "exit_code": 0
         },
         "build": "passed (includes tsc --noEmit); chunk size warning",
         "bundle": {
-          "js_kb": 2037.34,
-          "js_gzip_kb": 627.82
+          "js_kb": 2446.87,
+          "js_gzip_kb": 743.62,
+          "css_kb": 20.37,
+          "css_gzip_kb": 4.96
         },
         "tests": {
-          "files": 10,
-          "passed": 245,
+          "files": 13,
+          "passed": 400,
           "failed": 0,
-          "duration_seconds": 54.91,
-          "new_narrative_use_tests": 27
+          "skipped": 1,
+          "duration_seconds": 90.27,
+          "skip_scope": "optional crime rates"
         },
         "event_validate": {
-          "events": 4526,
+          "events": 4660,
           "errors": 0,
           "warnings": 0,
           "pools": {
             "physiology": 1339,
             "medical": 1118,
-            "nutrition": 1165,
+            "nutrition": 1167,
             "romance": 335,
             "parenting": 381
           }
         },
         "reality_sim": {
-          "n": 2000,
-          "seed_prefix": "REVIEW-20261029-1559",
+          "command": "npm run sim -- --n 1200 --mode reality --seed REVIEW-1956 --out /workspace/LifeSim-1956-sim.json",
+          "n": 1200,
+          "seed_prefix": "REVIEW-1956",
           "exit_code": 0,
-          "duration_seconds": 65.218,
-          "life_expectancy": 83.661,
+          "duration_seconds": 74.451,
+          "life_expectancy": 83.37333333333333,
           "life_expectancy_ci95": [
-            83.09676357962292,
-            84.22523642037709
+            82.666075,
+            84.080591
           ],
           "checked_survival_metrics": 7,
-          "observed_event_ids": 4250,
-          "unobserved_event_ids": 276,
-          "data_sha1": "736f78d232",
-          "tfr_proxy": 0.7328501454427251,
-          "tfr_proxy_ci95": [
-            0.6797412901914354,
-            0.7859590006940148
-          ],
-          "female_count": 951,
-          "female_person_years_15_49": 33081,
-          "births": 693,
-          "mean_big_event_types_per_life": 1.0225,
+          "observed_event_ids": 4262,
+          "unobserved_event_ids": 398,
           "meaningful_situation_count": "not_measured",
-          "pass_scope": "Only the program's seven declared reality survival criteria. Cohort fertility and other dimensions are descriptive, not official calibration certification."
+          "pass_scope": "Only the seven declared survival criteria. No official multidimensional calibration or semantic reachability certification."
         },
-        "package_version": "0.1.0",
-        "save_version": 1,
+        "daily_sim": {
+          "command": "./node_modules/.bin/tsx tools/daily-stats.ts --n 200 --seed REVIEW-DAILY-1956",
+          "exit_code": 0,
+          "n": 200,
+          "seed_prefix": "REVIEW-DAILY-1956",
+          "lives_with_chain": 146,
+          "chains": 276,
+          "mean_chains_per_life": 1.38,
+          "max_chains": 6,
+          "mean_choices_per_chain": 1.64,
+          "obligations": {
+            "total": 8,
+            "returned_late": 6,
+            "returned": 1,
+            "forgotten": 1
+          },
+          "meaningful_situation_count": "not_measured"
+        },
+        "substances_sim": {
+          "command": "./node_modules/.bin/tsx tools/simulator/substances.ts --n 300 --seed REVIEW-SUBST-1956",
+          "exit_code": 0,
+          "n": 300,
+          "seed_prefix": "REVIEW-SUBST-1956",
+          "minor_use_history_observed": false,
+          "pass_scope": "Sample-level no-minor-use check only; age/sex exposure/habit/treatment metrics are descriptive, not prevalence calibration.",
+          "age40_alcohol": {
+            "male_n": 147,
+            "male_ever_percent": 99.3,
+            "female_n": 148,
+            "female_ever_percent": 100,
+            "habit_percent": 0,
+            "tag_percent": 0
+          },
+          "note": "Some tobacco age/sex cells have nonzero habit/tag values. Do not generalize alcohol zero-habit snapshots to all substances."
+        },
         "targeted_reproductions": [
-          "R-021 REVIEW-CUTDOWN-13: card success with unchanged reduction state after reload",
-          "R-022 synthetic AND/OR predicate: nonUseIssues returns zero while only use choice is visible",
-          "R-005 REVIEW-PENDING-GAMBLE-19: real base save consumed at new head changes money outcome",
-          "R-006 breakup parent identity remains wrong",
-          "R-019 conflicting legacy sentence shortened on release",
-          "R-020 old spouse contraception still transfers",
-          "R-018 successful exam correctly rejects barred appointment"
+          "R-023 REVIEW-JOB-CAPITAL-8: direct beekeeper->convenience_store loses 7,500,000 relative to explicit quit, after same-version reload.",
+          "R-024 REVIEW-CRIME-CLOSE-1: close versus postpone changes identical case k3 scheduled repeat despite unchanged offender/protection/distance.",
+          "R-020 modern owner fixed; REVIEW-LEGACY-SAME-YEAR ownerless same-age remarriage still transfers method.",
+          "R-005 old bae61c3 pending gambling choice still silently remaps on current 90648fb. Old harness output version label b60a6d1 is stale, actual worktree verified.",
+          "R-006 living unmarried parent deleted and legacy parent guessed; R-019 conflicting legacy sentence overwritten.",
+          "R-021 successful medical card with unchanged cutDown record; R-022 synthetic condition false negative.",
+          "R-018 original barred exam remains blocked.",
+          "Known U-001 side income equal in normal/prison/service fixtures; F-001 cancellation requires adjustRefused."
         ],
         "not_run": [
-          "Node 22",
-          "Actual mobile/low-end UI and storage permissions",
-          "Complete initial source and semantic catalog reachability",
-          "Official statistics/legal/jurisdiction sources",
-          "Complete cross-engine/content-version migration (one specific pending-card regression tested)",
-          "New-head drama/makjang simulation; previous run not carried forward as a pass"
+          "Complete initial source and catalog semantic coverage",
+          "All job/crime/daily constrained situation reachability and semantic repetition metrics",
+          "Actual mobile/low-end browser UI, performance and storage-permission failures",
+          "Official statistical/legal/jurisdiction/era source verification",
+          "Full versioned save migration including pending choices, parent identity, conflicting sentences and unknown contraception ownership",
+          "Drama/makjang at this head, optional crime-rate long run and real piped-output behavior"
         ]
       },
       "ready_for_review_declared": false,
@@ -141,13 +224,14 @@
       "request_comment_id": null,
       "request_comment_url": null,
       "inherited_static_evidence_reports": [
+        "docs/reviews/2026-10-29T15-59-33Z.md",
         "docs/reviews/2026-10-29T14-57-24Z.md"
       ]
     }
   },
   "observed_refs_at_handoff": {
-    "main": "7e5a712a546f9df56bd7b25a0817d4f97d1f4d5c",
-    "ccr-d37c47c4-qxyoxr": "c90a09a13a5d747fbd27878330463ac81a6debc8"
+    "main": "856b7c18c6fcbd1c57dae3cefb98ad95e7deb4a1",
+    "ccr-d37c47c4-qxyoxr": "90648fb051094aedef0e368957ec483e9eceb42a"
   },
   "partial_baseline": {
     "commit": "4ba09342a9a8880739405a67b811031e11757362",
@@ -161,140 +245,123 @@
     ],
     "validation": "static_read_only"
   },
-  "note": "Scoped code review at b60a6d1; c90a09a is acceptance documentation only. Claude explicitly read the 14:57 report and accepted remaining R-020/R-006/R-019, not completed. 276 jobs are an unverified work-branch claim; remote reviewed source has 20. Initial full review remains pending and schedule unchanged. Status check 2026-10-29T18:58:34Z: no new implementation, response or readiness request; prior reviewed scopes and execution evidence unchanged.",
+  "note": "Reviewed refs contain only the explicit completed incremental static/execution scopes. Large source/catalog and mobile/official calibration/version migration work remains partial. Publication is separate from Claude receipt and completion.",
   "remaining_initial_review_scope": [
-    "실제 모바일 브라우저의 조작·레이아웃·저장소 예외 확인",
-    "모든 사건 문장과 조건 조합의 의미·도달성 검수",
-    "공식 통계 원표 및 버전 변경 저장 이전 검증"
+    "Complete initial source and catalog semantic coverage",
+    "All job/crime/daily constrained situation reachability and semantic repetition metrics",
+    "Actual mobile/low-end browser UI, performance and storage-permission failures",
+    "Official statistical/legal/jurisdiction/era source verification",
+    "Full versioned save migration including pending choices, parent identity, conflicting sentences and unknown contraception ownership",
+    "Drama/makjang at this head, optional crime-rate long run and real piped-output behavior"
   ],
   "open_findings": [
     {
       "id": "R-005",
       "status": "partially_resolved",
-      "last_checked_sha": "b60a6d153a5cde1c2e7f95a29eeaf7ec6dd58903",
+      "last_checked_sha": "90648fb051094aedef0e368957ec483e9eceb42a",
       "report_path": "docs/reviews/2026-10-29T03-55-12Z.md",
       "claude_response_status": "partially_accepted_deferred",
       "claude_response_sha": "6a75264e6b4cf3674f22de1f0a2034603463b681",
-      "latest_evidence_report_path": "docs/reviews/2026-10-29T15-59-33Z.md",
-      "current_evidence": "Base bae61c3 age-19 gambling_spiral pending card stores choice index 0. New b60a6d1 index 0 is minor-only, adult moved to 3. Old-save selection executes minor cash outcome (5m->2m, no debt/tag) while fresh new/old code yields 5m cash+3m debt/tag. Same-version tests pass; complete version policy remains missing.",
-      "evidence_kind": "current_static_and_cross_content_version_execution",
+      "latest_evidence_report_path": "docs/reviews/2026-10-29T19-56-38Z.md",
+      "current_evidence": "Rerun at 90648fb: bae61c3 age-19 pending gambling choice index 0 maps to minor-only outcome (cash 5m->2m, no debt), while fresh current index 3 gives cash 5m+debt 3m. Stable choice identity/content migration remains missing.",
+      "evidence_kind": "current_static_and_boundary_execution",
       "priority": "P2",
       "reproduction_seed": "REVIEW-PENDING-GAMBLE-19",
       "cross_version_base_sha": "bae61c365b31ef5ac6b01a99cac04bce6fe9c177",
-      "cross_version_head_sha": "b60a6d153a5cde1c2e7f95a29eeaf7ec6dd58903"
+      "cross_version_head_sha": "90648fb051094aedef0e368957ec483e9eceb42a"
     },
     {
       "id": "R-006",
       "status": "partially_resolved",
-      "last_checked_sha": "b60a6d153a5cde1c2e7f95a29eeaf7ec6dd58903",
+      "last_checked_sha": "90648fb051094aedef0e368957ec483e9eceb42a",
       "report_path": "docs/reviews/2026-10-29T03-55-12Z.md",
       "claude_response_status": "accepted_in_progress",
       "claude_response_sha": "c90a09a13a5d747fbd27878330463ac81a6debc8",
-      "latest_evidence_report_path": "docs/reviews/2026-10-29T15-59-33Z.md",
-      "current_evidence": "Surviving unmarried parent now retained. Breakup still deletes a living parent from NPCs; modern child ID then resolves to facility, while missing-ID legacy fallback guesses a later spouse as biological parent. Reproduced with REVIEW-PARENT-BREAKUP.",
-      "evidence_kind": "current_head_rerun_of_previous_boundary_fixture",
+      "latest_evidence_report_path": "docs/reviews/2026-10-29T19-56-38Z.md",
+      "current_evidence": "Rerun at 90648fb: breakup deletes living unmarried parent n2; modern child resolves to facility, missing-ID legacy child guesses later spouse n4. Prior preserved-parent improvements remain scoped.",
+      "evidence_kind": "current_static_and_boundary_execution",
       "response_evidence_report_path": "docs/reviews/2026-10-29T15-59-33Z.md"
     },
     {
       "id": "R-010",
       "status": "partially_resolved",
-      "last_checked_sha": "b60a6d153a5cde1c2e7f95a29eeaf7ec6dd58903",
+      "last_checked_sha": "90648fb051094aedef0e368957ec483e9eceb42a",
       "report_path": "docs/reviews/2026-10-29T03-55-12Z.md",
       "claude_response_status": "accepted_in_progress",
       "claude_response_sha": "6a75264e6b4cf3674f22de1f0a2034603463b681",
-      "latest_evidence_report_path": "docs/reviews/2026-10-29T15-59-33Z.md",
-      "current_evidence": "Disposition-specific records/statistics and the reported exam appointment gate improve. Full entry-route integration is in progress, and conflicting legacy sentence state remains wrong under R-019.",
-      "evidence_kind": "unchanged_scope_and_related_regression"
+      "latest_evidence_report_path": "docs/reviews/2026-10-29T19-56-38Z.md",
+      "current_evidence": "Common appointment checks expanded in takeJob and related tests. Claude explicitly lists prison/service gaps; legacy sentence R-019 remains. All entry routes are not certified.",
+      "evidence_kind": "selected_common_gate_static_and_related_test_regression"
     },
     {
       "id": "R-019",
       "priority": "P2",
       "title": "추가 실형이 기존 수감 종료를 앞당김",
       "status": "partially_resolved",
-      "last_checked_sha": "b60a6d153a5cde1c2e7f95a29eeaf7ec6dd58903",
+      "last_checked_sha": "90648fb051094aedef0e368957ec483e9eceb42a",
       "report_path": "docs/reviews/2026-10-29T09-52-10Z.md",
       "claude_response_status": "accepted_in_progress",
       "claude_response_sha": "c90a09a13a5d747fbd27878330463ac81a6debc8",
-      "evidence_kind": "current_head_rerun_of_previous_boundary_fixture",
+      "evidence_kind": "current_static_and_boundary_execution",
       "reproduction_seed": "REVIEW-PRISON-END",
       "regression_attribution": "preexisting boundary independently verified; not attributed solely to this increment",
       "response_evidence_report_path": "docs/reviews/2026-10-29T15-59-33Z.md",
-      "latest_evidence_report_path": "docs/reviews/2026-10-29T15-59-33Z.md",
-      "current_evidence": "New additional sentence preserves/extends remaining term (35 + 13 months -> 37). Legacy save with prisonUntil=32 versus original until=35 is not reconciled on load; release overwrites the original record to 32."
+      "latest_evidence_report_path": "docs/reviews/2026-10-29T19-56-38Z.md",
+      "current_evidence": "Rerun at 90648fb: loaded prisonUntil=32 versus original record until=35 is not reconciled; release overwrites original end to 32. Prior new-sentence accumulation fix retained."
     },
     {
       "id": "R-020",
       "priority": "P2",
       "title": "이전 배우자의 피임 효과가 새 배우자에게 넘어감",
-      "status": "open",
-      "last_checked_sha": "b60a6d153a5cde1c2e7f95a29eeaf7ec6dd58903",
+      "status": "partially_resolved",
+      "last_checked_sha": "90648fb051094aedef0e368957ec483e9eceb42a",
       "report_path": "docs/reviews/2026-10-29T14-57-24Z.md",
-      "latest_evidence_report_path": "docs/reviews/2026-10-29T15-59-33Z.md",
-      "evidence_kind": "current_head_rerun_of_previous_boundary_fixture",
-      "reproduction_seed": "REVIEW-PARTNER-CONTRA",
+      "latest_evidence_report_path": "docs/reviews/2026-10-29T19-56-38Z.md",
+      "evidence_kind": "current_static_and_boundary_execution",
+      "reproduction_seed": "REVIEW-LEGACY-SAME-YEAR",
       "evidence_paths": [
         {
           "path": "src/engine/contraception.ts",
           "lines": [
-            98,
-            107
-          ]
-        },
-        {
-          "path": "src/engine/relations.ts",
-          "lines": [
-            169,
-            174
-          ]
-        },
-        {
-          "path": "data/catalog/romance.json",
-          "lines": [
-            4991,
-            4994
+            116,
+            126
           ]
         }
       ],
-      "current_evidence": "Spouse A's rom_larc persists through divorce and newly applies to B upon marriage, without B choosing that method. After reload pregnancy P is 0.000285360075 versus 0.0606375 without the old flag.",
+      "current_evidence": "Modern owner-stamped A method no longer applies to B after divorce/remarriage/reload. Legacy ownerless rom_larc since=30/until=35 and same-age remarriage to B still yields longActing risk 0.004705882352941177. AppliesNow compares since>=mate.since; unknown ownership remains unresolved.",
       "claude_response_status": "accepted_in_progress",
       "fix_direction": "Store actual method owner ID and duration/history, share lookup across pregnancy routes, preserve unknown legacy ownership instead of assigning a new spouse.",
       "claude_response_sha": "c90a09a13a5d747fbd27878330463ac81a6debc8",
-      "response_evidence_report_path": "docs/reviews/2026-10-29T15-59-33Z.md"
+      "response_evidence_report_path": "docs/reviews/2026-10-29T15-59-33Z.md",
+      "resolved_scope": "New owner-stamped records do not transfer to a new spouse; ownerless legacy saves remain unresolved."
     },
     {
       "id": "R-021",
       "priority": "P2",
       "title": "감량 성공 카드와 내부 감량 판정·기록 불일치",
       "status": "open",
-      "last_checked_sha": "b60a6d153a5cde1c2e7f95a29eeaf7ec6dd58903",
+      "last_checked_sha": "90648fb051094aedef0e368957ec483e9eceb42a",
       "report_path": "docs/reviews/2026-10-29T15-59-33Z.md",
-      "latest_evidence_report_path": "docs/reviews/2026-10-29T15-59-33Z.md",
+      "latest_evidence_report_path": "docs/reviews/2026-10-29T19-56-38Z.md",
       "reproduction_seed": "REVIEW-CUTDOWN-13",
-      "evidence_kind": "current_static_and_executed_evidence",
+      "evidence_kind": "current_static_and_boundary_execution",
       "evidence_paths": [
         {
-          "path": "data/catalog/medical.json",
+          "path": "src/engine/substances.ts",
           "lines": [
-            14308,
-            14314
+            491,
+            501
           ]
         },
         {
           "path": "src/engine/substances.ts",
           "lines": [
-            447,
-            456
-          ]
-        },
-        {
-          "path": "src/engine/substances.ts",
-          "lines": [
-            568,
-            572
+            612,
+            616
           ]
         }
       ],
-      "current_evidence": "Medical reduction check succeeds and health rises 48->50, but cutDown performs a second random check and fails: cutDownAge absent, complete alcohol record unchanged after reload. UI still reports success.",
+      "current_evidence": "Rerun REVIEW-CUTDOWN-13 at 90648fb: medical check succeeds and health 48->50, second cutDown roll fails; complete alcohol record and missing cutDownAge unchanged after reload while success text remains.",
       "claude_response_status": "not_yet_received",
       "fix_direction": "Unify action outcome, state, result text and health effects; if independent outcomes are intended, expose each without hiding reduction failure."
     },
@@ -303,49 +370,130 @@
       "priority": "P3",
       "title": "비사용 검사기의 AND/OR 조건 우선순위 오해",
       "status": "open",
-      "last_checked_sha": "b60a6d153a5cde1c2e7f95a29eeaf7ec6dd58903",
+      "last_checked_sha": "90648fb051094aedef0e368957ec483e9eceb42a",
       "report_path": "docs/reviews/2026-10-29T15-59-33Z.md",
-      "latest_evidence_report_path": "docs/reviews/2026-10-29T15-59-33Z.md",
+      "latest_evidence_report_path": "docs/reviews/2026-10-29T19-56-38Z.md",
       "reproduction_seed": "REVIEW-NONUSE-OR",
-      "evidence_kind": "synthetic_validator_fixture_and_actual_condition_engine",
+      "evidence_kind": "current_static_and_boundary_execution",
       "evidence_paths": [
         {
           "path": "src/engine/validate.ts",
           "lines": [
-            69,
-            96
+            75,
+            102
           ]
         }
       ],
-      "current_evidence": "Synthetic use condition age>=19 || heavy_drinker && smoker and non-use condition smoker: at 45 with neither flag, actual UI offers only use, but nonUseIssues returns []. Not claimed as an existing catalog forced-use scene.",
+      "current_evidence": "Rerun synthetic precedence case at 90648fb: age>=19 || heavy_drinker && smoker versus non-use smoker; age45 no flags shows only use but nonUseIssues is empty. No actual catalog forced-use case claimed.",
       "claude_response_status": "not_yet_received",
       "fix_direction": "Use shared expression AST/precedence and prove implication or mark unsupported analysis; validate against truth tables and actual visible choices."
+    },
+    {
+      "id": "R-023",
+      "priority": "P2",
+      "title": "직접 이직 시 기존 개업 자금 정산이 사라짐",
+      "reproduction_seed": "REVIEW-JOB-CAPITAL-8",
+      "evidence_paths": [
+        {
+          "path": "src/engine/career.ts",
+          "lines": [
+            472,
+            486
+          ]
+        },
+        {
+          "path": "src/engine/work.ts",
+          "lines": [
+            405,
+            417
+          ]
+        },
+        {
+          "path": "src/engine/work.ts",
+          "lines": [
+            463,
+            483
+          ]
+        }
+      ],
+      "current_evidence": "After beekeeper opens with 30m capital/70m cash, direct convenience_store hire removes capital and exit without refund; quit then hire leaves 77.5m. Both use public hiring API after identical reload. Difference 7.5m under current 25% recovery rule.",
+      "fix_direction": "Validate new appointment, then settle or explicitly retain prior contract/business/assets exactly once. Preserve assets, liabilities, arrears and exit identity independently from startWork initialization.",
+      "status": "open",
+      "last_checked_sha": "90648fb051094aedef0e368957ec483e9eceb42a",
+      "report_path": "docs/reviews/2026-10-29T19-56-38Z.md",
+      "latest_evidence_report_path": "docs/reviews/2026-10-29T19-56-38Z.md",
+      "evidence_kind": "current_static_and_executed_evidence",
+      "claude_response_status": "not_yet_received"
+    },
+    {
+      "id": "R-024",
+      "priority": "P2",
+      "title": "피해자의 대응 종료가 같은 가해자의 실제 재발 위험을 제거함",
+      "reproduction_seed": "REVIEW-CRIME-CLOSE-1",
+      "evidence_paths": [
+        {
+          "path": "data/catalog/crime.json",
+          "lines": [
+            2240,
+            2246
+          ]
+        },
+        {
+          "path": "src/engine/crime.ts",
+          "lines": [
+            1397,
+            1401
+          ]
+        },
+        {
+          "path": "src/engine/crime.ts",
+          "lines": [
+            1586,
+            1589
+          ]
+        },
+        {
+          "path": "src/engine/crime.ts",
+          "lines": [
+            1923,
+            1934
+          ]
+        }
+      ],
+      "current_evidence": "Stalking case k3/offender p3o records age33 repeat. At age31 identical reloaded revisit branches close vs postpone with no protection/distancing change: close suppresses event and repeat count remains0, postpone shows recurrence and count1.",
+      "fix_direction": "Separate player archival/notification/psychological closure from external offender risk, protection and legal case state. Preserve world outcomes and IDs; compare hazard under fixed external conditions.",
+      "status": "open",
+      "last_checked_sha": "90648fb051094aedef0e368957ec483e9eceb42a",
+      "report_path": "docs/reviews/2026-10-29T19-56-38Z.md",
+      "latest_evidence_report_path": "docs/reviews/2026-10-29T19-56-38Z.md",
+      "evidence_kind": "current_static_and_executed_evidence",
+      "claude_response_status": "not_yet_received"
     }
   ],
   "observed_refs_at_review": {
-    "main": "7e5a712a546f9df56bd7b25a0817d4f97d1f4d5c",
-    "ccr-d37c47c4-qxyoxr": "c90a09a13a5d747fbd27878330463ac81a6debc8"
+    "main": "856b7c18c6fcbd1c57dae3cefb98ad95e7deb4a1",
+    "ccr-d37c47c4-qxyoxr": "90648fb051094aedef0e368957ec483e9eceb42a"
   },
-  "latest_code_report_path": "docs/reviews/2026-10-29T15-59-33Z.md",
-  "last_completed_code_review_at": "2026-10-29T16:06:34Z",
-  "last_completed_document_review_at": "2026-10-29T16:12:16Z",
+  "latest_code_report_path": "docs/reviews/2026-10-29T19-56-38Z.md",
+  "last_completed_code_review_at": "2026-10-29T20:11:48Z",
+  "last_completed_document_review_at": "2026-10-29T20:11:48Z",
   "reviewed_document_refs": {
     "ccr-d37c47c4-qxyoxr": {
-      "base_sha": "b60a6d153a5cde1c2e7f95a29eeaf7ec6dd58903",
-      "head_sha": "c90a09a13a5d747fbd27878330463ac81a6debc8",
-      "review_kind": "claude_feedback_acceptance_only",
+      "base_sha": "c90a09a13a5d747fbd27878330463ac81a6debc8",
+      "head_sha": "90648fb051094aedef0e368957ec483e9eceb42a",
+      "review_kind": "claude_progress_response_with_code_review",
       "files": [
         "docs/review/RESPONSE.md"
       ],
-      "report_path": "docs/reviews/2026-10-29T15-59-33Z.md",
-      "completed_at": "2026-10-29T16:12:16Z",
+      "report_path": "docs/reviews/2026-10-29T19-56-38Z.md",
+      "completed_at": "2026-10-29T20:11:48Z",
       "reviewed_lines": [
-        126,
-        138
+        140,
+        157
       ],
-      "code_changes": false,
-      "execution": "not_rerun_document_only",
-      "ready_for_review": false
+      "code_changes": true,
+      "ready_for_review": false,
+      "scope_note": "New response section is scoped separately from implementation review; no readiness request."
     }
   },
   "claude_feedback_responses": [
@@ -508,6 +656,32 @@
       "implementation_verified": false,
       "ready_for_review": false,
       "report_path": "docs/reviews/2026-10-29T15-59-33Z.md"
+    },
+    {
+      "commit": "90648fb051094aedef0e368957ec483e9eceb42a",
+      "path": "docs/review/RESPONSE.md",
+      "url": "https://github.com/250058/LifeSim/blob/90648fb051094aedef0e368957ec483e9eceb42a/docs/review/RESPONSE.md#L140",
+      "observed_at": "2026-10-29T20:11:48Z",
+      "heading_time_text": "진행 기록 (19:50 UTC) — 작업 일시 중지, 준비 완료 요청 아님",
+      "report_path": "docs/reviews/2026-10-29T19-56-38Z.md",
+      "ready_for_review": false,
+      "acknowledged_report_path": null,
+      "reported_work_status": "paused_by_user_instruction",
+      "known_unfinished": [
+        "R-006",
+        "R-019",
+        "U-001 side-income/eligibility/arrears/wage boundaries",
+        "U-002 repeat report/compensation/helper boundaries",
+        "substance follow-up and simulator output claims"
+      ],
+      "independently_verified": [
+        "276 job definitions now present in pinned remote head",
+        "modern R-020 owner fix; legacy gap persists",
+        "R-006/R-019 and side-income boundary reproduced",
+        "400 tests and 7 survival checks at independent seeds",
+        "substances metrics script exists and executes despite response saying absent"
+      ],
+      "implementation_verified": "only_scopes_in_report"
     }
   ],
   "review_history": [
@@ -1133,15 +1307,152 @@
         "docs/reviews/2026-10-29T05-55-12Z.md",
         "docs/reviews/2026-10-29T09-52-10Z.md"
       ]
+    },
+    {
+      "branch": "ccr-d37c47c4-qxyoxr",
+      "base_sha": "bae61c365b31ef5ac6b01a99cac04bce6fe9c177",
+      "head_sha": "b60a6d153a5cde1c2e7f95a29eeaf7ec6dd58903",
+      "review_kind": "incremental_scoped",
+      "report_path": "docs/reviews/2026-10-29T15-59-33Z.md",
+      "completed_at": "2026-10-29T16:06:34Z",
+      "scope_note": "New implementation changes in 10 files, plus previously reviewed c8e97c0 response-only overlap. Changed source, data patches, full new test file and selected callers read; no complete initial code/catalog review. No readiness request received.",
+      "diff_files": [
+        "data/catalog/medical.json",
+        "data/catalog/parenting.json",
+        "data/catalog/romance.json",
+        "data/events/high.json",
+        "data/events/midlife.json",
+        "docs/review/RESPONSE.md",
+        "src/engine/activities.ts",
+        "src/engine/catalog/parenting.ts",
+        "src/engine/catalog/romance.ts",
+        "src/engine/validate.ts",
+        "tests/narrative-use.test.ts"
+      ],
+      "already_reviewed_document_overlap": {
+        "sha": "c8e97c0103606dac45fb5f4339f8f46722175a94",
+        "path": "docs/review/RESPONSE.md",
+        "report_path": "docs/reviews/2026-10-29T14-57-24Z.md"
+      },
+      "full_source_reads": [
+        "tests/narrative-use.test.ts"
+      ],
+      "related_paths_read": [
+        "src/engine/activities.ts",
+        "src/engine/catalog/parenting.ts",
+        "src/engine/catalog/romance.ts",
+        "src/engine/catalog/medical.ts",
+        "src/engine/validate.ts",
+        "src/engine/substances.ts",
+        "src/engine/effects.ts",
+        "src/engine/eventEngine.ts",
+        "src/engine/save.ts",
+        "src/engine/types.ts",
+        "src/engine/scope.ts",
+        "src/engine/data.ts"
+      ],
+      "full_document_reads": [
+        "package.json",
+        "README.md"
+      ],
+      "partial_static_scope": [
+        "Five changed data files: changed sections and representative generated cards only, not complete semantic catalog reread.",
+        "Changed engine functions and relevant payment/action/choice/save callers; not full-file reads.",
+        "Old R-006/R-019/R-020 edge fixtures and R-018 exam rerun; other previous resolutions retain prior static scope plus current suite regression.",
+        "Main README absent (404 and tree); work-head README read."
+      ],
+      "validation": {
+        "node": "24.19.0",
+        "npm": "11.9.0",
+        "dependency_install": {
+          "command": "npm ci --ignore-scripts",
+          "exit_code": 0
+        },
+        "build": "passed (includes tsc --noEmit); chunk size warning",
+        "bundle": {
+          "js_kb": 2037.34,
+          "js_gzip_kb": 627.82
+        },
+        "tests": {
+          "files": 10,
+          "passed": 245,
+          "failed": 0,
+          "duration_seconds": 54.91,
+          "new_narrative_use_tests": 27
+        },
+        "event_validate": {
+          "events": 4526,
+          "errors": 0,
+          "warnings": 0,
+          "pools": {
+            "physiology": 1339,
+            "medical": 1118,
+            "nutrition": 1165,
+            "romance": 335,
+            "parenting": 381
+          }
+        },
+        "reality_sim": {
+          "n": 2000,
+          "seed_prefix": "REVIEW-20261029-1559",
+          "exit_code": 0,
+          "duration_seconds": 65.218,
+          "life_expectancy": 83.661,
+          "life_expectancy_ci95": [
+            83.09676357962292,
+            84.22523642037709
+          ],
+          "checked_survival_metrics": 7,
+          "observed_event_ids": 4250,
+          "unobserved_event_ids": 276,
+          "data_sha1": "736f78d232",
+          "tfr_proxy": 0.7328501454427251,
+          "tfr_proxy_ci95": [
+            0.6797412901914354,
+            0.7859590006940148
+          ],
+          "female_count": 951,
+          "female_person_years_15_49": 33081,
+          "births": 693,
+          "mean_big_event_types_per_life": 1.0225,
+          "meaningful_situation_count": "not_measured",
+          "pass_scope": "Only the program's seven declared reality survival criteria. Cohort fertility and other dimensions are descriptive, not official calibration certification."
+        },
+        "package_version": "0.1.0",
+        "save_version": 1,
+        "targeted_reproductions": [
+          "R-021 REVIEW-CUTDOWN-13: card success with unchanged reduction state after reload",
+          "R-022 synthetic AND/OR predicate: nonUseIssues returns zero while only use choice is visible",
+          "R-005 REVIEW-PENDING-GAMBLE-19: real base save consumed at new head changes money outcome",
+          "R-006 breakup parent identity remains wrong",
+          "R-019 conflicting legacy sentence shortened on release",
+          "R-020 old spouse contraception still transfers",
+          "R-018 successful exam correctly rejects barred appointment"
+        ],
+        "not_run": [
+          "Node 22",
+          "Actual mobile/low-end UI and storage permissions",
+          "Complete initial source and semantic catalog reachability",
+          "Official statistics/legal/jurisdiction sources",
+          "Complete cross-engine/content-version migration (one specific pending-card regression tested)",
+          "New-head drama/makjang simulation; previous run not carried forward as a pass"
+        ]
+      },
+      "ready_for_review_declared": false,
+      "requested_sha": null,
+      "request_comment_id": null,
+      "request_comment_url": null,
+      "inherited_static_evidence_reports": [
+        "docs/reviews/2026-10-29T14-57-24Z.md"
+      ]
     }
   ],
   "last_live_detection": {
-    "observed_at": "2026-10-29T04:56:25Z",
-    "commit": "e019046f26a73744e0c31152fdb3079e02511c38",
-    "commit_time": "2026-10-29T04:56:22Z",
-    "source": "branch_poll",
+    "observed_at": "2026-10-29T19:56:38Z",
+    "commit": "90648fb051094aedef0e368957ec483e9eceb42a",
+    "source": "existing_review_run_branch_discovery",
     "ready_message": false,
-    "subsequent_reviewed_sha": "3d211f0346e39fe6d08eb8de958c39c52633f909"
+    "subsequent_reviewed_sha": "90648fb051094aedef0e368957ec483e9eceb42a"
   },
   "feature_proposals": [
     {
@@ -1164,15 +1475,17 @@
     {
       "id": "F-001",
       "title": "세탁 지연과 다음 날 일정",
-      "status": "accepted_in_progress",
+      "status": "partially_implemented_verified_in_scope",
       "report_path": "docs/reviews/2026-10-29T03-55-12Z.md",
       "claude_response_sha": "6a75264e6b4cf3674f22de1f0a2034603463b681",
-      "implementation_verified": false,
-      "latest_evidence_report_path": "docs/reviews/2026-10-29T15-59-33Z.md",
-      "refinement": "Pending laundry-service quote can expire/change collection schedule. Preserve garment/vendor/quote IDs, explicit re-consent, payer, due date and no duplicate handoff/payment through reload and content migration. This is a completion case of F-001, not a new proposal ID."
+      "implementation_verified": true,
+      "latest_evidence_report_path": "docs/reviews/2026-10-29T19-56-38Z.md",
+      "refinement": "Direct cancellation should not require prior NPC refusal; separate MAX_ASKS=3 computation budget from actual contacts/time; household membership from current location and independent work/sleep schedule. Extend shared state to F-002/F-004. Prior quote/version and provider requirements remain.",
+      "implementation_verification_scope": "Laundry chain, obligations, identities, time and reload tests plus n=200 descriptive run. Full completion not declared.",
+      "verified_sha": "90648fb051094aedef0e368957ec483e9eceb42a"
     }
   ],
-  "latest_response_report_path": "docs/reviews/2026-10-29T15-59-33Z.md",
+  "latest_response_report_path": "docs/reviews/2026-10-29T19-56-38Z.md",
   "document_review_history": [
     {
       "branch": "ccr-d37c47c4-qxyoxr",
@@ -1247,6 +1560,24 @@
         125
       ],
       "ready_for_review": false
+    },
+    {
+      "branch": "ccr-d37c47c4-qxyoxr",
+      "base_sha": "b60a6d153a5cde1c2e7f95a29eeaf7ec6dd58903",
+      "head_sha": "c90a09a13a5d747fbd27878330463ac81a6debc8",
+      "review_kind": "claude_feedback_acceptance_only",
+      "files": [
+        "docs/review/RESPONSE.md"
+      ],
+      "report_path": "docs/reviews/2026-10-29T15-59-33Z.md",
+      "completed_at": "2026-10-29T16:12:16Z",
+      "reviewed_lines": [
+        126,
+        138
+      ],
+      "code_changes": false,
+      "execution": "not_rerun_document_only",
+      "ready_for_review": false
     }
   ],
   "unreviewed_code_refs": {},
@@ -1259,7 +1590,7 @@
         "Official statistics and era-specific eligibility evidence",
         "Cross-engine/content-version save migration"
       ],
-      "completed_scope_record": "reviewed_refs.ccr-d37c47c4-qxyoxr",
+      "completed_scope_record": "review_history[head_sha=66b55217daf986621143d3107fcff0a3e75f469a]",
       "initial_full_review_pending": true
     },
     "ccr-d37c47c4-qxyoxr@6a75264e6b4cf3674f22de1f0a2034603463b681": {
@@ -1288,7 +1619,7 @@
     },
     "ccr-d37c47c4-qxyoxr@b60a6d153a5cde1c2e7f95a29eeaf7ec6dd58903": {
       "report_path": "docs/reviews/2026-10-29T15-59-33Z.md",
-      "completed_scope_record": "reviewed_refs.ccr-d37c47c4-qxyoxr",
+      "completed_scope_record": "review_history[head_sha=b60a6d153a5cde1c2e7f95a29eeaf7ec6dd58903]",
       "initial_full_review_pending": true,
       "pending": [
         "Complete initial source/catalog semantic review",
@@ -1298,20 +1629,33 @@
         "Full versioned save migration and pending-choice identity policy",
         "Drama/makjang at this head"
       ]
+    },
+    "ccr-d37c47c4-qxyoxr@90648fb051094aedef0e368957ec483e9eceb42a": {
+      "report_path": "docs/reviews/2026-10-29T19-56-38Z.md",
+      "completed_scope_record": "reviewed_refs.ccr-d37c47c4-qxyoxr",
+      "initial_full_review_pending": true,
+      "pending": [
+        "Complete initial source and catalog semantic coverage",
+        "All job/crime/daily constrained situation reachability and semantic repetition metrics",
+        "Actual mobile/low-end browser UI, performance and storage-permission failures",
+        "Official statistical/legal/jurisdiction/era source verification",
+        "Full versioned save migration including pending choices, parent identity, conflicting sentences and unknown contraception ownership",
+        "Drama/makjang at this head, optional crime-rate long run and real piped-output behavior"
+      ]
     }
   },
   "last_request_check": {
-    "checked_at": "2026-10-29T18:58:34Z",
+    "checked_at": "2026-10-29T20:03:49Z",
     "open_pr_count": 1,
-    "issue_comment_count": 21,
-    "last_issue_comment_id": 6504482290,
+    "issue_comment_count": 22,
+    "last_issue_comment_id": 6505734472,
     "ready_requests_found": [],
     "native_codex_review_status": "not_confirmed",
     "event_trigger_configured": false,
     "pull_requests": [
       {
         "number": 2,
-        "head_sha": "c90a09a13a5d747fbd27878330463ac81a6debc8",
+        "head_sha": "90648fb051094aedef0e368957ec483e9eceb42a",
         "conversation_comments": 0,
         "reviews": 0,
         "review_comments": 0,
@@ -1321,11 +1665,11 @@
     "branches": [
       {
         "name": "ccr-d37c47c4-qxyoxr",
-        "head_sha": "c90a09a13a5d747fbd27878330463ac81a6debc8"
+        "head_sha": "90648fb051094aedef0e368957ec483e9eceb42a"
       },
       {
         "name": "main",
-        "head_sha": "6247582c784c03e98cd7f48fa33ba4f7187bffcd"
+        "head_sha": "856b7c18c6fcbd1c57dae3cefb98ad95e7deb4a1"
       }
     ],
     "pagination": {
@@ -1338,15 +1682,14 @@
       "pr_inline_pages": 1,
       "all_complete": true
     },
-    "note": "No new implementation, response, readiness request or quota/resume notice. All 21 issue comments fetched; latest is the preceding status-report delivery. PR conversation, reviews and inline comments are empty; all lists complete in one page."
+    "note": "Fresh implementation head found but no readiness request. Response explicitly reports unfinished work and user-directed pause. No native Codex response or new quota notice."
   },
   "last_review_discovery": {
-    "observed_at": "2026-10-29T15:59:33Z",
-    "head_sha": "b60a6d153a5cde1c2e7f95a29eeaf7ec6dd58903",
+    "observed_at": "2026-10-29T19:56:38Z",
+    "head_sha": "90648fb051094aedef0e368957ec483e9eceb42a",
     "source": "normal_branch_and_PR_discovery",
     "ready_message": false,
-    "reviewed_in_report": "docs/reviews/2026-10-29T15-59-33Z.md",
-    "subsequent_document_only_head": "c90a09a13a5d747fbd27878330463ac81a6debc8"
+    "reviewed_in_report": "docs/reviews/2026-10-29T19-56-38Z.md"
   },
   "latest_user_direction_report_path": "docs/reviews/2026-10-29T06-21-52Z.md",
   "user_directives": [
@@ -1411,12 +1754,12 @@
       "number": 2,
       "url": "https://github.com/250058/LifeSim/pull/2",
       "state": "open",
-      "observed_at": "2026-10-29T18:58:34Z",
+      "observed_at": "2026-10-29T20:03:49Z",
       "head_ref": "ccr-d37c47c4-qxyoxr",
-      "head_sha": "c90a09a13a5d747fbd27878330463ac81a6debc8",
+      "head_sha": "90648fb051094aedef0e368957ec483e9eceb42a",
       "api_base_sha": "c912ea6cfc80ec91cb8d7c6b54308de8ccac9031",
-      "associated_existing_code_report": "docs/reviews/2026-10-29T15-59-33Z.md",
-      "scope_note": "Unchanged c90a09a document head; previous scoped code review at b60a6d1 retained. No new readiness request.",
+      "associated_existing_code_report": "docs/reviews/2026-10-29T19-56-38Z.md",
+      "scope_note": "Current incremental scoped review; Claude says not ready. Initial full review pending.",
       "ready_request_found": false,
       "conversation_comment_count": 0,
       "review_count": 0,
@@ -1446,11 +1789,10 @@
     "schedule_changed": false
   },
   "latest_status_report_path": "docs/reviews/2026-10-29T18-57-14Z.md",
-  "last_completed_status_check_at": "2026-10-29T18:58:34Z",
+  "last_completed_status_check_at": "2026-10-29T20:11:48Z",
   "observed_refs_at_status_check": {
-    "observed_at": "2026-10-29T18:58:34Z",
-    "main": "6247582c784c03e98cd7f48fa33ba4f7187bffcd",
-    "ccr-d37c47c4-qxyoxr": "c90a09a13a5d747fbd27878330463ac81a6debc8"
+    "main": "856b7c18c6fcbd1c57dae3cefb98ad95e7deb4a1",
+    "ccr-d37c47c4-qxyoxr": "90648fb051094aedef0e368957ec483e9eceb42a"
   },
   "status_check_history": [
     {
@@ -1604,250 +1946,250 @@
     {
       "id": "R-001",
       "status": "resolved_in_reviewed_scope",
-      "last_checked_sha": "b60a6d153a5cde1c2e7f95a29eeaf7ec6dd58903",
+      "last_checked_sha": "90648fb051094aedef0e368957ec483e9eceb42a",
       "report_path": "docs/reviews/2026-10-29T03-55-12Z.md",
       "claude_response_status": "implementation_verified_in_scope",
       "claude_response_sha": "6a75264e6b4cf3674f22de1f0a2034603463b681",
-      "latest_evidence_report_path": "docs/reviews/2026-10-29T15-59-33Z.md",
+      "latest_evidence_report_path": "docs/reviews/2026-10-29T19-56-38Z.md",
       "resolved_at": "2026-10-29T10:07:45Z",
       "resolved_sha": "6a75264e6b4cf3674f22de1f0a2034603463b681",
       "resolution_scope": "Original general-event cap, pool rejection exhaustion and >1 weight truncation fixed; full world occurrence model remains a planning gap.",
-      "regression_verified_at": "2026-10-29T16:06:34Z",
-      "current_verification_scope": "Current full test suite regression; original static review scope retained, not a new exhaustive defect rereview."
+      "regression_verified_at": "2026-10-29T20:11:48Z",
+      "current_verification_scope": "Current 13-file suite regression plus selected changed call paths. Prior resolution scope retained; not a new exhaustive static review."
     },
     {
       "id": "R-002",
       "status": "resolved_in_reviewed_scope",
-      "last_checked_sha": "b60a6d153a5cde1c2e7f95a29eeaf7ec6dd58903",
+      "last_checked_sha": "90648fb051094aedef0e368957ec483e9eceb42a",
       "report_path": "docs/reviews/2026-10-29T03-55-12Z.md",
       "claude_response_status": "implementation_verified_in_scope",
       "claude_response_sha": "6a75264e6b4cf3674f22de1f0a2034603463b681",
-      "latest_evidence_report_path": "docs/reviews/2026-10-29T15-59-33Z.md",
+      "latest_evidence_report_path": "docs/reviews/2026-10-29T19-56-38Z.md",
       "resolved_at": "2026-10-29T10:07:45Z",
       "resolved_sha": "6a75264e6b4cf3674f22de1f0a2034603463b681",
       "resolution_scope": "Original fertility/school-violence denominator conflation fixed with separated metrics and cohort-vs-period caveat; official calibration not certified.",
-      "regression_verified_at": "2026-10-29T16:06:34Z",
-      "current_verification_scope": "Current full test suite regression; original static review scope retained, not a new exhaustive defect rereview."
+      "regression_verified_at": "2026-10-29T20:11:48Z",
+      "current_verification_scope": "Current 13-file suite regression plus selected changed call paths. Prior resolution scope retained; not a new exhaustive static review."
     },
     {
       "id": "R-004",
       "status": "resolved_in_reviewed_scope",
-      "last_checked_sha": "b60a6d153a5cde1c2e7f95a29eeaf7ec6dd58903",
+      "last_checked_sha": "90648fb051094aedef0e368957ec483e9eceb42a",
       "report_path": "docs/reviews/2026-10-29T03-55-12Z.md",
       "claude_response_status": "implementation_verified_in_scope",
       "claude_response_sha": "6a75264e6b4cf3674f22de1f0a2034603463b681",
-      "latest_evidence_report_path": "docs/reviews/2026-10-29T15-59-33Z.md",
+      "latest_evidence_report_path": "docs/reviews/2026-10-29T19-56-38Z.md",
       "resolved_at": "2026-10-29T10:07:45Z",
       "resolved_sha": "6a75264e6b4cf3674f22de1f0a2034603463b681",
       "resolution_scope": "Zero factor stays zero in event and pool probability.",
-      "regression_verified_at": "2026-10-29T16:06:34Z",
-      "current_verification_scope": "Current full test suite regression; original static review scope retained, not a new exhaustive defect rereview."
+      "regression_verified_at": "2026-10-29T20:11:48Z",
+      "current_verification_scope": "Current 13-file suite regression plus selected changed call paths. Prior resolution scope retained; not a new exhaustive static review."
     },
     {
       "id": "R-007",
       "status": "resolved_in_reviewed_scope",
-      "last_checked_sha": "b60a6d153a5cde1c2e7f95a29eeaf7ec6dd58903",
+      "last_checked_sha": "90648fb051094aedef0e368957ec483e9eceb42a",
       "report_path": "docs/reviews/2026-10-29T03-55-12Z.md",
       "claude_response_status": "implementation_verified_in_scope",
       "claude_response_sha": "6a75264e6b4cf3674f22de1f0a2034603463b681",
-      "latest_evidence_report_path": "docs/reviews/2026-10-29T15-59-33Z.md",
+      "latest_evidence_report_path": "docs/reviews/2026-10-29T19-56-38Z.md",
       "resolved_at": "2026-10-29T10:07:45Z",
       "resolved_sha": "6a75264e6b4cf3674f22de1f0a2034603463b681",
       "resolution_scope": "New heir real income/pension no longer multiply inflation twice; damaged older saves remain a migration concern under R-005.",
-      "regression_verified_at": "2026-10-29T16:06:34Z",
-      "current_verification_scope": "Current full test suite regression; original static review scope retained, not a new exhaustive defect rereview."
+      "regression_verified_at": "2026-10-29T20:11:48Z",
+      "current_verification_scope": "Current 13-file suite regression plus selected changed call paths. Prior resolution scope retained; not a new exhaustive static review."
     },
     {
       "id": "R-009",
       "status": "resolved_in_reviewed_scope",
-      "last_checked_sha": "b60a6d153a5cde1c2e7f95a29eeaf7ec6dd58903",
+      "last_checked_sha": "90648fb051094aedef0e368957ec483e9eceb42a",
       "report_path": "docs/reviews/2026-10-29T03-55-12Z.md",
       "claude_response_status": "implementation_verified_in_scope",
       "claude_response_sha": "6a75264e6b4cf3674f22de1f0a2034603463b681",
-      "latest_evidence_report_path": "docs/reviews/2026-10-29T15-59-33Z.md",
+      "latest_evidence_report_path": "docs/reviews/2026-10-29T19-56-38Z.md",
       "resolved_at": "2026-10-29T10:07:45Z",
       "resolved_sha": "6a75264e6b4cf3674f22de1f0a2034603463b681",
       "resolution_scope": "Original adult tobacco entry and minor-use guard defects fixed; full jurisdiction/prescription/substance modeling still incomplete.",
-      "regression_verified_at": "2026-10-29T16:06:34Z",
-      "current_verification_scope": "Current full test suite regression; original static review scope retained, not a new exhaustive defect rereview."
+      "regression_verified_at": "2026-10-29T20:11:48Z",
+      "current_verification_scope": "Current 13-file suite regression plus selected changed call paths. Prior resolution scope retained; not a new exhaustive static review."
     },
     {
       "id": "R-003",
       "status": "resolved_in_reviewed_scope",
-      "last_checked_sha": "b60a6d153a5cde1c2e7f95a29eeaf7ec6dd58903",
+      "last_checked_sha": "90648fb051094aedef0e368957ec483e9eceb42a",
       "report_path": "docs/reviews/2026-10-29T03-55-12Z.md",
       "claude_response_status": "accepted_in_progress",
       "claude_response_sha": "361987d58154c46bcf4a554b89a5d69a95a0b274",
-      "latest_evidence_report_path": "docs/reviews/2026-10-29T15-59-33Z.md",
-      "current_evidence": "Reality default and 7 survival metrics added; n=1 infinite CI still passes. Other calibration dimensions remain incomplete.",
-      "evidence_kind": "current_static_and_executed_evidence",
+      "latest_evidence_report_path": "docs/reviews/2026-10-29T19-56-38Z.md",
+      "current_evidence": "Prior insufficient-data correction retained; current n=1200 run passes seven survival criteria. Small-sample CLI was not independently rerun this head.",
+      "evidence_kind": "previous_scoped_static_evidence_and_current_suite_sim_regression",
       "response_evidence_report_path": "docs/reviews/2026-10-29T10-53-08Z.md",
       "resolved_at": "2026-10-29T15:12:10Z",
       "resolved_sha": "bae61c365b31ef5ac6b01a99cac04bce6fe9c177",
       "resolution_scope": "n=0/1, non-finite intervals, N<200 and precision failures return insufficient rather than pass. n=1 CLI exits 3; 2,000-life reality run passes only seven declared survival checks. Official multidimensional calibration remains unverified.",
       "verification_status": "implementation_verified_in_scope",
-      "regression_verified_at": "2026-10-29T16:06:34Z",
-      "current_verification_scope": "Current full test suite regression; original static review scope retained, not a new exhaustive defect rereview."
+      "regression_verified_at": "2026-10-29T20:11:48Z",
+      "current_verification_scope": "Current 13-file suite regression plus selected changed call paths. Prior resolution scope retained; not a new exhaustive static review."
     },
     {
       "id": "R-008",
       "status": "resolved_in_reviewed_scope",
-      "last_checked_sha": "b60a6d153a5cde1c2e7f95a29eeaf7ec6dd58903",
+      "last_checked_sha": "90648fb051094aedef0e368957ec483e9eceb42a",
       "report_path": "docs/reviews/2026-10-29T03-55-12Z.md",
       "claude_response_status": "accepted_in_progress",
       "claude_response_sha": "6a75264e6b4cf3674f22de1f0a2034603463b681",
-      "latest_evidence_report_path": "docs/reviews/2026-10-29T15-59-33Z.md",
+      "latest_evidence_report_path": "docs/reviews/2026-10-29T19-56-38Z.md",
       "current_evidence": "Physiology hangover fixed; nutrition hangover still occurs without use history.",
       "evidence_kind": "current_static_and_executed_evidence",
       "resolved_at": "2026-10-29T15:12:10Z",
       "resolved_sha": "bae61c365b31ef5ac6b01a99cac04bce6fe9c177",
       "resolution_scope": "The reported nutrition hangover without alcohol history is fixed across 13 gated scenes; direct no-use reproduction is false. Annual exposure resolution and non-nutrition prose integration remain outside this resolved defect.",
       "verification_status": "implementation_verified_in_scope",
-      "regression_verified_at": "2026-10-29T16:06:34Z",
-      "current_verification_scope": "New narrative/use/payment suite and changed sections, plus original resolved scope."
+      "regression_verified_at": "2026-10-29T20:11:48Z",
+      "current_verification_scope": "Current 13-file suite regression plus selected changed call paths. Prior resolution scope retained; not a new exhaustive static review."
     },
     {
       "id": "R-011",
       "priority": "P2",
       "status": "resolved_in_reviewed_scope",
-      "last_checked_sha": "b60a6d153a5cde1c2e7f95a29eeaf7ec6dd58903",
+      "last_checked_sha": "90648fb051094aedef0e368957ec483e9eceb42a",
       "report_path": "docs/reviews/2026-10-29T04-55-12Z.md",
       "claude_response_status": "accepted_in_progress",
       "claude_response_sha": "6a75264e6b4cf3674f22de1f0a2034603463b681",
-      "latest_evidence_report_path": "docs/reviews/2026-10-29T15-59-33Z.md",
+      "latest_evidence_report_path": "docs/reviews/2026-10-29T19-56-38Z.md",
       "evidence_kind": "current_static_and_executed_evidence",
       "resolved_at": "2026-10-29T15:12:10Z",
       "resolved_sha": "bae61c365b31ef5ac6b01a99cac04bce6fe9c177",
       "resolution_scope": "Unnamed parenting cards bind one actual child ID, independent of generated names. Multiple-child and save/reload tests pass.",
       "verification_status": "implementation_verified_in_scope",
-      "regression_verified_at": "2026-10-29T16:06:34Z",
-      "current_verification_scope": "Current full test suite regression; original static review scope retained, not a new exhaustive defect rereview."
+      "regression_verified_at": "2026-10-29T20:11:48Z",
+      "current_verification_scope": "Current 13-file suite regression plus selected changed call paths. Prior resolution scope retained; not a new exhaustive static review."
     },
     {
       "id": "R-012",
       "priority": "P2",
       "status": "resolved_in_reviewed_scope",
-      "last_checked_sha": "b60a6d153a5cde1c2e7f95a29eeaf7ec6dd58903",
+      "last_checked_sha": "90648fb051094aedef0e368957ec483e9eceb42a",
       "report_path": "docs/reviews/2026-10-29T04-55-12Z.md",
       "claude_response_status": "accepted_in_progress",
       "claude_response_sha": "6a75264e6b4cf3674f22de1f0a2034603463b681",
-      "latest_evidence_report_path": "docs/reviews/2026-10-29T15-59-33Z.md",
+      "latest_evidence_report_path": "docs/reviews/2026-10-29T19-56-38Z.md",
       "evidence_kind": "current_static_and_executed_evidence",
       "resolved_at": "2026-10-29T15:12:10Z",
       "resolved_sha": "bae61c365b31ef5ac6b01a99cac04bce6fe9c177",
       "resolution_scope": "Scheduled child medical events revalidate the original ID, role, age and life state after reload; dead target is cancelled rather than replaced by a sibling.",
       "verification_status": "implementation_verified_in_scope",
-      "regression_verified_at": "2026-10-29T16:06:34Z",
-      "current_verification_scope": "Current full test suite regression; original static review scope retained, not a new exhaustive defect rereview."
+      "regression_verified_at": "2026-10-29T20:11:48Z",
+      "current_verification_scope": "Current 13-file suite regression plus selected changed call paths. Prior resolution scope retained; not a new exhaustive static review."
     },
     {
       "id": "R-013",
       "priority": "P2",
       "status": "resolved_in_reviewed_scope",
-      "last_checked_sha": "b60a6d153a5cde1c2e7f95a29eeaf7ec6dd58903",
+      "last_checked_sha": "90648fb051094aedef0e368957ec483e9eceb42a",
       "report_path": "docs/reviews/2026-10-29T04-55-12Z.md",
       "claude_response_status": "accepted_in_progress",
       "claude_response_sha": "6a75264e6b4cf3674f22de1f0a2034603463b681",
-      "latest_evidence_report_path": "docs/reviews/2026-10-29T15-59-33Z.md",
+      "latest_evidence_report_path": "docs/reviews/2026-10-29T19-56-38Z.md",
       "evidence_kind": "current_static_and_executed_evidence",
       "resolved_at": "2026-10-29T15:12:10Z",
       "resolved_sha": "bae61c365b31ef5ac6b01a99cac04bce6fe9c177",
       "resolution_scope": "Previously inert contraception methods now affect activity, pregnancy and scheduled outcomes with duration and reload tests. Newly found cross-person ownership defect is tracked separately as R-020.",
       "verification_status": "implementation_verified_in_scope",
-      "regression_verified_at": "2026-10-29T16:06:34Z",
-      "current_verification_scope": "Current full test suite regression; original static review scope retained, not a new exhaustive defect rereview."
+      "regression_verified_at": "2026-10-29T20:11:48Z",
+      "current_verification_scope": "Current 13-file suite regression plus selected changed call paths. Prior resolution scope retained; not a new exhaustive static review."
     },
     {
       "id": "R-014",
       "priority": "P2",
       "title": "음주 카드의 비사용 선택 누락",
       "status": "resolved_in_reviewed_scope",
-      "last_checked_sha": "b60a6d153a5cde1c2e7f95a29eeaf7ec6dd58903",
+      "last_checked_sha": "90648fb051094aedef0e368957ec483e9eceb42a",
       "report_path": "docs/reviews/2026-10-29T05-55-12Z.md",
       "claude_response_status": "accepted_in_progress",
       "claude_response_sha": "6a75264e6b4cf3674f22de1f0a2034603463b681",
-      "latest_evidence_report_path": "docs/reviews/2026-10-29T15-59-33Z.md",
+      "latest_evidence_report_path": "docs/reviews/2026-10-29T19-56-38Z.md",
       "evidence_kind": "current_static_and_executed_evidence",
       "resolved_at": "2026-10-29T15:12:10Z",
       "resolved_sha": "bae61c365b31ef5ac6b01a99cac04bce6fe9c177",
       "resolution_scope": "All 31 nutrition alcohol cards have non-use paths and actual use/refusal records. Wine and makgeolli refusal and age-18 rejection were reproduced.",
       "verification_status": "implementation_verified_in_scope",
-      "regression_verified_at": "2026-10-29T16:06:34Z",
-      "current_verification_scope": "New narrative/use/payment suite and changed sections, plus original resolved scope."
+      "regression_verified_at": "2026-10-29T20:11:48Z",
+      "current_verification_scope": "Current 13-file suite regression plus selected changed call paths. Prior resolution scope retained; not a new exhaustive static review."
     },
     {
       "id": "R-015",
       "priority": "P2",
       "title": "치료 유지·중단 상태 미분리",
       "status": "resolved_in_reviewed_scope",
-      "last_checked_sha": "b60a6d153a5cde1c2e7f95a29eeaf7ec6dd58903",
+      "last_checked_sha": "90648fb051094aedef0e368957ec483e9eceb42a",
       "report_path": "docs/reviews/2026-10-29T05-55-12Z.md",
       "claude_response_status": "accepted_in_progress",
       "claude_response_sha": "6a75264e6b4cf3674f22de1f0a2034603463b681",
-      "latest_evidence_report_path": "docs/reviews/2026-10-29T15-59-33Z.md",
+      "latest_evidence_report_path": "docs/reviews/2026-10-29T19-56-38Z.md",
       "evidence_kind": "current_static_and_executed_evidence",
       "resolved_at": "2026-10-29T15:12:10Z",
       "resolved_sha": "bae61c365b31ef5ac6b01a99cac04bce6fe9c177",
       "resolution_scope": "GLP-1 continuation extends until and schedules followup; stopping removes active treatment and preserves stopped state across reload.",
       "verification_status": "implementation_verified_in_scope",
-      "regression_verified_at": "2026-10-29T16:06:34Z",
-      "current_verification_scope": "Current full test suite regression; original static review scope retained, not a new exhaustive defect rereview."
+      "regression_verified_at": "2026-10-29T20:11:48Z",
+      "current_verification_scope": "Current 13-file suite regression plus selected changed call paths. Prior resolution scope retained; not a new exhaustive static review."
     },
     {
       "id": "R-016",
       "priority": "P3",
       "title": "미성년 실제 차감액과 현금 표시 불일치",
       "status": "resolved_in_reviewed_scope",
-      "last_checked_sha": "b60a6d153a5cde1c2e7f95a29eeaf7ec6dd58903",
+      "last_checked_sha": "90648fb051094aedef0e368957ec483e9eceb42a",
       "report_path": "docs/reviews/2026-10-29T05-55-12Z.md",
       "claude_response_status": "accepted_in_progress",
       "claude_response_sha": "6a75264e6b4cf3674f22de1f0a2034603463b681",
-      "latest_evidence_report_path": "docs/reviews/2026-10-29T15-59-33Z.md",
+      "latest_evidence_report_path": "docs/reviews/2026-10-29T19-56-38Z.md",
       "evidence_kind": "current_static_and_executed_evidence",
       "resolved_at": "2026-10-29T15:12:10Z",
       "resolved_sha": "bae61c365b31ef5ac6b01a99cac04bce6fe9c177",
       "resolution_scope": "Original minor actual-cash/display mismatch is fixed. 1,000 cash, rounded 2,000 meal charge displays 1,000 personal debit and 1,000 guardian share without debt. Guardian budgets and eligibility remain planned.",
       "verification_status": "implementation_verified_in_scope",
-      "regression_verified_at": "2026-10-29T16:06:34Z",
-      "current_verification_scope": "New narrative/use/payment suite and changed sections, plus original resolved scope."
+      "regression_verified_at": "2026-10-29T20:11:48Z",
+      "current_verification_scope": "Current 13-file suite regression plus selected changed call paths. Prior resolution scope retained; not a new exhaustive static review."
     },
     {
       "id": "R-017",
       "priority": "P2",
       "title": "만성질환 관리·재발의 평생 1회 제한",
       "status": "resolved_in_reviewed_scope",
-      "last_checked_sha": "b60a6d153a5cde1c2e7f95a29eeaf7ec6dd58903",
+      "last_checked_sha": "90648fb051094aedef0e368957ec483e9eceb42a",
       "report_path": "docs/reviews/2026-10-29T05-55-12Z.md",
       "claude_response_status": "accepted_in_progress",
       "claude_response_sha": "6a75264e6b4cf3674f22de1f0a2034603463b681",
-      "latest_evidence_report_path": "docs/reviews/2026-10-29T15-59-33Z.md",
+      "latest_evidence_report_path": "docs/reviews/2026-10-29T19-56-38Z.md",
       "evidence_kind": "current_static_and_executed_evidence",
       "resolved_at": "2026-10-29T15:12:10Z",
       "resolved_sha": "bae61c365b31ef5ac6b01a99cac04bce6fe9c177",
       "resolution_scope": "69 chronic care/relapse cards no longer impose once-per-life care. Cooldowns and transition-only reward tests pass; thyroid care/relapse/care reproduction works.",
       "verification_status": "implementation_verified_in_scope",
-      "regression_verified_at": "2026-10-29T16:06:34Z",
-      "current_verification_scope": "Current full test suite regression; original static review scope retained, not a new exhaustive defect rereview."
+      "regression_verified_at": "2026-10-29T20:11:48Z",
+      "current_verification_scope": "Current 13-file suite regression plus selected changed call paths. Prior resolution scope retained; not a new exhaustive static review."
     },
     {
       "id": "R-018",
       "priority": "P2",
       "title": "공무원 임용 결격 검사가 시험 사건 경로에서 우회됨",
       "status": "resolved_in_reviewed_scope",
-      "last_checked_sha": "b60a6d153a5cde1c2e7f95a29eeaf7ec6dd58903",
+      "last_checked_sha": "90648fb051094aedef0e368957ec483e9eceb42a",
       "report_path": "docs/reviews/2026-10-29T09-52-10Z.md",
       "claude_response_status": "accepted_in_progress",
       "claude_response_sha": "361987d58154c46bcf4a554b89a5d69a95a0b274",
       "evidence_kind": "current_static_and_executed_evidence",
       "reproduction_seed": "REVIEW-BAR-0",
       "response_evidence_report_path": "docs/reviews/2026-10-29T10-53-08Z.md",
-      "latest_evidence_report_path": "docs/reviews/2026-10-29T15-59-33Z.md",
+      "latest_evidence_report_path": "docs/reviews/2026-10-29T19-56-38Z.md",
       "resolved_at": "2026-10-29T15:12:10Z",
       "resolved_sha": "bae61c365b31ef5ac6b01a99cac04bce6fe9c177",
       "resolution_scope": "The reported exam appointment bypass is fixed: passing REVIEW-BAR-0 still rejects appointment; getJob effects use the common bar check. Claude's all-entry-route integration remains in progress.",
       "verification_status": "implementation_verified_in_scope",
-      "regression_verified_at": "2026-10-29T16:06:34Z",
-      "current_verification_scope": "Original exam reproduction rerun; not all appointment routes."
+      "regression_verified_at": "2026-10-29T20:11:48Z",
+      "current_verification_scope": "Original exam reproduction rerun and expanded common-appointment tests pass; prison/service and all routes not certified."
     }
   ],
   "plan_revision_history": [
@@ -1883,6 +2225,23 @@
         "Stable choice identity and content version on pending cards; explicit meaning-preserving migration, current execution-condition validation and no silent remapping or duplicate application."
       ],
       "finding": "R-005",
+      "implementation_completed": false
+    },
+    {
+      "recorded_at": "2026-10-29T20:11:48Z",
+      "report_path": "docs/reviews/2026-10-29T19-56-38Z.md",
+      "path": "docs/PLAN.md",
+      "base_main_sha": "856b7c18c6fcbd1c57dae3cefb98ad95e7deb4a1",
+      "changes": [
+        "Common job transition settlement and persistent assets/contracts; R-023",
+        "Separate victim response/archive closure from external repeat risk; R-024",
+        "F-001 direct cancellation, contact search budget versus world rules, household versus actual location and independent NPC schedule; link F-002/F-004"
+      ],
+      "findings": [
+        "R-023",
+        "R-024"
+      ],
+      "feature": "F-001",
       "implementation_completed": false
     }
   ],
@@ -1933,7 +2292,7 @@
   "latest_operations_report_path": "docs/reviews/2026-10-29T12-53-25Z.md",
   "last_operations_update_at": "2026-10-29T12:53:25Z",
   "claude_availability": {
-    "status": "working",
+    "status": "work_paused_reported",
     "monitoring_paused": false,
     "reported_at": "2026-10-29T13:51:51Z",
     "quota_resets_at": "2026-10-29T14:39:51Z",
@@ -1949,27 +2308,29 @@
     "source_comment_id": null,
     "source_note": "The user directly reported the remaining quota wait in this conversation; no GitHub source comment or provider timestamp was supplied.",
     "recorded_at": "2026-10-29T13:51:51Z",
-    "last_checked_at": "2026-10-29T18:58:34Z",
-    "note": "Recorded quota deadline elapsed before this run. The original relative 48-minute user report remains historical evidence; provider reset and exact actual work restart time are not independently known. The new Claude progress response explicitly confirms ongoing revalidation. Existing schedule was not changed.",
+    "last_checked_at": "2026-10-29T20:11:48Z",
+    "note": "Historical relative quota reset has elapsed. RESPONSE.md reports user-directed work pause, not a new quota limit. No fresh provider reset or actual planned restart timestamp. Do not infer quota or reset existing schedule.",
     "resumed_monitoring_at": "2026-10-29T14:57:24Z",
     "resume_reason": "recorded_resume_deadline_elapsed",
     "latest_work_status": {
-      "status": "fixes_and_expansion_in_progress",
-      "source_url": "https://github.com/250058/LifeSim/blob/c90a09a13a5d747fbd27878330463ac81a6debc8/docs/review/RESPONSE.md#L127",
-      "source_commit": "c90a09a13a5d747fbd27878330463ac81a6debc8",
+      "status": "paused_by_user_instruction",
+      "source_url": "https://github.com/250058/LifeSim/blob/90648fb051094aedef0e368957ec483e9eceb42a/docs/review/RESPONSE.md#L140",
+      "source_commit": "90648fb051094aedef0e368957ec483e9eceb42a",
       "source_path": "docs/review/RESPONSE.md",
-      "reported_time_text": "16:10 UTC 확인",
-      "observed_at": "2026-10-29T16:12:16Z",
+      "reported_time_text": "진행 기록 (19:50 UTC) — 작업 일시 중지, 준비 완료 요청 아님",
+      "reported_at": "2026-10-29T19:50:00Z",
+      "reported_at_precision": "heading minute; date inferred from same-day commit context",
+      "observed_at": "2026-10-29T20:11:48Z",
       "actual_work_resume_at": null,
       "ready_for_review": false
     },
     "last_status_check": {
-      "checked_at": "2026-10-29T18:58:34Z",
+      "checked_at": "2026-10-29T20:11:48Z",
       "new_quota_notice": false,
       "new_resume_notice": false,
       "monitoring_paused": false,
-      "source": "issue_1_open_pr_comments_and_unchanged_response_document",
-      "note": "Previous explicit working-status evidence retained. No new provider reset or actual work restart time; silence does not establish a fresh limit."
+      "source": "issue_1_open_pr_threads_and_pinned_response",
+      "note": "Explicit non-quota work pause stored separately. Existing quota notice preserved as historical evidence."
     }
   },
   "claude_limit_policy": {
@@ -2009,6 +2370,48 @@
       "note": "Pause full PR/commit/review-request discovery until approximately 2026-10-29T14:39:51Z, calculated as 48 minutes after recording the user message. Actual work restart time is unknown. Resume on the first existing scheduled run at or after resume_at, or on an explicit earlier resume/ready message delivered to this conversation. Do not infer current activity from quota reset alone.",
       "superseded_at": "2026-10-29T14:57:24Z",
       "transition_reason": "recorded_resume_deadline_elapsed"
+    },
+    {
+      "status": "working",
+      "monitoring_paused": false,
+      "reported_at": "2026-10-29T13:51:51Z",
+      "quota_resets_at": "2026-10-29T14:39:51Z",
+      "work_resumes_at": null,
+      "resume_at": "2026-10-29T14:39:51Z",
+      "resume_time_zone": "UTC",
+      "original_time_zone": null,
+      "resume_time_basis": "user_reported_relative_48_minutes",
+      "resume_time_text": "48분후 한도 돌아와",
+      "resume_time_certainty": "user_reported_not_independently_verified",
+      "source_type": "user_message",
+      "source_url": null,
+      "source_comment_id": null,
+      "source_note": "The user directly reported the remaining quota wait in this conversation; no GitHub source comment or provider timestamp was supplied.",
+      "recorded_at": "2026-10-29T13:51:51Z",
+      "last_checked_at": "2026-10-29T18:58:34Z",
+      "note": "Recorded quota deadline elapsed before this run. The original relative 48-minute user report remains historical evidence; provider reset and exact actual work restart time are not independently known. The new Claude progress response explicitly confirms ongoing revalidation. Existing schedule was not changed.",
+      "resumed_monitoring_at": "2026-10-29T14:57:24Z",
+      "resume_reason": "recorded_resume_deadline_elapsed",
+      "latest_work_status": {
+        "status": "fixes_and_expansion_in_progress",
+        "source_url": "https://github.com/250058/LifeSim/blob/c90a09a13a5d747fbd27878330463ac81a6debc8/docs/review/RESPONSE.md#L127",
+        "source_commit": "c90a09a13a5d747fbd27878330463ac81a6debc8",
+        "source_path": "docs/review/RESPONSE.md",
+        "reported_time_text": "16:10 UTC 확인",
+        "observed_at": "2026-10-29T16:12:16Z",
+        "actual_work_resume_at": null,
+        "ready_for_review": false
+      },
+      "last_status_check": {
+        "checked_at": "2026-10-29T18:58:34Z",
+        "new_quota_notice": false,
+        "new_resume_notice": false,
+        "monitoring_paused": false,
+        "source": "issue_1_open_pr_comments_and_unchanged_response_document",
+        "note": "Previous explicit working-status evidence retained. No new provider reset or actual work restart time; silence does not establish a fresh limit."
+      },
+      "superseded_at": "2026-10-29T20:11:48Z",
+      "transition_reason": "explicit_non_quota_work_pause_report"
     }
   ],
   "claude_report_read_history": [
