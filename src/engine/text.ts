@@ -7,7 +7,7 @@ import { REGION_BY_ID, WORLD } from './data';
 import { formatWon, HIGH_TYPE_LABEL, josa, JOSA_PATTERN, SINGLE_TO_PAIR } from './format';
 import { homePrice } from './scope';
 import { alive, guardianLabel, partnerOf, randomGiven, randomSurname, roleLabel, spouseOf } from './relations';
-import type { Effects, EventDef } from './schema';
+import type { Action, Effects, EventDef } from './schema';
 import type { Rng } from './rng';
 import type { Character, GameState, Npc, Sex, TalentKey } from './types';
 
@@ -51,6 +51,10 @@ export function effectsOf(ev: EventDef): Effects[] {
 // 연속·예약 사건은 묶인 사람을 물려받고 다시 고르지 않는다. 뜨기 직전에 그 사람이 살아 있는지, 아직 그
 // 역할인지, 사건의 자녀 나이대에 드는지 다시 본다 (R-012). 어긋나면 다른 사람으로 바꾸지 않고 취소한다.
 // 죽은 사람을 부르는 사건(부고·추모)은 역할 대신 고인(ctx.npcId, {고인})을 쓰므로 이 재검사를 받지 않는다.
+//
+// 옛 저장 (고치기 전 엔진이 만든 ctx):
+//   - 대상 없이 띄운 채 저장된 카드는 선택할 때 같은 난수 줄기로 묶고, 그래도 없으면 그 효과를 뺀다 (chooseOption).
+//   - 연인·배우자 예약은 이름만 있다. 그 이름이 지금 연인·배우자가 아니면 취소한다 (legacyLoss).
 
 export type TargetRole = 'child' | 'parent' | 'sibling' | 'friend' | 'partner' | 'spouse';
 
@@ -162,18 +166,32 @@ export function bindTargets(state: GameState, ev: EventDef, ctx: Record<string, 
  * 효과가 그 역할 전원에게 번지므로, 아니면 false (그 선택지·사건을 쓰지 않는다).
  */
 export function targetsReady(ctx: Record<string, string>, ...fxs: (Effects | undefined)[]): boolean {
-  for (const fx of fxs) {
-    let newFriend = false;
-    for (const a of fx?.do ?? []) {
-      // 새 친구를 사귀는 행동은 그 친구를 ctx에 묶는다
-      if (a.type === 'addFriend') newFriend = true;
-      const role = a.type === 'npcCloseness' ? CLOSENESS_ROLE[a.role] : undefined;
-      if (!role || !ONE_OF_MANY.has(role) || ctx[TARGET_SLOTS[role].id] !== undefined) continue;
-      if (role === 'friend' && newFriend) continue;
-      return false;
-    }
+  return fxs.every((fx) => unboundActions(ctx, fx).size === 0);
+}
+
+/** 효과 안에서 대상이 묶이지 않은 한 사람 대상 행동들 */
+function unboundActions(ctx: Record<string, string>, fx: Effects | undefined): Set<Action> {
+  const out = new Set<Action>();
+  let newFriend = false;
+  for (const a of fx?.do ?? []) {
+    // 새 친구를 사귀는 행동은 그 친구를 ctx에 묶는다
+    if (a.type === 'addFriend') newFriend = true;
+    const role = a.type === 'npcCloseness' ? CLOSENESS_ROLE[a.role] : undefined;
+    if (!role || !ONE_OF_MANY.has(role) || ctx[TARGET_SLOTS[role].id] !== undefined) continue;
+    if (role === 'friend' && newFriend) continue;
+    out.add(a);
   }
-  return true;
+  return out;
+}
+
+/**
+ * 묶이지 않은 한 사람 대상 효과를 뺀 효과 (다 묶였으면 그대로). 고치기 전 엔진이 대상 없이 띄운 채
+ * 저장한 카드에서, 묶을 사람이 끝내 없을 때 '그 역할 모두'로 번지지 않게 하는 마지막 안전장치다.
+ */
+export function onlyBound(ctx: Record<string, string>, fx: Effects | undefined): Effects | undefined {
+  const unbound = unboundActions(ctx, fx);
+  if (!fx || unbound.size === 0) return fx;
+  return { ...fx, do: fx.do!.filter((a) => !unbound.has(a)) };
 }
 
 /** 묶인 사람이 아직 그 역할인가. 연인이 그사이 배우자가 됐으면 같은 사람이다 */
@@ -186,36 +204,74 @@ const ROLE_OK: Record<TargetRole, (n: Npc) => boolean> = {
   spouse: (n) => n.role === 'spouse',
 };
 
-/** 묶인 사람 한 명이 이 사건의 대상이 될 수 없는 이유 (일기에 남길 한 문장) */
-function lostReason(state: GameState, ev: EventDef, role: TargetRole, npc: Npc | undefined, name: string): string | undefined {
+/** 물려받은 대상을 잃은 까닭. reason은 일기에 남길 한 문장, died는 그 사람이 세상을 떠났는지 */
+export interface TargetLoss {
+  name: string;
+  reason: string;
+  died: boolean;
+}
+
+/** 묶인 사람 한 명이 이 사건의 대상이 될 수 없는 까닭 */
+function lostReason(state: GameState, ev: EventDef, role: TargetRole, npc: Npc | undefined, name: string): TargetLoss | undefined {
+  const loss = (reason: string, died = false): TargetLoss => ({ name, reason, died });
   // 명단에서 빠진 사람: 헤어진 연인, 연락이 끊긴 친구
-  if (!npc) return role === 'partner' ? `${josa(name, '와/과')} 헤어졌다.` : `${josa(name, '와/과')} 연락이 끊겼다.`;
-  if (!npc.alive) return `${josa(name, '이/가')} 세상을 떠났다.`;
-  if (npc.missing) return `${josa(name, '와/과')} 연락이 닿지 않는다.`;
-  if (!ROLE_OK[role](npc)) return npc.role === 'ex' ? `${josa(name, '와/과')} 헤어졌다.` : `${josa(name, '은/는')} 이제 곁에 없다.`;
+  if (!npc) {
+    if (role === 'partner') return loss(`${josa(name, '와/과')} 헤어졌다.`);
+    return loss(role === 'spouse' ? `${josa(name, '은/는')} 이제 곁에 없다.` : `${josa(name, '와/과')} 연락이 끊겼다.`);
+  }
+  if (!npc.alive) return loss(`${josa(name, '이/가')} 세상을 떠났다.`, true);
+  if (npc.missing) return loss(`${josa(name, '와/과')} 연락이 닿지 않는다.`);
+  if (!ROLE_OK[role](npc)) return loss(npc.role === 'ex' ? `${josa(name, '와/과')} 헤어졌다.` : `${josa(name, '은/는')} 이제 곁에 없다.`);
   // 자녀는 사건의 자녀 나이대에 아직 드는가
   const range = role === 'child' ? ev.trigger?.childAge : undefined;
   if (!range) return undefined;
   const age = state.year - npc.birthYear;
-  if (age > range[1]) return `${josa(name, '은/는')} 그새 ${age}살이 됐다.`;
-  if (age < range[0]) return `${josa(name, '은/는')} 아직 ${age}살이다.`;
+  if (age > range[1]) return loss(`${josa(name, '은/는')} 그새 ${age}살이 됐다.`);
+  if (age < range[0]) return loss(`${josa(name, '은/는')} 아직 ${age}살이다.`);
+  return undefined;
+}
+
+/** 묶을 연인·배우자가 없을 때 대신 쓰는 이름 (예전 엔진도 같았다). 명단의 누구도 가리키지 않는다 */
+const STAND_IN_NAME: Partial<Record<TargetRole, string>> = { partner: '그 사람', spouse: '배우자' };
+
+/**
+ * 옛 저장의 연인·배우자 예약: id가 생기기 전에는 {연인}·{배우자} 이름만 남겼다. 그 이름이 지금 연인·배우자가
+ * 아니면 그 사람이 아니다 (사별·이별 뒤 새 사람에게 옮겨 가지 않는다). 대신 쓴 이름('그 사람')은 보지 않는다.
+ */
+function legacyLoss(state: GameState, ev: EventDef, role: TargetRole, name: string | undefined): TargetLoss | undefined {
+  if ((role !== 'partner' && role !== 'spouse') || name === undefined || name === STAND_IN_NAME[role]) return undefined;
+  const ch = state.ch;
+  const current = role === 'partner' ? [partnerOf(ch), spouseOf(ch)] : [spouseOf(ch)];
+  if (current.some((n) => n?.name === name)) return undefined;
+  const known = ch.npcs.find((n) => n.name === name && (n.role === 'partner' || n.role === 'spouse' || n.role === 'ex'));
+  return lostReason(state, ev, role, known, name);
+}
+
+/**
+ * 물려받은 대상이 아직 이 사건의 대상이 될 수 있는지 다시 본다 (R-012). 안 되면 그 까닭, 되면 undefined.
+ * 사건이 가리키지 않는 역할의 id는 보지 않는다 (예: 친구가 등장한 진료 뒤 '내 병이 깊어졌다'는 친구와 무관하다).
+ */
+export function targetProblem(state: GameState, ev: EventDef, ctx: Record<string, string>): TargetLoss | undefined {
+  for (const role of targetRolesOf(ev)) {
+    const slot = TARGET_SLOTS[role];
+    const id = ctx[slot.id];
+    const npc = id === undefined ? undefined : state.ch.npcs.find((n) => n.id === id);
+    const loss =
+      id === undefined
+        ? legacyLoss(state, ev, role, ctx[slot.name])
+        : lostReason(state, ev, role, npc, ctx[slot.name] ?? npc?.name ?? '그 사람');
+    if (loss) return loss;
+  }
   return undefined;
 }
 
 /**
- * 물려받은 대상이 아직 이 사건의 대상이 될 수 있는지 다시 본다 (R-012). 안 되면 그 이유, 되면 undefined.
- * 사건이 가리키지 않는 역할의 id는 보지 않는다 (예: 친구가 등장한 진료 뒤 '내 병이 깊어졌다'는 친구와 무관하다).
+ * 취소된 사건의 일기 한 줄. 세상을 떠난 사람이면 죽음을 새 소식처럼 다시 알리지 않고, 일어났을 장면의
+ * 제목도 꺼내지 않는다. 같은 사람 때문에 그해 여러 일이 취소돼도 이 줄은 같으므로 한 번만 남긴다 (eventEngine).
  */
-export function targetProblem(state: GameState, ev: EventDef, ctx: Record<string, string>): string | undefined {
-  for (const role of targetRolesOf(ev)) {
-    const slot = TARGET_SLOTS[role];
-    const id = ctx[slot.id];
-    if (id === undefined) continue;
-    const npc = state.ch.npcs.find((n) => n.id === id);
-    const reason = lostReason(state, ev, role, npc, ctx[slot.name] ?? npc?.name ?? '그 사람');
-    if (reason) return reason;
-  }
-  return undefined;
+export function cancelledLine(loss: TargetLoss, title: string): string {
+  if (loss.died) return `떠난 ${loss.name}의 몫으로 남아 있던 일들은 이제 오지 않는다.`;
+  return `${loss.reason} 예정됐던 일(${title})은 없던 일이 됐다.`;
 }
 
 export const TALENT_LABEL: Record<TalentKey, string> = {
@@ -325,10 +381,10 @@ export function generateCtx(
         ctx[key] = state.world.politics.ruling ?? rng.pick(WORLD.parties);
         break;
       case '연인':
-        ctx[key] = '그 사람';
+        ctx[key] = STAND_IN_NAME.partner!;
         break;
       case '배우자':
-        ctx[key] = '배우자';
+        ctx[key] = STAND_IN_NAME.spouse!;
         break;
       case '잔소리':
         ctx[key] = nagging(state);

@@ -20,7 +20,17 @@ import { STAGES, stageOf } from './format';
 import { rngFor, type Rng } from './rng';
 import { buildScope } from './scope';
 import type { CheckDef, EventDef, NextRef, PoolId } from './schema';
-import { generateCtx, render, targetProblem, targetsReady } from './text';
+import {
+  bindTargets,
+  cancelledLine,
+  generateCtx,
+  onlyBound,
+  render,
+  targetProblem,
+  targetsReady,
+  type TargetLoss,
+  type TargetRole,
+} from './text';
 import type { ActiveCard, Change, GameState, LogEntry, PendingCard, Sex } from './types';
 import { modeMultiplier } from './world';
 import { POOL_FULL_WEIGHT, POOL_IDS, poolWeights, poolYearChance } from './pools';
@@ -502,14 +512,23 @@ function diaryText(text: string, changes: Change[]): string {
   return changes.length > 0 ? `${text} (${changes.map((c) => c.text).join(', ')})` : text;
 }
 
-/** 대상이 사라져 없던 일이 된 사건: 왜 일어나지 않았는지 일기에 조용한 한 줄 (효과·횟수는 남기지 않는다) */
-function cancelledEntry(state: GameState, ev: EventDef, ctx: Record<string, string>, reason: string): LogEntry {
-  return {
-    year: state.year,
-    age: state.ch.age,
-    kind: 'system',
-    text: `${reason} 예정됐던 일(${render(ev.title, state, ctx)})은 없던 일이 됐다.`,
-  };
+/**
+ * 대상이 사라져 없던 일이 된 사건: 왜 일어나지 않았는지 일기에 조용한 한 줄 (효과·횟수는 남기지 않는다).
+ * 같은 사람이 같은 까닭으로 그해 이미 한 줄을 남겼으면 더 쓰지 않는다 (한 사람에 한 해 한 줄).
+ */
+function noteCancelled(state: GameState, ev: EventDef, ctx: Record<string, string>, loss: TargetLoss): void {
+  const text = cancelledLine(loss, render(ev.title, state, ctx));
+  const head = loss.died ? text : loss.reason;
+  for (let i = state.log.length - 1; i >= 0 && state.log[i].year === state.year; i--) {
+    const e = state.log[i];
+    if (e.kind === 'system' && e.text.startsWith(head)) return;
+  }
+  state.log.push({ year: state.year, age: state.ch.age, kind: 'system', text });
+}
+
+/** 카드의 대상 인물을 고르는 난수 줄기 (역할마다 따로) */
+function targetRngOf(state: GameState, serial: number): (role: TargetRole) => Rng {
+  return (role) => rngFor(state.seed, 'card', serial, 'target', role);
 }
 
 /**
@@ -524,7 +543,7 @@ export function presentCard(state: GameState, pending: PendingCard): boolean {
   // 다른 사람으로 바꾸지 않고 취소하고, 이유를 일기에 남긴다 (R-012)
   const lost = targetProblem(state, ev, pending.ctx);
   if (lost) {
-    state.log.push(cancelledEntry(state, ev, pending.ctx, lost));
+    noteCancelled(state, ev, pending.ctx, lost);
     return false;
   }
   const scope = buildScope(state, pending.ctx);
@@ -535,7 +554,7 @@ export function presentCard(state: GameState, pending: PendingCard): boolean {
   const rng = rngFor(state.seed, 'card', serial);
   const ctx: Record<string, string> = { ...pending.ctx };
   // 대상 인물은 문장이 아니라 사건 정의로 정한다 (R-011). 역할마다 난수 줄기를 따로 쓴다
-  generateCtx(state, ev, ctx, rng, (role) => rngFor(state.seed, 'card', serial, 'target', role));
+  generateCtx(state, ev, ctx, rng, targetRngOf(state, serial));
   // 묶을 사람이 없는 한 사람 대상 효과는 '그 역할 모두'로 번지지 않게 아예 쓰지 않는다
   if (!targetsReady(ctx, ev.effects)) return false;
 
@@ -595,8 +614,12 @@ export function chooseOption(state: GameState, displayIndex: number): void {
   const rng = rngFor(state.seed, 'card', card.serial, 'choice', shown.index);
   const changes: Change[] = [];
   const ec = { ctx: card.ctx, rng, changes };
+  // 고치기 전 엔진이 대상 없이 띄운 채 저장한 카드: 지금, 카드를 띄울 때와 같은 난수 줄기로 묶는다 (R-011)
+  if (!targetsReady(card.ctx, choice.effects, choice.onSuccess?.effects, choice.onFail?.effects)) {
+    bindTargets(state, ev, card.ctx, targetRngOf(state, card.serial));
+  }
 
-  applyEffects(state, choice.effects, ec);
+  applyEffects(state, onlyBound(card.ctx, choice.effects), ec);
   let text = choice.result ?? '';
   let next = choice.next;
   let success: boolean | undefined;
@@ -604,7 +627,7 @@ export function chooseOption(state: GameState, displayIndex: number): void {
     success = rng.chance(checkChance(state, choice.check, card.ctx));
     const out = success ? choice.onSuccess : choice.onFail;
     if (out) {
-      applyEffects(state, out.effects, ec);
+      applyEffects(state, onlyBound(card.ctx, out.effects), ec);
       if (out.text) text = out.text;
       if (out.next) next = out.next;
     }
