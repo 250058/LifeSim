@@ -1,6 +1,7 @@
 // 조건식이 읽는 값들. 사건 JSON의 trigger.if, modifiers, choices.if 에서
 // 'stats.intelligence', 'family.siblings', 'world.economy' 처럼 쓴다.
 
+import { contraceptionMethod } from './contraception';
 import { JOB_BY_ID, REGION_BY_ID } from './data';
 import { familySupport, alive, npcAge, partnerOf, spouseOf } from './relations';
 import { ELITE_HIGH, stageOf } from './format';
@@ -133,6 +134,8 @@ export function buildScope(state: GameState, ctx: Record<string, string> = {}): 
       youngestChildAge: childAges.length ? Math.min(...childAges) : -1,
       oldestChildAge: childAges.length ? Math.max(...childAges) : -1,
       fertile: Boolean(spouse) && femaleAge <= 44,
+      // 지금 짝과의 노출에 적용되는 피임 방법 (contraception.ts: 주인 확인·임신 준비 포함). pregnancy 사건이 읽는다
+      contraception: contraceptionMethod(state),
       support: familySupport(ch),
       estate: ch.family.estate,
       hiddenDebt: ch.family.hiddenDebt,

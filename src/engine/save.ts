@@ -1,6 +1,7 @@
 // 저장: 브라우저 저장소. 시크릿 창처럼 저장소가 막힌 환경에서도 게임은 돌아가야 하므로
 // 모든 읽기·쓰기를 try/catch로 감싼다.
 
+import { repairOldVasectomy } from './contraception';
 import { normalizeSubstances } from './substances';
 import type { Character, GameState, LifeSummary, Npc, NpcRole } from './types';
 
@@ -44,6 +45,8 @@ export function loadGame(storage = defaultStorage()): GameState | null {
     normalizeSubstances(state);
     // 자녀로 이어 한 판: 고치기 전의 이어하기가 만든 불가능한 가족 기록을 바로잡는다
     repairHeirFamily(state);
+    // 정관수술을 피임 습관으로만 남기던 때의 저장 (contraception.ts)
+    repairOldVasectomy(state);
     return state;
   } catch {
     return null;

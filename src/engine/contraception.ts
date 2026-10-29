@@ -14,7 +14,10 @@
 //   condom      콘돔 습관 rom_safe. 습관: 1년 뒤에도 계속 쓰는 사람이 43%뿐이라 3년 뒤 흐려진다 (게임 근사)
 //   none        기록된 방법이 없다
 // 기간은 태그의 duration(romance.json·medical.json)이 정하고 연말 결산이 지운다. 기간이 끝나면 none으로 돌아간다.
-// 사용 중인 방법은 그만두는 선택(예: 피임약을 쉬고 콘돔으로)이나 임신 준비(rom_trying)로도 멈춘다.
+// 같은 방법을 다시 고르면(장치를 새로 넣는다, 콘돔을 다시 챙기기로 한다) 그때부터 기간을 새로 잡는다 (renewsOnAdd).
+// 사용 중인 방법은 그만두는 선택(예: 피임약을 쉬고 콘돔으로)으로 끝난다. 임신 준비(rom_trying)를 고르면 되돌릴 수 있는
+// 방법을 모두 그만두고, 아이가 태어나면 피임약·장치 기록이 끝난다 (catalog/romance.ts·adult.json이 지운다).
+// 그래서 임신 준비가 끝나도 예전 방법이 저절로 돌아오지 않는다. 다시 쓰려면 다시 골라야 한다.
 //
 // 위험 배수 = 일반적인 사용(typical use)에서 첫 1년 안에 임신하는 비율 ÷ 피임하지 않을 때의 비율(85%).
 // 같은 노출이면 '방법 없음'의 확률에 이 배수를 곱한다. 1년 내내 규칙적으로 노출돼 기본 확률이 0.85인 경우
@@ -35,13 +38,19 @@
 // 질외사정·주기법, 해마다 확률로 그만두는 일(지금은 고정 기간), 주기 안의 시기.
 //
 // 누구의 방법인가: 여성 주인공의 약·장치, 남성 주인공의 정관수술, 콘돔 습관은 본인 것이라 짝이 바뀌어도 남는다.
-// 남성 주인공에게 피임약·장치는 상대가 쓰는 방법이라 그 상대에게만 해당한다. 사귀는 사이면 지금 연인과 사귀기
-// 전에 기록된 것은 세지 않는다. 배우자는 사귀기 시작한 때를 따로 저장하지 않아 기록을 그대로 센다.
+// 남성 주인공에게 피임약·장치는 상대가 쓰는 방법이라 그 상대에게만 해당한다 (검토 R-020). 기록할 때 그 상대의
+// 인물 ID를 태그에 남기고(owner), 지금 짝이 그 사람일 때만 센다. 연인이 배우자가 되어도 같은 사람이라 이어진다.
+// 주인을 남기기 전의 옛 기록은 누구 것인지 모르므로, 지금 짝과의 관계가 시작된 뒤(배우자는 혼인 뒤)의 기록만 센다.
+// 새 짝에게 예전 사람의 방법을 붙이지 않는 쪽을 골랐다. 사귈 때 시작해 결혼 뒤에도 이어 먹은 약은 그 사이 덜 세지만,
+// 옛 기록의 기간(최대 5년)이 끝나면 사라지는 차이다.
+//
+// adult.json의 pregnancy 사건은 이 파일의 판단을 조건식 값 family.contraception(scope.ts)으로 읽는다. 태그를
+// 직접 읽지 않으므로 주인 확인과 임신 준비 규칙이 활동 경로와 같다.
 //
 // 이 파일은 타입 말고는 아무것도 불러오지 않는다: data.ts → catalog/romance.ts가 이 표를 읽는데,
 // 여기서 relations.ts 같은 모듈을 부르면 data.ts로 되돌아가는 순환이 생긴다.
 
-import type { Character, GameState, Npc } from './types';
+import type { Character, FlagInfo, GameState, Npc } from './types';
 
 export type ContraMethod = 'none' | 'condom' | 'pill' | 'longActing' | 'permanent';
 
@@ -94,17 +103,74 @@ function mateOf(ch: Character): Npc | undefined {
   return live('spouse') ?? live('partner');
 }
 
+/** 태그 → 방법 */
+const METHOD_BY_FLAG = new Map(CONTRA_METHODS.filter((m) => METHOD_INFO[m].flag).map((m) => [METHOD_INFO[m].flag!, m]));
+
+/** 남성 주인공에게 이 태그는 상대가 쓰는 방법인가 (주인을 인물 ID로 남긴다) */
+function partnerUses(state: GameState, flagId: string): boolean {
+  const m = METHOD_BY_FLAG.get(flagId);
+  return m !== undefined && Boolean(METHOD_INFO[m].womanUses) && state.ch.sex === 'M';
+}
+
 /** 이 방법의 기록이 지금 짝과의 노출에 해당하는가 */
 function appliesNow(state: GameState, m: ContraMethod, mate: Npc | undefined): boolean {
   const info = METHOD_INFO[m];
   const flag = info.flag ? state.ch.flags[info.flag] : undefined;
   if (!flag) return false;
   if (info.manOnly && state.ch.sex !== 'M') return false;
-  // 남성 주인공의 피임약·장치는 상대의 것: 지금 연인과 사귀기 전 기록이면 다른 사람의 방법이다
-  if (info.womanUses && state.ch.sex === 'M' && mate?.role === 'partner' && mate.since !== undefined) {
-    return flag.since >= mate.since;
-  }
-  return true;
+  if (!partnerUses(state, info.flag!)) return true;
+  // 남성 주인공의 피임약·장치는 상대의 것: 기록한 그 사람이 지금 짝일 때만
+  if (flag.owner !== undefined) return mate?.id === flag.owner;
+  // 주인이 없는 옛 기록: 지금 짝과의 관계가 시작되기 전 기록이면 다른 사람의 것일 수 있어 세지 않는다
+  if (!mate || mate.since === undefined) return true;
+  return flag.since >= mate.since;
+}
+
+// ── 기록 남기기 (effects.ts addFlag가 부른다) ─────────────────
+
+/** 습관·사용 중인 방법: 다시 고르면 그때부터 기간을 새로 잡는다 (정관수술은 영구라 해당 없음) */
+export const RENEWABLE_FLAGS: readonly string[] = METHOD_ORDER.filter((m) => {
+  const k = METHOD_INFO[m].kind;
+  return k === 'habit' || k === 'current';
+}).map((m) => METHOD_INFO[m].flag!);
+
+/** 임신 준비를 고르거나 아이가 태어나면 끝나는 기록 */
+export const STOP_WHEN_TRYING: readonly string[] = RENEWABLE_FLAGS;
+export const STOP_AT_BIRTH: readonly string[] = METHOD_ORDER.filter((m) => METHOD_INFO[m].kind === 'current').map((m) => METHOD_INFO[m].flag!);
+
+/** 이미 있어도 다시 붙이면 기간을 새로 잡는 태그인가 */
+export function renewsOnAdd(flagId: string): boolean {
+  return RENEWABLE_FLAGS.includes(flagId);
+}
+
+/**
+ * 피임 태그를 붙일 때의 기록. 남성 주인공에게 상대가 쓰는 방법이면 지금 짝(배우자가 먼저)의 인물 ID를 남긴다.
+ * 짝이 없으면 주인을 남기지 않는다 (옛 기록처럼 읽힌다). 피임 태그가 아니면 base를 그대로 돌려준다.
+ */
+export function stampContraFlag(state: GameState, flagId: string, base: FlagInfo): FlagInfo {
+  if (!partnerUses(state, flagId)) return base;
+  const mate = mateOf(state.ch);
+  return mate ? { ...base, owner: mate.id } : base;
+}
+
+// ── 옛 저장 ─────────────────────────────────────────────
+
+/** 검토 R-013 수정 전 rom_vasectomy '수술을 받는다'의 결과 문장 (그때는 정관수술을 rom_safe로 남겼다) */
+const OLD_VASECTOMY_RESULT = '생각보다 금방 끝났다. 이틀 동안 얼음찜질을';
+
+/**
+ * 옛 저장 바로잡기: 정관수술 태그(med_vasectomy)가 생기기 전에는 rom_vasectomy에서 수술을 받아도 피임 습관
+ * (rom_safe, 5년)만 남았다. 그 카드의 기록에 수술 결과 문장이 있고 그 나이에 붙은 rom_safe가 있으면 정관수술로 바꾼다.
+ * 같은 카드의 '콘돔을 챙긴다'도 rom_safe를 남겼으므로 결과 문장으로 둘을 가른다. 기록(log)이 없으면 그대로 둔다.
+ * 고칠 것이 없으면 아무것도 하지 않으므로 몇 번을 불러도 같다.
+ */
+export function repairOldVasectomy(state: GameState): void {
+  const ch = state.ch;
+  if (ch.sex !== 'M' || ch.flags.med_vasectomy || !state.counts?.rom_vasectomy) return;
+  const entry = (state.log ?? []).find((e) => e.text?.startsWith(OLD_VASECTOMY_RESULT));
+  if (!entry) return;
+  ch.flags.med_vasectomy = { since: entry.age };
+  if (ch.flags.rom_safe?.since === entry.age) delete ch.flags.rom_safe;
 }
 
 /**
@@ -169,7 +235,8 @@ export function fecundity(womanAge: number): number {
 //   걱정 카드    = 둘의 합,  그중 두 줄 = 임신 ÷ 걱정 카드
 // 임신 여부는 노출 때 정해 카드 문맥(ctx.conceived)에 남기고, 걱정 카드는 그 결과를 따른다. 그래서 저장·재개 뒤에도
 // 같은 결과가 나온다. 문맥에 결과가 없으면(옛 저장, 콘돔이 찢어졌는데 넘어간 경우처럼 방법 없이 노출된 경로)
-// 카드의 기본 가중치 65 : 35를 쓴다.
+// 카드의 기본 가중치 65 : 35를 쓴다. 콘돔이 찢어진 카드는 그 앞에서 여성 나이의 가임력만큼만 걱정 카드로 보내고
+// 나머지는 바로 '한 줄'로 보낸다 (undecidedScareShare, catalog/romance.ts scareByAge). 그래서 그 경로도 나이를 따른다.
 
 /** 방법 없이 노출된 뒤 생긴 걱정 중 실제 임신의 비율 */
 export const SCARE_POSITIVE_SHARE = 0.35;
@@ -187,6 +254,15 @@ export function scareChance(base: number, m: ContraMethod, fertility = 1): numbe
 /** 걱정 카드 가운데 실제 임신(두 줄)의 비율 */
 export function scarePositiveShare(m: ContraMethod, fertility = 1): number {
   return scarePregnancyChance(1, m, fertility) / scareChance(1, m, fertility);
+}
+
+/**
+ * 노출 때 결과를 정해 두지 못한 경로(예: 콘돔이 찢어졌는데 넘어간 카드의 실패)에서 걱정 카드로 보낼 몫.
+ * 그 걱정 카드는 기본 가중치(두 줄 35%)를 쓰므로, 이 몫만큼만 걱정 카드로 보내고 나머지는 바로 '한 줄'로 보내면
+ * 늦어진 날짜 중 실제 임신의 비율이 이 나이·방법의 scarePositiveShare와 같아진다. 30세 이하·방법 없음이면 1.
+ */
+export function undecidedScareShare(fertility: number, m: ContraMethod = 'none'): number {
+  return scarePositiveShare(m, fertility) / SCARE_POSITIVE_SHARE;
 }
 
 /** 노출 한 번의 결과: 걱정 없음 / 임신이 아닌 걱정 / 임신 */

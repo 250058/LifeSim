@@ -15,7 +15,7 @@
 
 import type { Action, ChoiceDef, Effects, EventDef, NextRef, OutcomeDef, TagDef } from '../schema';
 import type { Sex, Tone } from '../types';
-import { conceivedIf } from '../contraception';
+import { conceivedIf, fecundity, STOP_AT_BIRTH, STOP_WHEN_TRYING, undecidedScareShare } from '../contraception';
 import { josa } from '../format';
 import { addFx, and, makeEvent, overlap, toEffects, type Fx } from './build';
 
@@ -60,6 +60,12 @@ interface Row {
    * (ctx.conceived) 그 결과를 따르고, 없으면 next의 가중치를 쓴다. 펼칠 때 셋으로 나누고 화면에는 하나만 보인다
    */
   pregnancy?: string;
+  /**
+   * 판정에 실패하면 피임 없이 노출된 한 번이다 (예: 콘돔이 찢어졌는데 넘어간다). failNext는 임신 걱정 카드여야 한다.
+   * 펼칠 때 여성 나이 구간마다 선택지를 나누고, 걱정 카드와 바로 '한 줄' 카드 사이의 가중치를 그 나이의 가임력으로 정한다
+   * (contraception.ts undecidedScareShare). 화면에는 구간 하나만 보인다
+   */
+  scareByAge?: boolean;
 }
 
 interface Phase {
@@ -218,6 +224,12 @@ function olderBy(gap: number): string {
 /** 여성 쪽 나이 (임신 가능성 판단용) */
 const WOMAN_UNDER = (n: number) => `((sex == 'F' && age <= ${n}) || (sex == 'M' && family.partnerAge <= ${n}))`;
 
+/** 여성 쪽 나이가 lo~hi (끝이 없으면 그쪽은 열려 있다) */
+function womanAgeIn(lo: number | undefined, hi: number | undefined): string {
+  const range = (v: string) => [lo !== undefined ? `${v} >= ${lo}` : '', hi !== undefined ? `${v} <= ${hi}` : ''].filter(Boolean).join(' && ');
+  return `((sex == 'F' && ${range('age')}) || (sex == 'M' && ${range('family.partnerAge')}))`;
+}
+
 /**
  * 지금 술을 마시는 사람 (substances.ts: 올해 마셨거나 습관이 남았고, 끊는 중이 아니다).
  * '술부터 줄인다'처럼 마신다고 전제하는 선택지는 이 조건 아래에만 둔다 (검토 R-008)
@@ -256,6 +268,10 @@ function effectsOf(
   if (acts?.includes('breakUp')) f = addFx(f, { add: ['rom_heartbroken'], remove: AFTER_BREAKUP });
   if (acts?.includes('divorce')) f = addFx(f, { add: ['rom_heartbroken'] });
   if (acts?.includes('marry')) f = addFx(f, { remove: AFTER_MARRY });
+  // 피임 (contraception.ts): 아이가 태어나면 피임약·장치 기록이 끝나고, 임신 준비를 고르면 되돌릴 수 있는 방법을 그만둔다.
+  // 임신 준비가 끝나도 예전 방법이 저절로 돌아오지 않는다 (다시 쓰려면 다시 고른다)
+  if (acts?.includes('haveChild')) f = addFx(f, { remove: [...STOP_AT_BIRTH] });
+  if (f?.add?.includes('rom_trying')) f = addFx(f, { remove: [...STOP_WHEN_TRYING] });
   const out: Effects = toEffects(f) ?? {};
   if (pct) out.money = { ...(out.money ?? {}), cashPct: pct };
   // 행동이 먼저다: 사귀기 시작한 뒤에 친밀도가 붙고, 헤어진 뒤의 친밀도는 아무에게도 가지 않는다.
@@ -290,6 +306,53 @@ function splitByConception(rows: Row[], where: string): Row[] {
     return { ...base, if: and(r.if, conceivedIf('unknown')) };
   });
   return [...inPlace, ...decided];
+}
+
+/** 결과를 정하지 못한 노출이 이어지는 걱정 카드와, 걱정 없이 바로 이어지는 '한 줄' 카드 */
+const SCARE_EVENT = 'rom_pregnancy_scare';
+const NEGATIVE_EVENT = 'rom_pregnancy_negative';
+
+/**
+ * scareByAge 선택지의 여성 나이 구간. 구간의 가임력은 그 안 나이(19~45세)의 평균이다.
+ * 45세를 넘으면 걱정 카드가 '임신 아님' 선택지만 보여 주므로 마지막 구간이 끝이다.
+ */
+const SCARE_AGE_BANDS: [number | undefined, number | undefined][] = [
+  [undefined, 30],
+  [31, 35],
+  [36, 39],
+  [40, 42],
+  [43, undefined],
+];
+
+/** 구간 평균 가임력 */
+function bandFecundity(lo = 19, hi = 45): number {
+  let sum = 0;
+  for (let a = lo; a <= hi; a++) sum += fecundity(a);
+  return sum / (hi - lo + 1);
+}
+
+/**
+ * 판정에 실패하면 피임 없이 노출되는 선택지(row.scareByAge)를 여성 나이 구간별로 나눈다 (검토 R-013 후속).
+ * 실패하면 걱정 카드로 갈 몫 = undecidedScareShare(구간 가임력), 나머지는 바로 '한 줄' 카드다. 걱정 카드는 결과가
+ * 정해지지 않은 문맥이라 기본 35%로 두 줄이 나오므로, 늦어진 날짜 중 실제 임신의 비율이 활동 경로의 걱정 카드와 같다.
+ * 첫 구간은 원래 자리에 두고 나머지는 뒤에 붙인다 (옛 저장에 떠 있던 카드의 선택지 번호가 그대로다).
+ */
+function splitByAge(rows: Row[], where: string): Row[] {
+  const extra: Row[] = [];
+  const inPlace = rows.map((r) => {
+    if (!r.scareByAge) return r;
+    if (!r.check || r.failNext !== SCARE_EVENT) {
+      throw new Error(`romance.json › ${where}: scareByAge 선택지는 판정이 있고 failNext가 ${SCARE_EVENT}여야 한다`);
+    }
+    const bands = SCARE_AGE_BANDS.map(([lo, hi]): Row => {
+      const share = Math.round(undecidedScareShare(bandFecundity(lo, hi)) * 1000);
+      const failNext: NextRef = share >= 1000 ? SCARE_EVENT : [{ event: SCARE_EVENT, w: share }, { event: NEGATIVE_EVENT, w: 1000 - share }];
+      return { ...r, scareByAge: undefined, if: and(r.if, womanAgeIn(lo, hi)), failNext };
+    });
+    extra.push(...bands.slice(1));
+    return bands[0];
+  });
+  return [...inPlace, ...extra];
 }
 
 function outcome(text: string, fx: Effects | undefined, next: NextRef | undefined): OutcomeDef {
@@ -496,7 +559,7 @@ export function expandRomance(data: RomanceCatalog): EventDef[] {
           cooldown: e.cooldown,
           group: e.group,
           effects: toEffects(e.fx),
-          choices: e.choices && splitByConception(e.choices, e.id).map((r) => toChoice(r)),
+          choices: e.choices && splitByAge(splitByConception(e.choices, e.id), e.id).map((r) => toChoice(r)),
           next: e.next,
         }),
       ),

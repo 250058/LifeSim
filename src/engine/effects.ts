@@ -12,6 +12,7 @@ import {
   startBusiness,
   takeJob,
 } from './career';
+import { renewsOnAdd, stampContraFlag } from './contraception';
 import { JOB_BY_ID, REGIONS, TAG_BY_ID } from './data';
 import { addImpact } from './director';
 import { formatWon, HIGH_TYPE_LABEL, josa, signedWon } from './format';
@@ -110,13 +111,17 @@ function untilFor(state: GameState, tag: TagDef | undefined): number | undefined
   return tag?.duration !== undefined ? state.ch.age + tag.duration : undefined;
 }
 
-/** 이미 있는 태그는 그대로 둔다 (기한도 새로 잡지 않는다. 치료를 이어 가려면 treat의 continue를 쓴다) */
+/**
+ * 이미 있는 태그는 그대로 둔다 (기한도 새로 잡지 않는다. 치료를 이어 가려면 treat의 continue를 쓴다).
+ * 피임 방법만 예외다: 다시 고르면 그때부터 기간을 새로 잡고, 상대가 쓰는 방법이면 그 사람을 남긴다 (contraception.ts)
+ */
 export function addFlag(state: GameState, id: string, changes: Change[]): void {
   const ch = state.ch;
-  if (ch.flags[id]) return;
+  const had = Boolean(ch.flags[id]);
+  if (had && !renewsOnAdd(id)) return;
   const tag = TAG_BY_ID.get(id);
-  ch.flags[id] = { since: ch.age, until: untilFor(state, tag) };
-  if (tag?.visible) changes.push({ text: `태그: ${tag.name}`, sign: tag.sign ?? 'info' });
+  ch.flags[id] = stampContraFlag(state, id, { since: ch.age, until: untilFor(state, tag) });
+  if (!had && tag?.visible) changes.push({ text: `태그: ${tag.name}`, sign: tag.sign ?? 'info' });
 }
 
 export function removeFlag(state: GameState, id: string, changes: Change[]): void {

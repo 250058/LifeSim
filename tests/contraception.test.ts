@@ -6,6 +6,10 @@
 // - 걱정 카드의 두 줄 비율이 노출 때의 방법을 따른다. 결과가 없는 문맥(옛 저장·콘돔 파손)은 기본 65:35
 // - 임신 준비·딩크의 기존 효과는 그대로다
 // - 기간이 지나면 기록이 사라지고 확률이 돌아온다. 저장·재개 뒤에도 같은 결과가 나온다
+// - 남성 주인공에게 상대가 쓰는 방법은 기록한 그 사람에게만 해당한다 (검토 R-020)
+// - 같은 방법을 다시 고르면 기간을 새로 잡고, 임신 준비·출산 뒤에는 예전 방법이 저절로 돌아오지 않는다
+// - 정관수술을 피임 습관으로 남기던 옛 저장을 바로잡는다
+// - 콘돔이 찢어진 날 넘어간 경로도 여성 나이의 가임력을 따른다
 
 import { describe, expect, it } from 'vitest';
 import { DATING_SCARE_CHANCE, MARRIED_PREGNANCY_CHANCE, performActivity } from '../src/engine/activities';
@@ -23,13 +27,14 @@ import {
   scareChance,
   scarePositiveShare,
   TRYING_BOOST,
+  undecidedScareShare,
   type ContraMethod,
 } from '../src/engine/contraception';
 import { getEvent, TAG_BY_ID } from '../src/engine/data';
 import { addFlag } from '../src/engine/effects';
 import { eventProbability, presentCard } from '../src/engine/eventEngine';
 import { choose, doActivity, endTurn, newGame, proceed } from '../src/engine/game';
-import { haveChild, marry, startPartner } from '../src/engine/relations';
+import { breakUp, divorce, haveChild, marry, startPartner } from '../src/engine/relations';
 import { rngFor } from '../src/engine/rng';
 import { loadGame, saveGame, type KeyValueStorage } from '../src/engine/save';
 import type { NextRef } from '../src/engine/schema';
@@ -171,9 +176,11 @@ describe('어느 방법이 적용되는가', () => {
     her.ch.flags.rom_pill_use = { since: her.ch.age - 1, until: her.ch.age + 1 };
     expect(contraceptionMethod(her)).toBe('pill');
 
-    // 배우자는 사귄 때를 따로 저장하지 않아 결혼 전 기록도 센다
+    // 주인을 남기지 않은 옛 기록: 배우자도 혼인 뒤 기록만 센다 (새 짝에게 예전 사람의 방법을 붙이지 않는다)
     const husband = couple('HOLDER-M2', { sex: 'M', married: true });
     husband.ch.flags.rom_larc = { since: husband.ch.age - 2, until: husband.ch.age + 3 };
+    expect(contraceptionMethod(husband)).toBe('none');
+    husband.ch.flags.rom_larc = { since: husband.ch.age, until: husband.ch.age + 5 };
     expect(contraceptionMethod(husband)).toBe('longActing');
   });
 
@@ -539,6 +546,233 @@ describe('저장과 재개', () => {
     expect(def.next).toEqual([
       { event: 'rom_pregnancy_negative', w: 65 },
       { event: 'rom_pregnancy_positive', w: 35 },
+    ]);
+  });
+});
+
+/** 카드를 띄우고 글자(앞부분)로 선택지를 고른 뒤 카드를 닫는다 */
+function pickText(s: GameState, eventId: string, text: string): void {
+  expect(presentCard(s, { eventId, ctx: {} }), eventId).toBe(true);
+  const i = s.card!.choices.findIndex((c) => c.text.startsWith(text));
+  expect(i, `${eventId}: ${text}`).toBeGreaterThanOrEqual(0);
+  choose(s, i);
+  s.card = undefined;
+}
+
+/** 한 해 뒤로 (사건 없이 나이만) */
+function ageOneYear(s: GameState): void {
+  s.ch.age += 1;
+  s.year += 1;
+  s.world.year = s.year;
+}
+
+describe('누구의 방법인가 (검토 R-020)', () => {
+  const ev = getEvent('pregnancy');
+
+  it('이혼한 배우자의 장치가 새 배우자에게 붙지 않는다: 활동 경로와 pregnancy 사건이 같다', () => {
+    // 검토 재현: 남성 주인공이 배우자 A와 산후 상담에서 장치를 고르고, 이혼한 뒤 B와 사귀다 결혼한다
+    const s = couple('REVIEW-PARTNER-CONTRA', { sex: 'M', married: true });
+    const a = s.ch.npcs.find((n) => n.role === 'spouse')!;
+    haveChild(s, rngFor('x', 'kid')).birthYear = s.year;
+    pickText(s, 'rom_family_planning', '다음 진료에 같이');
+    expect(s.ch.flags.rom_larc.owner).toBe(a.id);
+    expect(contraceptionMethod(s)).toBe('longActing');
+    divorce(s);
+    ageOneYear(s);
+    startPartner(s, rngFor('x', 'B')).birthYear = s.year - 30;
+    expect(contraceptionMethod(s)).toBe('none');
+    marry(s);
+    expect(contraceptionMethod(s)).toBe('none');
+    expect(pregnancyRisk(s)).toBe(1);
+    const control = structuredClone(s);
+    delete control.ch.flags.rom_larc;
+    expect(eventProbability(ev, s).P).toBe(eventProbability(ev, control).P);
+  });
+
+  it('같은 해에 연인이 바뀌어도 예전 연인의 피임약은 새 연인의 것이 아니다', () => {
+    const t = couple('SAME-YEAR', { sex: 'M' });
+    addFlag(t, 'rom_pill_use', []);
+    expect(contraceptionMethod(t)).toBe('pill');
+    breakUp(t);
+    startPartner(t, rngFor('x', 'B2')).birthYear = t.year - 30;
+    expect(contraceptionMethod(t)).toBe('none');
+    // 모텔·해피타임도 같은 판단: 같은 노출에서 기록이 없을 때와 같은 카드가 걸린다
+    for (let i = 0; i < 200; i++) {
+      const a = structuredClone(t);
+      a.seed = `SAME-YEAR-${i}`;
+      const b = structuredClone(a);
+      delete b.ch.flags.rom_pill_use;
+      performActivity(a, 'happytime');
+      performActivity(b, 'happytime');
+      expect(a.queue).toEqual(b.queue);
+    }
+  });
+
+  it('연인일 때 시작한 약은 그 사람과 결혼해도 이어진다. 여성 주인공의 약은 짝이 바뀌어도 본인 것이다', () => {
+    const s = couple('PILL-THEN-MARRY', { sex: 'M' });
+    pickText(s, 'rom_pill_partner', '다음 진료에 같이 가자고 한다');
+    ageOneYear(s);
+    marry(s);
+    expect(contraceptionMethod(s)).toBe('pill');
+    const none = structuredClone(s);
+    delete none.ch.flags.rom_pill_use;
+    expect(eventProbability(ev, s).m / eventProbability(ev, none).m).toBeCloseTo(methodRisk('pill'), 3);
+
+    const her = couple('HER-PILL', { sex: 'F' });
+    pickText(her, 'rom_pill', '피임약을 먹기 시작한다');
+    expect(her.ch.flags.rom_pill_use.owner).toBeUndefined();
+    breakUp(her);
+    startPartner(her, rngFor('x', 'new')).birthYear = her.year - 30;
+    expect(contraceptionMethod(her)).toBe('pill');
+  });
+
+  it('주인이 기록된 방법도 저장했다 불러오면 그대로다', () => {
+    const storage = memoryStorage();
+    const s = couple('OWNER-SAVE', { sex: 'M', married: true });
+    addFlag(s, 'rom_larc', []);
+    saveGame(s, storage);
+    const loaded = loadGame(storage)!;
+    expect(loaded.ch.flags.rom_larc).toEqual(s.ch.flags.rom_larc);
+    expect(contraceptionMethod(loaded)).toBe('longActing');
+  });
+});
+
+describe('다시 고르기와 멈춘 방법', () => {
+  it('같은 방법을 다시 고르면 기간을 새로 잡는다 (돈을 내고 넣은 장치가 1년 만에 끝나지 않는다)', () => {
+    const s = couple('RENEW', { sex: 'F', married: true, age: 34 });
+    s.ch.flags.rom_larc = { since: 30, until: 35 };
+    haveChild(s, rngFor('x', 'k')).birthYear = s.year;
+    pickText(s, 'rom_family_planning', '자궁 내 장치를 하기로 한다');
+    expect(s.ch.flags.rom_larc).toEqual({ since: 34, until: 39 });
+
+    const c = couple('RENEW-SAFE', { sex: 'M' });
+    c.ch.flags.rom_safe = { since: 28, until: 31 };
+    pickText(c, 'rom_condom', '당당하게 계산한다');
+    expect(c.ch.flags.rom_safe).toEqual({ since: 30, until: 33 });
+
+    // 피임이 아닌 태그는 예전처럼 처음 붙은 때를 지킨다
+    const other = couple('NO-RENEW', { sex: 'F' });
+    other.ch.flags.rom_long_distance = { since: 29, until: 31 };
+    addFlag(other, 'rom_long_distance', []);
+    expect(other.ch.flags.rom_long_distance).toEqual({ since: 29, until: 31 });
+  });
+
+  it('임신 준비를 고르면 되돌릴 수 있는 방법을 그만두고, 준비가 끝나도 저절로 돌아오지 않는다', () => {
+    const s = couple('PAUSE', { sex: 'F', married: true });
+    addFlag(s, 'rom_pill_use', []);
+    addFlag(s, 'rom_safe', []);
+    pickText(s, 'rom_baby_plan', '임신 전 검사를 함께 받는다');
+    expect(s.ch.flags.rom_trying).toBeDefined();
+    expect(s.ch.flags.rom_pill_use).toBeUndefined();
+    expect(s.ch.flags.rom_safe).toBeUndefined();
+    delete s.ch.flags.rom_trying;
+    expect(contraceptionMethod(s)).toBe('none');
+    // 정관수술은 영구라 그대로다
+    const m = couple('PAUSE-VAS', { sex: 'M', married: true });
+    addFlag(m, 'med_vasectomy', []);
+    pickText(m, 'rom_baby_plan', '임신 전 검사를 함께 받는다');
+    expect(contraceptionMethod(m)).toBe('permanent');
+  });
+
+  it('아이가 태어나면 피임약·장치 기록이 끝난다 (콘돔 습관은 남는다)', () => {
+    const s = couple('BIRTH', { sex: 'F', married: true });
+    addFlag(s, 'rom_pill_use', []);
+    addFlag(s, 'rom_safe', []);
+    expect(presentCard(s, { eventId: 'pregnancy', ctx: {} })).toBe(true);
+    choose(s, 0);
+    expect(s.ch.npcs.filter((n) => n.role === 'child').length).toBe(1);
+    expect(s.ch.flags.rom_pill_use).toBeUndefined();
+    expect(s.ch.flags.rom_safe).toBeDefined();
+
+    const r = couple('BIRTH-ROM', { sex: 'M', married: true });
+    addFlag(r, 'rom_larc', []);
+    pickText(r, 'rom_pregnancy_positive', '');
+    expect(r.ch.npcs.filter((n) => n.role === 'child').length).toBe(1);
+    expect(r.ch.flags.rom_larc).toBeUndefined();
+  });
+});
+
+describe('옛 저장: 정관수술을 피임 습관으로 남기던 때', () => {
+  /** b2f7384 전 rom_vasectomy를 본 40세 남성의 저장 */
+  function oldSave(seed: string, result: string): GameState {
+    const s = couple(seed, { sex: 'M', married: true, age: 40 });
+    s.counts.rom_vasectomy = 1;
+    s.lastAge.rom_vasectomy = 40;
+    s.ch.flags.rom_safe = { since: 40, until: 45 };
+    s.log.push({ year: s.year, age: 40, kind: 'event', title: '이제 내 차례', text: result });
+    return s;
+  }
+
+  it('수술을 받은 기록이면 정관수술로 바꾸고, 수술 카드가 다시 오지 않는다', () => {
+    const storage = memoryStorage();
+    saveGame(oldSave('OLD-VAS', '생각보다 금방 끝났다. 이틀 동안 얼음찜질을 하며 소파에 누워 있었다. 그 이틀 동안 지은은 아주 다정했다.'), storage);
+    const loaded = loadGame(storage)!;
+    expect(loaded.ch.flags.med_vasectomy).toEqual({ since: 40 });
+    expect(loaded.ch.flags.rom_safe).toBeUndefined();
+    expect(contraceptionMethod(loaded)).toBe('permanent');
+    for (const k of [1, 2]) haveChild(loaded, rngFor('OLD-VAS', 'kid', k)).birthYear = loaded.year - 2 * k;
+    expect(presentCard(structuredClone(loaded), { eventId: 'med_vasectomy', ctx: {} })).toBe(false);
+    expect(presentCard(structuredClone(loaded), { eventId: 'rom_vasectomy', ctx: {} })).toBe(false);
+    // 다시 저장·불러오기를 해도 같다
+    saveGame(loaded, storage);
+    expect(loadGame(storage)).toEqual(loaded);
+  });
+
+  it('콘돔을 고른 기록이면 그대로 둔다', () => {
+    const storage = memoryStorage();
+    const s = oldSave('OLD-CONDOM', '협탁 서랍을 채워 두었다. 책임은 나눠 지는 거였다.');
+    saveGame(s, storage);
+    const loaded = loadGame(storage)!;
+    expect(loaded).toEqual(s);
+    expect(contraceptionMethod(loaded)).toBe('condom');
+  });
+});
+
+describe('콘돔이 찢어진 날 (rom_emergency_pill)', () => {
+  const ev = getEvent('rom_emergency_pill');
+
+  it('사후피임약을 받은 선택지는 앞으로도 콘돔을 챙긴다고 말하고, 그 습관을 남긴다', () => {
+    const rows = ev.choices!.filter((c) => c.effects?.addFlags?.includes('rom_safe'));
+    expect(rows.length).toBe(2);
+    for (const c of rows) expect(c.result).toContain('콘돔');
+  });
+
+  /** 여성 쪽 나이에서 '괜찮겠지'가 실패했을 때 실제 임신으로 이어질 확률 (걱정 카드의 기본 두 줄 35%) */
+  function failPregnancy(sex: Sex, womanAge: number): number {
+    const s = couple(`EMG-${sex}-${womanAge}`, sex === 'F' ? { sex, age: womanAge } : { sex, age: 40, mateAge: womanAge });
+    expect(presentCard(s, { eventId: 'rom_emergency_pill', ctx: {} })).toBe(true);
+    const shown = s.card!.choices.filter((c) => c.text === '괜찮겠지 하고 넘어간다');
+    expect(shown.length).toBe(1);
+    const next = ev.choices![shown[0].index].onFail!.next!;
+    if (typeof next === 'string') return next === 'rom_pregnancy_scare' ? SCARE_POSITIVE_SHARE : 0;
+    expect(next.every((n) => n.event === 'rom_pregnancy_scare' || n.event === 'rom_pregnancy_negative')).toBe(true);
+    const total = next.reduce((a, n) => a + n.w, 0);
+    const scare = next.find((n) => n.event === 'rom_pregnancy_scare')?.w ?? 0;
+    return (scare / total) * SCARE_POSITIVE_SHARE;
+  }
+
+  it('실패한 뒤 임신으로 이어질 확률이 여성 나이의 가임력을 따른다 (남녀 주인공 모두)', () => {
+    expect(failPregnancy('F', 25)).toBeCloseTo(SCARE_POSITIVE_SHARE, 10);
+    for (const sex of ['F', 'M'] as Sex[]) {
+      let prev = 1;
+      for (const age of [25, 33, 38, 41, 44]) {
+        const p = failPregnancy(sex, age);
+        expect(p, `${sex} ${age}`).toBeLessThanOrEqual(prev);
+        prev = p;
+      }
+      // 44세: 걱정 카드 중 두 줄의 비율 scarePositiveShare('none', 가임력)에 가깝다 (3% 안팎, 예전에는 35%)
+      expect(failPregnancy(sex, 44)).toBeLessThan(0.06);
+      expect(Math.abs(failPregnancy(sex, 41) - scarePositiveShare('none', fecundity(41)))).toBeLessThan(0.03);
+    }
+    expect(undecidedScareShare(1)).toBeCloseTo(1, 10);
+  });
+
+  it('선택지는 검증 한도(8개) 안이고, 원래 세 선택지는 그 자리에 있다', () => {
+    expect(ev.choices!.length).toBeLessThanOrEqual(8);
+    expect(ev.choices!.slice(0, 3).map((c) => c.text)).toEqual([
+      '날이 밝자마자 병원에서 사후피임약을 처방받는다',
+      '밤새 문 연 응급실을 찾아간다',
+      '괜찮겠지 하고 넘어간다',
     ]);
   });
 });
