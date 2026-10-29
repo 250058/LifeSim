@@ -24,7 +24,7 @@ import {
   type DailyChain,
   type DailyState,
 } from '../src/engine/daily';
-import { EVENTS, EVENT_FILES, getEvent } from '../src/engine/data';
+import { EVENTS, EVENT_FILES, getEvent, JOB_BY_ID } from '../src/engine/data';
 import { eventProbability, presentCard } from '../src/engine/eventEngine';
 import { choose, doActivity, endTurn, newGame, proceed } from '../src/engine/game';
 import { addSibling, makeNpc, startPartner } from '../src/engine/relations';
@@ -33,6 +33,7 @@ import { loadGame, saveGame, type KeyValueStorage } from '../src/engine/save';
 import { buildScope } from '../src/engine/scope';
 import { simulateLife } from '../src/engine/sim';
 import { render } from '../src/engine/text';
+import type { JobDef } from '../src/engine/schema';
 import type { GameState, Npc, Sex } from '../src/engine/types';
 import { validateData } from '../src/engine/validate';
 
@@ -150,7 +151,7 @@ describe('하루 사슬 데이터', () => {
     expect(validateData().filter((i) => i.where.includes('daily'))).toEqual([]);
     // 문장 표의 자리표시자는 모두 채워진다
     const s = person('DAILY-LINES', { age: 30 });
-    const ctx = { 옷: '셔츠', 도우미: '민지', 시각: '밤 11시', 지각: '20분', 이동: '30분', 왕복: '1시간', 약속상대: '지수' };
+    const ctx = { 옷: '셔츠', 도우미: '민지', 시각: '밤 11시', 지각: '20분', 이동: '30분', 왕복: '1시간', 약속상대: '지수', 대리인: '엄마' };
     const all = [...Object.values(DAILY_LINES.say), ...Object.values(DAILY_LINES.schedule), ...Object.values(DAILY_LINES.adjust)];
     for (const t of all) expect(render(t, s, ctx), t).not.toMatch(/[{}]/);
   });
@@ -734,4 +735,203 @@ describe('맥락마다 사슬 중간에 저장·불러오기를 해도 일정 �
       expect(a.ch.daily!.chain!.stage).toBe('done');
     });
   }
+});
+
+// ── 2차 검증 지적 (일터 문장·근무 형태 배열·수감 중 독촉·미성년자 밤 외출·한집 식구) ──
+
+/** 그 직업의 출근 일정이 나오는 첫 시드에서 카드를 띄운다 */
+function atWork(prefix: string, jobId: string): GameState {
+  return find(prefix, (seed) => person(seed, { age: 35, job: jobId }), (x) => {
+    const c = open(x);
+    return c.schedule.kind === 'office' || c.schedule.kind === 'shift';
+  });
+}
+
+function adjustText(s: GameState): string {
+  const i = stepIndex(s, 'adjust');
+  return i >= 0 ? s.card!.choices[i].text : '';
+}
+
+describe('일터마다 다른 출근 문장과 조정 방법', () => {
+  it('교사·의사·유튜버·배달 라이더·운동선수·변호사는 팀장에게 반차를 내지 않는다', () => {
+    const cases: [string, RegExp, RegExp][] = [
+      ['teacher', /첫 수업/, /수업/],
+      ['doctor', /진료/, /진료/],
+      ['youtuber', /촬영/, /촬영/],
+      ['delivery_rider', /일감/, /쉬고/],
+      ['athlete', /훈련/, /코치/],
+      ['lawyer', /사람을 만날/, /오후로/],
+    ];
+    for (const [job, line, adjust] of cases) {
+      const s = atWork(`DAILY-WORK-${job}`, job);
+      expect(s.card!.text, job).toMatch(line);
+      expect(s.card!.text, job).not.toContain('출근할 때');
+      expect(adjustText(s), job).toMatch(adjust);
+      expect(adjustText(s), job).not.toContain('팀장');
+      const text = act(s, 'adjust');
+      expect(text, job).not.toContain('팀장');
+      expect(text, job).not.toContain('출근했다');
+    }
+    // 사무직은 그대로 팀장에게 반차를 청한다
+    const clerk = atWork('DAILY-WORK-office', 'sme_office');
+    expect(clerk.card!.text).toContain('출근할 때');
+    expect(adjustText(clerk)).toContain('팀장');
+  });
+
+  it('직업 정의의 근무 형태 배열(U-001)과 고용 형태 비중을 읽는다', () => {
+    const base = JOB_BY_ID.get('sme_office')!;
+    const fakes: [string, Record<string, unknown>, string][] = [
+      ['test_logistics', { title: '물류 센터 직원', schedule: ['shift', 'night'] }, 'shift'],
+      ['test_translator', { title: '번역가', schedule: ['remote', 'irregular'], employment: { freelance: 1 } }, 'client'],
+      ['test_errand', { title: '생활 심부름 대행', schedule: ['field'], employment: { platform: 0.9, regular: 0.1 } }, 'platform'],
+      ['test_builder', { title: '건축 목공', schedule: ['field'], employment: { regular: 0.6, daily: 0.4 } }, 'field'],
+      ['test_planner', { title: '기획 사무원', schedule: ['day'], employment: { regular: 1 } }, 'office'],
+    ];
+    const night = 'test_night_stage';
+    try {
+      for (const [id, extra, key] of fakes) {
+        JOB_BY_ID.set(id, { ...base, id, ...extra } as unknown as JobDef);
+        const s = atWork(`DAILY-SCHED-${id}`, id);
+        const c = s.ch.daily!.chain!;
+        expect(c.schedule.kind === 'shift' ? 'shift' : (c.schedule.work ?? 'office'), id).toBe(key);
+        expect(s.card!.text, id).not.toMatch(/[{}]/);
+      }
+      // 밤에만 일하는 사람은 아침에 출근하지 않는다: 다음 날 일정은 늘 외출이다
+      JOB_BY_ID.set(night, { ...base, id: night, title: '심야 공연 스태프', schedule: ['night', 'irregular'] } as unknown as JobDef);
+      for (let i = 0; i < 30; i++) {
+        const s = person(`DAILY-SCHED-night-${i}`, { age: 35, job: night, friend: 60 });
+        expect(open(s).schedule.kind).toBe('outing');
+      }
+    } finally {
+      for (const [id] of fakes) JOB_BY_ID.delete(id);
+      JOB_BY_ID.delete(night);
+    }
+  });
+});
+
+describe('수감·복무 중에 온 빌린 옷 독촉', () => {
+  for (const where of ['prison', 'military'] as const) {
+    it(`${where === 'prison' ? '수감' : '군 복무'} 중에는 직접 돌려주거나 새로 사 보내는 선택지가 없다`, () => {
+      const s = borrowed(`DAILY-AWAY-${where}`);
+      skipYear(s);
+      skipYear(s);
+      const lender = lenderOf(s);
+      if (where === 'prison') s.ch.legal.prisonUntil = s.ch.age + 3;
+      else {
+        s.ch.military.status = 'serving';
+        // 복무 쪽은 대신 맡길 가족이 없는 경우를 본다
+        for (const n of s.ch.npcs) if (n.id !== lender.id && ['mother', 'father', 'spouse', 'sibling'].includes(n.role)) n.alive = false;
+      }
+      const due = s.scheduled.find((e) => e.eventId === 'daily_return_due')!;
+      expect(presentCard(s, { eventId: 'daily_return_due', ctx: due.ctx })).toBe(true);
+      expect(s.card!.text).not.toContain('옷장 구석');
+      expect(stepIndex(s, 'return')).toBe(-1);
+      expect(stepIndex(s, 'compensate')).toBe(-1);
+      expect(stepIndex(s, 'forget')).toBe(-1);
+      expect(stepIndex(s, 'lapse')).toBeGreaterThanOrEqual(0);
+      if (where === 'prison') {
+        // 수감 중: 연락이 닿는 성인 가족(부모)이 대신 돌려준다 (늦은 반납으로 남는다)
+        expect(s.ch.npcs.some((n) => ['mother', 'father'].includes(n.role) && n.alive)).toBe(true);
+        expect(stepIndex(s, 'proxy')).toBeGreaterThanOrEqual(0);
+        const before = lender.closeness;
+        const text = act(s, 'proxy');
+        expect(text).toContain('대신');
+        expect(text).not.toMatch(/[{}]/);
+        expect(readDaily(s.ch).obligations[0].status).toBe('returned_late');
+        expect(lender.closeness).toBe(Math.max(0, before - 2));
+      } else {
+        // 맡길 가족이 없으면 사정을 전하고 접는다 (모른 척과 달리 도덕·관계 손실이 작다)
+        expect(stepIndex(s, 'proxy')).toBe(-1);
+        const before = lender.closeness;
+        const morality = s.ch.hidden.morality;
+        const text = act(s, 'lapse');
+        expect(text).toContain('사정');
+        expect(readDaily(s.ch).obligations[0].status).toBe('void');
+        expect(lender.closeness).toBe(Math.max(0, before - 1));
+        expect(s.ch.hidden.morality).toBe(morality);
+      }
+      expect(scope(s, due.ctx).dueOpen).toBe(false);
+    });
+  }
+
+  it('집에 있으면 예전처럼 세 가지 중에서 고른다 (가족에게 맡기기·사정 전하기는 없다)', () => {
+    const s = borrowed('DAILY-AWAY-home');
+    skipYear(s);
+    skipYear(s);
+    const due = s.scheduled.find((e) => e.eventId === 'daily_return_due')!;
+    expect(presentCard(s, { eventId: 'daily_return_due', ctx: due.ctx })).toBe(true);
+    expect(s.card!.text).toContain('옷장 구석');
+    expect(s.card!.choices).toHaveLength(3);
+    expect(stepIndex(s, 'proxy')).toBe(-1);
+    expect(stepIndex(s, 'lapse')).toBe(-1);
+  });
+});
+
+describe('미성년자는 밤에 혼자 집을 나서지 않는다 (부탁 상대 쪽 규칙과 같다)', () => {
+  const nightMinor = (seed: string, guardian: boolean): GameState => {
+    const s = person(seed, { age: 16, school: 'high' });
+    s.ch.family.type = 'two_parent';
+    s.ch.family.livesWithParents = guardian;
+    // 밤에도 깨어 있는 세 살 위 친구 (빌려준다면 가져다줘야 한다)
+    const f = makeNpc(s, rngFor(seed, 'night-friend'), 'friend', s.ch.sex, s.ch.birthYear - 3, { closeness: 95 });
+    s.ch.npcs.push(f);
+    return s;
+  };
+  const isNight = (c: DailyChain) => c.now % 1440 >= 22 * 60;
+
+  it('보호자가 없으면 밤에 혼자 빨래방에 가지 않고, 보호자가 있으면 함께 간다', () => {
+    let alone = 0;
+    for (let i = 0; i < 300; i++) {
+      const s = nightMinor(`DAILY-NIGHT-${i}`, false);
+      const c = open(s);
+      if (c.schedule.kind !== 'school' || !isNight(c) || !c.laundromatNear) continue;
+      alone++;
+      expect(scope(s).canLaundromat).toBe(false);
+      expect(stepIndex(s, 'laundromat')).toBe(-1);
+    }
+    expect(alone).toBeGreaterThan(0);
+    const g = find('DAILY-NIGHT-G', (seed) => nightMinor(seed, true), (x) => {
+      const c = open(x);
+      return isNight(c) && stepIndex(x, 'laundromat') >= 0;
+    });
+    expect(act(g, 'laundromat')).toContain('함께');
+  });
+
+  it('밤에 빌려주는 사람은 가지러 오라고 하지 않고 가져다준다', () => {
+    let lent = 0;
+    for (let i = 0; i < 300; i++) {
+      const s = nightMinor(`DAILY-NIGHTLEND-${i}`, true);
+      const c = open(s);
+      if (!isNight(c)) continue;
+      const f = s.ch.npcs.find((n) => n.role === 'friend' && n.closeness === 95)!;
+      const a = answerLend(s, c, f);
+      if (a.yes) lent++;
+      expect(a.reason).not.toBe('lendPickup');
+    }
+    expect(lent).toBeGreaterThan(0);
+  });
+});
+
+describe('한집 식구에게 빌린 옷', () => {
+  it('함께 사는 부모에게 빌리면 반납 의무·독촉 예약이 생기지 않고, 돌려받은 기억으로 남는다', () => {
+    const s = find('DAILY-HOUSE', (seed) => {
+      const x = person(seed, { age: 30 });
+      x.ch.family.livesWithParents = true;
+      for (const n of x.ch.npcs) if (n.role === 'friend' || n.role === 'sibling') n.alive = false;
+      for (const n of x.ch.npcs) if (n.role === 'mother' || n.role === 'father') n.closeness = 100;
+      return x;
+    }, (x) => {
+      open(x);
+      if (stepIndex(x, 'borrow') < 0) return false;
+      act(x, 'borrow');
+      return x.ch.daily!.chain!.outcome === 'borrowed';
+    });
+    const c = s.ch.daily!.chain!;
+    const lender = s.ch.npcs.find((n) => n.id === c.lenderId)!;
+    expect(['mother', 'father']).toContain(lender.role);
+    expect(readDaily(s.ch).obligations).toHaveLength(0);
+    expect(s.scheduled.filter((e) => e.eventId.startsWith('daily_return'))).toHaveLength(0);
+    expect(readDaily(s.ch).memory.filter((m) => m.npcId === lender.id).map((m) => m.kind)).toEqual(['lent', 'returned']);
+    expect(scope(s).canReturn).toBe(false);
+  });
 });

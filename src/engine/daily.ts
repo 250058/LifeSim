@@ -1,6 +1,7 @@
 // 하루 사슬: 1년 단위 게임 안에서 '하루'를 확대해 보는 작은 일상 사건의 공통 구조 (검토 F-001).
 //
 // 첫 사슬은 세탁 지연이다. 덜 마른 빨래·날씨·다음 날 일정(새벽 교대 근무·출근·등교·외출)이 겹친다.
+// 출근은 일터(workKeyOf: 사무실·학교·진료·고객·촬영·플랫폼·현장·훈련·가게)마다 나서는 시각과 조정 방법이 다르다.
 // 기다리기 / 빨래방(돈) / 특정 인물에게 옷 빌리기 / 일정 조정 / 다른 옷 입기 중에서 고르고, 실패하면
 // 남은 방법으로 다시 고른다 (daily_laundry_fallback). 고를 때마다 방법이 하나씩 닫히므로 사슬은 반드시 끝난다.
 //
@@ -33,6 +34,12 @@ import type { Change, Character, GameState, Npc } from './types';
 // ── 상태 ─────────────────────────────────────────────────
 
 export type ScheduleKind = 'shift' | 'office' | 'school' | 'outing';
+/**
+ * 출근 일정의 일터: 나서는 시각·카드 문장·조정 방법(누구에게 무엇을 부탁하는가)이 다르다.
+ * office는 팀장에게 반차를, 나머지는 각자의 방식(수업 교체·진료 맡기기·촬영 미루기·오전 일 쉬기 …)을 쓴다
+ */
+export const WORK_KEYS = ['office', 'teacher', 'clinic', 'client', 'creator', 'platform', 'field', 'training'] as const;
+export type WorkKey = (typeof WORK_KEYS)[number];
 export type OutingKind = 'meetup' | 'date' | 'family' | 'wedding' | 'reunion';
 export type SchoolKind = 'elementary' | 'secondary' | 'university';
 export const WEATHERS = ['rain', 'humid', 'cold', 'dust', 'clear'] as const;
@@ -67,6 +74,10 @@ export const DAILY_STEPS = [
   'compensate',
   'forget',
   'void',
+  // 독촉 카드: 지금 형편(집·수감·복무)에 맞는 문장과, 집을 떠나 있을 때의 가족에게 맡기기·사정 전하기
+  'due',
+  'proxy',
+  'lapse',
 ] as const;
 export type DailyStep = (typeof DAILY_STEPS)[number];
 
@@ -88,6 +99,8 @@ export interface DailySchedule {
   withId?: string;
   /** 자영업: 출근 대신 가게 문을 연다 (늦출지는 스스로 정한다) */
   business?: boolean;
+  /** 출근(office) 일정의 일터. 없으면(옛 저장) 사무실 */
+  work?: WorkKey;
 }
 
 /**
@@ -195,6 +208,8 @@ export interface DailyRecord {
   age: number;
   schedule: ScheduleKind;
   outing?: OutingKind;
+  /** 출근 일정의 일터 (lines.schedule의 열쇠: business·teacher·platform …) */
+  work?: string;
   /** 세탁 사슬의 날씨·옷 */
   weather?: Weather;
   item?: string;
@@ -426,15 +441,77 @@ const SHIFT_JOBS = new Set(['nurse', 'factory', 'care_worker', 'convenience_stor
 /** 교대 근무가 흔한 일 (직업 이름·인물의 직업 문구로 짐작한다) */
 const SHIFT_TITLE = /간호|공장|생산|요양|돌봄|간병|경찰|소방|경비|교도|편의점|조리|요리|응급|기관사|관제|교대/;
 
-/** 지금 직업이 교대 근무인가. 직업 정의에 shift·schedule 정보가 있으면 그것을 따른다 */
-function isShiftJob(state: GameState): boolean {
+/**
+ * 직업 정의를 형태를 몰라도 읽는다. 직업 확장(U-001)에서는 schedule이 근무 형태 배열(['shift', 'night'])이고
+ * employment가 고용 형태별 비중({ platform: 0.9, regular: 0.1 })이다. 예전 형태(문자열·불리언)도 받는다
+ */
+interface LooseJob {
+  id: string;
+  title: string;
+  category?: unknown;
+  shift?: unknown;
+  schedule?: unknown;
+  employment?: unknown;
+}
+
+/** 근무 형태 목록 (배열·문자열 모두) */
+function scheduleTags(job: LooseJob): string[] {
+  if (Array.isArray(job.schedule)) return job.schedule.filter((x): x is string => typeof x === 'string');
+  return typeof job.schedule === 'string' ? [job.schedule] : [];
+}
+
+/** 지금 일자리의 고용 형태: 내 기록(ch.work.type)이 먼저, 없으면 직업 정의에서 비중이 가장 큰 형태 */
+function mainEmployment(state: GameState, job: LooseJob): string | undefined {
+  const own = (state.ch as unknown as { work?: { type?: unknown } }).work?.type;
+  if (typeof own === 'string') return own;
+  const e = job.employment;
+  if (typeof e === 'string') return e;
+  if (Array.isArray(e)) return typeof e[0] === 'string' ? e[0] : undefined;
+  if (!e || typeof e !== 'object') return undefined;
+  let best: string | undefined;
+  let bestW = -Infinity;
+  for (const [k, w] of Object.entries(e as Record<string, unknown>)) {
+    if (typeof w === 'number' && w > bestW) {
+      best = k;
+      bestW = w;
+    }
+  }
+  return best;
+}
+
+/** 직업 이름으로 알아보는 일터 (근무 형태보다 뒤, 교대 근무 짐작보다 앞에 본다) */
+const TITLE_WORK: [RegExp, WorkKey | 'business'][] = [
+  // 학교의 아침 수업 (학원·과외·레슨은 오후·저녁 일이라 뺀다)
+  [/^(?!.*(학원|과외|레슨|방과후)).*(교사|교수|교원|시간강사)/, 'teacher'],
+  [/의사|치과|수의사/, 'clinic'],
+  [/선수|코치/, 'training'],
+  [/유튜버|크리에이터|스트리머|연예인|배우|가수|방송인/, 'creator'],
+  [/변호사|회계사|세무사|노무사|변리사|법무사|감정평가사/, 'client'],
+  [/자영업|사장|점주/, 'business'],
+];
+
+/**
+ * 지금 직업의 다음 날 아침 일정: 교대 근무(shift), 가게(business), 일터 열쇠, 또는 아침 출근이 없는 일(none).
+ * 순서: 플랫폼 노동 → 근무 형태의 교대 → 직업 이름 → 밤에만 하는 일 → 현장 → 고용 형태(자영·프리랜서)·재택·불규칙
+ * → (근무 형태가 없는 옛 직업 정의만) 직업 이름으로 본 교대 근무 짐작 → 사무실
+ */
+export function workKeyOf(state: GameState): WorkKey | 'shift' | 'business' | 'none' {
   const id = state.ch.career.jobId;
-  // 직업 정의가 근무 형태를 갖게 되면(직업 확장 작업) 그 값을 먼저 본다. 형태를 몰라도 읽을 수 있게 넓게 받는다
-  const job = id ? (JOB_BY_ID.get(id) as unknown as { shift?: unknown; schedule?: unknown; title: string } | undefined) : undefined;
-  if (!id || !job) return false;
-  if (typeof job.shift === 'boolean') return job.shift;
-  if (typeof job.schedule === 'string') return /shift|교대/.test(job.schedule);
-  return SHIFT_JOBS.has(id) || SHIFT_TITLE.test(job.title);
+  const job = id ? (JOB_BY_ID.get(id) as unknown as LooseJob | undefined) : undefined;
+  if (!id || !job) return 'office';
+  const tags = scheduleTags(job);
+  const emp = mainEmployment(state, job);
+  if (emp === 'platform' || job.category === '플랫폼' || /배달|라이더|대리운전|퀵서비스/.test(job.title)) return 'platform';
+  if (job.shift === true || tags.some((t) => /shift|교대/.test(t))) return 'shift';
+  const titled = TITLE_WORK.find(([re]) => re.test(job.title));
+  if (titled) return titled[1];
+  // 밤에만 일하는 사람은 아침에 출근하지 않는다: 다음 날 일정은 외출이다
+  if (tags.some((t) => /night|야간/.test(t)) && !tags.includes('day')) return 'none';
+  if (tags.includes('field')) return 'field';
+  if (emp === 'self') return 'business';
+  if (emp === 'freelance' || (tags.some((t) => t === 'remote' || t === 'irregular') && !tags.includes('day'))) return 'client';
+  if (tags.length === 0 && job.shift === undefined && (SHIFT_JOBS.has(id) || SHIFT_TITLE.test(job.title))) return 'shift';
+  return 'office';
 }
 
 function schoolOf(ch: Character): SchoolKind | undefined {
@@ -478,8 +555,11 @@ function pickSchedule(state: GameState, rng: Rng): DailySchedule {
   // 학생의 외출은 친구와의 약속뿐이다 (동창 모임·결혼식은 성인의 일정)
   if (school && (r < 0.8 || outing.outing !== 'meetup')) return { kind: 'school', school };
   if (ch.career.jobId && r < 0.75) {
-    if (ch.career.business) return { kind: 'office', business: true };
-    return { kind: isShiftJob(state) ? 'shift' : 'office' };
+    const work = ch.career.business ? 'business' : workKeyOf(state);
+    if (work === 'business') return { kind: 'office', business: true };
+    if (work === 'shift') return { kind: 'shift' };
+    if (work === 'office') return { kind: 'office' };
+    if (work !== 'none') return { kind: 'office', work };
   }
   return outing;
 }
@@ -489,13 +569,26 @@ function scheduleKey(s: DailySchedule): string {
   if (s.kind === 'school') return `school_${s.school ?? 'secondary'}`;
   if (s.kind === 'outing') return s.outing ?? 'reunion';
   if (s.kind === 'office' && s.business) return 'business';
+  if (s.kind === 'office' && s.work) return s.work;
   return s.kind;
 }
+
+/** 일터별 옷 목록 (lines.items의 열쇠). 없으면 일정 종류(office·shift) 그대로 */
+const WORK_ITEMS: Record<string, string> = {
+  business: 'office',
+  teacher: 'office',
+  clinic: 'office',
+  client: 'office',
+  creator: 'outing',
+  platform: 'outdoor',
+  field: 'outdoor',
+  training: 'training',
+};
 
 function itemKey(s: DailySchedule): string {
   if (s.kind === 'school') return `school_${s.school ?? 'secondary'}`;
   if (s.kind === 'outing') return s.outing === 'wedding' ? 'wedding' : 'outing';
-  return s.kind;
+  return WORK_ITEMS[scheduleKey(s)] ?? s.kind;
 }
 
 /** 집을 나서야 하는 시각 (다음 날 0시부터 센 분) */
@@ -503,6 +596,13 @@ const LEAVE: Record<string, number> = {
   shift: 5 * 60 + 20,
   office: 8 * 60,
   business: 8 * 60 + 30,
+  teacher: 7 * 60 + 40,
+  clinic: 8 * 60,
+  client: 9 * 60 + 30,
+  creator: 9 * 60,
+  platform: 10 * 60 + 30,
+  field: 6 * 60 + 30,
+  training: 8 * 60 + 30,
   school_elementary: 8 * 60,
   school_secondary: 7 * 60 + 30,
   school_university: 9 * 60,
@@ -676,10 +776,20 @@ function canWait(c: DailyChain): boolean {
   return !c.waited && c.clothes === 'wet' && c.deadline - READY - c.now >= 30;
 }
 
+/**
+ * 혼자 집을 나서면 안 되는 때: 열네 살 아래는 언제나, 열아홉 살 아래는 밤·새벽에.
+ * 부탁받는 인물 쪽 규칙(npcSituation의 curfew)과 같다
+ */
+function needsEscort(state: GameState, c: DailyChain): boolean {
+  if (state.ch.age < 14) return true;
+  const slot = slotOf(c.now);
+  return state.ch.age < 19 && (slot === 'night' || slot === 'dawn');
+}
+
 function canLaundromat(state: GameState, c: DailyChain): boolean {
   if (!c.laundromatNear || c.laundromatTried || c.clothes === 'dry') return false;
-  // 열네 살 아래는 혼자 밤에 나가지 않는다: 보호자와 함께 갈 수 있을 때만
-  if (state.ch.age < 14 && !guardianHome(state.ch)) return false;
+  // 혼자 나서면 안 되는 때에는 보호자와 함께 갈 수 있을 때만
+  if (needsEscort(state, c) && !guardianHome(state.ch)) return false;
   return c.deadline - 15 - c.now >= laundromatMinutes(state);
 }
 
@@ -694,6 +804,21 @@ export function returnable(state: GameState, kind?: ObligationKind): DailyObliga
 
 export function openObligations(state: GameState): DailyObligation[] {
   return readDaily(state.ch).obligations.filter((o) => o.status === 'open');
+}
+
+/** 집을 떠나 있는가 (수감·군 복무): 빌린 옷을 직접 돌려주거나 새로 사 보낼 수 없다 */
+function awayFromHome(state: GameState): boolean {
+  const ch = state.ch;
+  const until = ch.legal.prisonUntil;
+  return (until !== undefined && ch.age < until) || ch.military.status === 'serving';
+}
+
+/** 집을 떠나 있을 때 옷을 대신 돌려줄 가족: 연락이 닿는 성인 배우자·부모·형제 중 가장 가까운 사람 (빌려준 사람 말고) */
+function proxyFor(state: GameState, ob: DailyObligation): Npc | undefined {
+  const kin = state.ch.npcs.filter(
+    (n) => ['spouse', 'mother', 'father', 'sibling'].includes(n.role) && n.id !== ob.npcId && n.alive && !n.missing && npcAge(n, state.year) >= 19,
+  );
+  return closest(kin);
 }
 
 function recentLates(state: GameState, kinds: ScheduleKind[], years = 3): number {
@@ -732,6 +857,9 @@ export function dailyScope(state: GameState, ctx: Ctx = {}): Record<string, unkn
     canReturn: returnable(state, 'return_clothes').length > 0,
     dueOpen: open && lenderHere,
     dueLost: open && !lenderHere,
+    // 수감·복무 중: 독촉 카드는 가족에게 맡기기(canProxy)·사정 전하기만 연다
+    away: awayFromHome(state),
+    canProxy: Boolean(ob && open && proxyFor(state, ob)),
     chains: d.history.length,
     lateWork: recentLates(state, ['shift', 'office']),
     lateSchool: recentLates(state, ['school']),
@@ -754,6 +882,7 @@ function finish(state: GameState, c: DailyChain, outcome: DailyOutcome): void {
     age: c.age,
     schedule: c.schedule.kind,
     outing: c.schedule.outing,
+    work: c.schedule.kind === 'office' ? scheduleKey(c.schedule) : undefined,
     weather: c.weather,
     item: c.item.name,
     outcome,
@@ -775,7 +904,8 @@ function recordLate(state: GameState, c: DailyChain, minutes: number, changes: C
   if (d.lates.length > LATES_CAP) d.lates.splice(0, d.lates.length - LATES_CAP);
   const ctx: Ctx = {};
   if (c.schedule.kind === 'shift' || c.schedule.kind === 'office') {
-    if (c.schedule.business || recentLates(state, ['shift', 'office']) < 2) return '';
+    // 근태를 따지는 윗사람이 없는 일(가게·플랫폼·프리랜서·촬영)은 경고가 없다
+    if (!workAdjust(c.schedule).boss || recentLates(state, ['shift', 'office']) < 2) return '';
     changeAttr(state, 'reputation', -3, changes);
     changeAttr(state, 'stress', 3, changes);
     return say(state, ctx, 'workWarn');
@@ -816,6 +946,7 @@ const stepWait: Handler = (state, c, ctx, changes) => {
 /** 빨래방: 돈과 시간이 들지만 확실하다. 자정을 넘기면 잠이 모자란다. 미성년자 몫은 보호자가 낸다 */
 const stepLaundromat: Handler = (state, c, ctx, changes) => {
   c.laundromatTried = true;
+  const escorted = needsEscort(state, c);
   const p = pay(state, c.laundromatCost);
   c.spent += p.cash + p.debt;
   c.guardianPaid += p.guardian;
@@ -825,7 +956,7 @@ const stepLaundromat: Handler = (state, c, ctx, changes) => {
   c.dryLeft = 0;
   if (c.now > DAY + 30) changeAttr(state, 'stamina', -1, changes);
   changeAttr(state, 'stress', 1, changes);
-  ctx.결과 = say(state, ctx, state.ch.age < 14 ? 'laundromatGuardian' : 'laundromat');
+  ctx.결과 = say(state, ctx, escorted ? 'laundromatGuardian' : 'laundromat');
   finish(state, c, 'laundromat');
 };
 
@@ -892,8 +1023,8 @@ export function answerLend(state: GameState, c: DailyChain, npc: Npc): NpcAnswer
   p = Math.min(0.95, Math.max(0.03, p));
   if (roll[4] >= p) return { yes: false, reason: m.forgot > 0 ? 'grudge' : 'mood', travel };
   if (together) return { yes: true, reason: 'lendTogether', travel };
-  // 열네 살 아래 아이는 밤에 혼자 가지러 가지 않는다: 그쪽 집에서 가져다준다
-  const bring = roll[5] < 0.5 || state.ch.age < 14;
+  // 혼자 나서면 안 되는 아이(열네 살 아래, 밤·새벽의 미성년자)는 가지러 가지 않는다: 그쪽에서 가져다준다
+  const bring = roll[5] < 0.5 || needsEscort(state, c);
   return { yes: true, reason: bring ? 'lendBring' : 'lendPickup', travel };
 }
 
@@ -939,9 +1070,14 @@ const stepBorrow: Handler = (state, c, ctx, changes) => {
   closeness(npc, 2, state.ch, changes);
   c.lenderId = npc.id;
   c.clothes = 'borrowed';
-  // 다음 해 연말까지 돌려주기로 한다 (돌려줄 기회는 다음 해 자유 행동부터다)
-  const ob = addObligation(state, c.id, 'return_clothes', npc, c.item.name, state.ch.age + 1);
-  ctx.dailyOb = ob.id;
+  if (ans.reason === 'lendTogether') {
+    // 한집 식구의 옷은 빨래 바구니를 거쳐 제자리로 돌아간다: 따로 갚을 일(의무·독촉)을 만들지 않는다
+    remember(state, npc.id, 'returned', c.id);
+  } else {
+    // 다음 해 연말까지 돌려주기로 한다 (돌려줄 기회는 다음 해 자유 행동부터다)
+    const ob = addObligation(state, c.id, 'return_clothes', npc, c.item.name, state.ch.age + 1);
+    ctx.dailyOb = ob.id;
+  }
   ctx.결과 = say(state, ctx, ans.reason);
   finish(state, c, 'borrowed');
 };
@@ -991,10 +1127,6 @@ const stepAdjust: Handler = (state, c, ctx, changes) => {
   advance(c, 10);
   const s = c.schedule;
   if (s.kind === 'school') return adjustSchool(state, c, ctx, changes);
-  if (s.kind === 'office' && s.business) {
-    ctx.결과 = say(state, ctx, 'businessOpen');
-    return finish(state, c, 'adjusted');
-  }
   if (s.kind === 'office' || s.kind === 'shift') return adjustWork(state, c, ctx, changes);
   return adjustOuting(state, c, ctx, changes);
 };
@@ -1020,20 +1152,48 @@ function adjustSchool(state: GameState, c: DailyChain, ctx: Ctx, changes: Change
   finish(state, c, 'late');
 }
 
+/**
+ * 일터별 조정의 답 문장 (lines.say). no가 없으면 스스로 정하는 일(가게·플랫폼)이라 늘 된다.
+ * boss: 근태를 따지는 사람이 있다 (지각이 쌓이면 근태 경고)
+ */
+const WORK_ADJUST: Record<string, { yes: string; no?: string; boss: boolean }> = {
+  shift: { yes: 'swapYes', no: 'swapNo', boss: true },
+  office: { yes: 'bossYes', no: 'bossNo', boss: true },
+  business: { yes: 'businessOpen', boss: false },
+  teacher: { yes: 'teacherYes', no: 'teacherNo', boss: true },
+  clinic: { yes: 'clinicYes', no: 'clinicNo', boss: true },
+  client: { yes: 'clientYes', no: 'clientNo', boss: false },
+  creator: { yes: 'creatorYes', no: 'creatorNo', boss: false },
+  platform: { yes: 'platformLater', boss: false },
+  field: { yes: 'fieldYes', no: 'fieldNo', boss: true },
+  training: { yes: 'trainingYes', no: 'trainingNo', boss: true },
+};
+
+/** 이 출근 일정의 조정 문장 표 (모르는 일터는 사무실로 본다) */
+function workAdjust(s: DailySchedule): (typeof WORK_ADJUST)[string] {
+  return WORK_ADJUST[scheduleKey(s)] ?? WORK_ADJUST.office;
+}
+
 function adjustWork(state: GameState, c: DailyChain, ctx: Ctx, changes: Change[]): void {
+  const lines = workAdjust(c.schedule);
+  if (!lines.no) {
+    ctx.결과 = say(state, ctx, lines.yes);
+    c.clothes = 'dry';
+    return finish(state, c, 'adjusted');
+  }
   const rng = chainRng(state, c, 'adjust');
   const lates = recentLates(state, ['shift', 'office']);
   const swaps = readDaily(state.ch).history.filter((h) => h.schedule === 'shift' && h.outcome === 'adjusted' && state.ch.age - h.age < 3).length;
   const shift = c.schedule.kind === 'shift';
-  // 팀장·동료는 자기 사정으로 정한다: 최근 지각·교환 횟수와 평판이 영향을 준다
+  // 팀장·동료·상대는 자기 사정으로 정한다: 최근 지각·교환 횟수와 평판이 영향을 준다
   const p = shift ? 0.5 - 0.15 * swaps - 0.05 * lates : 0.65 - 0.15 * lates + (state.ch.state.reputation - 50) / 250;
   if (rng.chance(Math.min(0.9, Math.max(0.1, p)))) {
     changeAttr(state, 'stress', shift ? 1 : -1, changes);
-    ctx.결과 = say(state, ctx, shift ? 'swapYes' : 'bossYes');
+    ctx.결과 = say(state, ctx, lines.yes);
     c.clothes = 'dry';
     return finish(state, c, 'adjusted');
   }
-  ctx.결과 = say(state, ctx, shift ? 'swapNo' : 'bossNo');
+  ctx.결과 = say(state, ctx, lines.no);
   c.stage = 'fallback';
 }
 
@@ -1150,11 +1310,19 @@ const CHAIN_KINDS: Record<DailyChain['kind'], Partial<Record<DailyStep, Handler>
 
 type Settle = Exclude<ObligationStatus, 'open'>;
 
+/** 같은 정리 상태의 다른 사정: 문장 열쇠와 문장 값, 더할 친밀도 (가족에게 맡김·집을 떠나 있어 사정만 전함) */
+interface SettleHow {
+  line?: string;
+  ctx?: Ctx;
+  closeness?: number;
+}
+
 /** 의무 하나를 닫는다. 관계·기억·돈을 바꾸고 결과 문장을 돌려준다 */
-export function settleObligation(state: GameState, ob: DailyObligation, status: Settle, changes: Change[]): string {
+export function settleObligation(state: GameState, ob: DailyObligation, status: Settle, changes: Change[], how: SettleHow = {}): string {
   const ch = state.ch;
   const npc = present(ch, ob.npcId);
-  const ctx: Ctx = { 도우미: npc ? nameOf(npc, ch) : ob.who, 옷: ob.what };
+  const ctx: Ctx = { ...how.ctx, 도우미: npc ? nameOf(npc, ch) : ob.who, 옷: ob.what };
+  if (npc && how.closeness) closeness(npc, how.closeness, ch, changes);
   ob.status = status;
   ob.closedAge = ch.age;
   trimClosed(ensureDaily(ch));
@@ -1168,7 +1336,7 @@ export function settleObligation(state: GameState, ob: DailyObligation, status: 
       return say(state, ctx, 'returned');
     case 'returned_late':
       if (npc) closeness(npc, -2, ch, changes);
-      return say(state, ctx, 'returnedLate');
+      return say(state, ctx, how.line ?? 'returnedLate');
     case 'compensated': {
       const base = rngFor(state.seed, 'daily', ob.id, 'compensate').int(3, 5) * 10_000;
       const p = pay(state, Math.round((base * state.world.economy.priceIndex) / 1000) * 1000);
@@ -1181,6 +1349,7 @@ export function settleObligation(state: GameState, ob: DailyObligation, status: 
       changeAttr(state, 'morality', -3, changes);
       return say(state, ctx, 'forgot');
     case 'void': {
+      if (how.line) return say(state, ctx, how.line);
       const gone = ch.npcs.find((n) => n.id === ob.npcId);
       return say(state, ctx, gone && !gone.alive ? 'lostDead' : 'lostGone');
     }
@@ -1194,12 +1363,23 @@ function trimClosed(d: DailyState): void {
   d.obligations = d.obligations.filter((o) => !drop.has(o));
 }
 
-const SETTLE_STEP: Partial<Record<DailyStep, Settle>> = {
-  return: 'returned_late',
-  compensate: 'compensated',
-  forget: 'forgotten',
-  void: 'void',
+const SETTLE_STEP: Partial<Record<DailyStep, { status: Settle; how?: SettleHow }>> = {
+  return: { status: 'returned_late' },
+  compensate: { status: 'compensated' },
+  forget: { status: 'forgotten' },
+  void: { status: 'void' },
+  // 수감·복무 중: 가족이 대신 늦게 돌려주거나, 돌려줄 수 없는 사정을 전하고 접는다 (상대는 조금 서운하다)
+  proxy: { status: 'returned_late', how: { line: 'returnedProxy' } },
+  lapse: { status: 'void', how: { line: 'lapsed', closeness: -1 } },
 };
+
+/** 독촉 카드의 상황 문장: 집에 있으면 옷장의 옷을, 집을 떠나 있으면 직접 돌려줄 수 없는 형편을 말한다 */
+function dueCard(state: GameState, ctx: Ctx): void {
+  const ob = readDaily(state.ch).obligations.find((o) => o.id === ctx.dailyOb);
+  const proxy = ob ? proxyFor(state, ob) : undefined;
+  if (proxy) ctx.대리인 = nameOf(proxy, state.ch);
+  ctx.상황 = say(state, ctx, awayFromHome(state) ? 'dueAway' : 'dueHome');
+}
 
 // ── 데이터 검사 (validate.ts) ────────────────────────────
 
@@ -1211,6 +1391,8 @@ const SAY_KEYS = [
   'weddingSkip', 'reunionLate', 'dampOk', 'dampSmell', 'dampLate', 'uniformCaught', 'uniformOk', 'gymOther',
   'otherFine', 'officeOther', 'shiftSpare', 'shiftNoSpare', 'outingOther', 'dateOther', 'cancelled', 'workWarn',
   'returned', 'returnedLate', 'compensated', 'forgot', 'lostDead', 'lostGone', 'closed', 'gone',
+  // 독촉 카드의 형편 (집·수감·복무)과 집을 떠나 있을 때의 정리
+  'dueHome', 'dueAway', 'returnedProxy', 'lapsed',
   // 인물의 거절 이유 (npcSituation·answerLend·answerPostpone)
   'refuse_far', 'refuse_asleep', 'refuse_working', 'refuse_overtime', 'refuse_curfew', 'refuse_away',
   'refuse_needsIt', 'refuse_mood', 'refuse_grudge', 'postpone_booked', 'postpone_nextPlan', 'postpone_mood', 'postpone_grudge',
@@ -1224,13 +1406,20 @@ export function dailyDataIssues(eventIds: Set<string>): string[] {
     if (!L.schedule[key]) out.push(`lines.schedule.${key} 없음`);
     if (!L.adjust[key]) out.push(`lines.adjust.${key} 없음`);
   }
-  const itemKeys = ['shift', 'office', 'school_elementary', 'school_secondary', 'school_university', 'outing', 'wedding'];
+  // 일터마다 나서는 시각과 조정의 답 문장
+  for (const key of [...WORK_KEYS, 'shift', 'business']) {
+    if (LEAVE[key] === undefined) out.push(`일터 ${key}의 나서는 시각(LEAVE) 없음`);
+    const a = WORK_ADJUST[key];
+    if (!a) out.push(`일터 ${key}의 조정 문장 표(WORK_ADJUST) 없음`);
+    for (const line of a ? [a.yes, a.no] : []) if (line && !L.say[line]) out.push(`lines.say.${line} 없음`);
+  }
+  const itemKeys = new Set(['shift', 'office', 'school_elementary', 'school_secondary', 'school_university', 'outing', 'wedding', ...Object.values(WORK_ITEMS)]);
   for (const key of itemKeys) {
     const list = L.items[key];
     if (!list || list.length === 0) out.push(`lines.items.${key} 없음`);
     for (const it of list ?? []) if (!(it.thick > 0)) out.push(`lines.items.${key} '${it.name}'의 thick가 0 이하`);
   }
-  // 사무직·교대 근무 옷 목록은 business 일정에도 쓴다 (itemKey가 office)
+  // 가게·교사·의사·고객 상대 일은 사무직 옷, 촬영은 외출 옷, 플랫폼·현장은 바깥 일 옷 목록을 쓴다 (WORK_ITEMS)
   for (const w of WEATHERS) {
     const def = L.weather[w];
     if (!def) out.push(`lines.weather.${w} 없음`);
@@ -1256,10 +1445,15 @@ export function applyDailyAction(state: GameState, a: { step: string }, ec: Effe
     startChain(state, ctx);
     return;
   }
+  if (step === 'due') {
+    dueCard(state, ctx);
+    return;
+  }
   const settle = SETTLE_STEP[step];
   if (settle) {
     const ob = readDaily(state.ch).obligations.find((o) => o.id === ctx.dailyOb);
-    const text = ob && ob.status === 'open' ? settleObligation(state, ob, settle, changes) : say(state, ctx, 'closed');
+    const how = { ...settle.how, ctx: { 대리인: ctx.대리인 ?? '' } };
+    const text = ob && ob.status === 'open' ? settleObligation(state, ob, settle.status, changes, how) : say(state, ctx, 'closed');
     ctx.결과 = text;
     ctx.상황 = text;
     return;
