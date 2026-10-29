@@ -1,5 +1,5 @@
 {
-  "about": "육아: 아이가 태어나 어른이 되고 손주를 안을 때까지, 부모 쪽에서 본 장면. scenes는 손으로 쓴 장면(stage는 아래 stages의 자녀 나이대), places × incidents는 아이와 외출했을 때 벌어지는 일(tags가 하나라도 겹치면 한 장면). [엄마|아빠]처럼 대괄호로 쓴 부분은 플레이어 성별(여|남)에 맞춰 고른다. 선택지의 close·spouse·parents는 자녀·배우자·내 부모와의 친밀도 변화.",
+  "about": "육아: 아이가 태어나 어른이 되고 손주를 안을 때까지, 부모 쪽에서 본 장면. scenes는 손으로 쓴 장면(stage는 아래 stages의 자녀 나이대), places × incidents는 아이와 외출했을 때 벌어지는 일(tags가 하나라도 겹치면 한 장면). [엄마|아빠]처럼 대괄호로 쓴 부분은 플레이어 성별(여|남)에 맞춰 고른다. 선택지의 close·spouse·parents는 자녀·배우자·내 부모와의 친밀도 변화. 술·담배를 마시는 선택지는 do의 substance 행동으로 기록하고, 마시지 않는 선택지의 결과는 마셨다고 쓰지 않는다.",
   "tags": [
     {
       "id": "par_grandparent",
@@ -5206,19 +5206,30 @@
           "text": "포장마차에 간다",
           "result": "어묵탕에 소주 한 병. 아이가 술잔을 두 손으로 받았다. 처음으로 어른 대 어른으로 이야기했다.",
           "fx": { "happiness": 6, "cost": 40000 },
+          "do": [{ "type": "substance", "substance": "alcohol", "act": "use", "amount": 0.5 }],
           "close": 6
         },
         {
           "text": "술 마시는 법부터 가르친다",
+          "if": "substance.alcohol.ever",
           "result": "\"어른 앞에서는 고개를 돌려 마시고…\" 아이가 웃었다. \"요즘 누가 그래.\"",
           "fx": { "happiness": 4, "cost": 40000 },
+          "do": [{ "type": "substance", "substance": "alcohol", "act": "use", "amount": 0.5 }],
           "close": 4
         },
         {
           "text": "술보다 밥을 먹자고 한다",
           "result": "스테이크 집에서 탄산수로 건배했다. 그것도 나쁘지 않았다.",
           "fx": { "happiness": 3, "cost": 100000 },
+          "do": [{ "type": "substance", "substance": "alcohol", "act": "refuse" }],
           "close": 3
+        },
+        {
+          "text": "포장마차에 가되 나는 사이다를 시킨다",
+          "result": "어묵탕에 소주 한 병, 사이다 한 병. 아이 잔에만 술을 따라 줬다. 처음으로 어른 대 어른으로 이야기했다.",
+          "fx": { "happiness": 5, "cost": 35000 },
+          "do": [{ "type": "substance", "substance": "alcohol", "act": "refuse" }],
+          "close": 5
         }
       ]
     },
@@ -6808,7 +6819,7 @@
         },
         {
           "text": "아무렇지 않은 척한다",
-          "result": "\"잘됐네.\" 그날 밤 혼자 술을 마셨다.",
+          "result": "\"잘됐네.\" 그날 밤 혼자 오래 잠들지 못했다.",
           "fx": { "happiness": -2, "stress": 3 }
         }
       ]
