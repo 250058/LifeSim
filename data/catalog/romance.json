@@ -54,7 +54,21 @@
     {
       "id": "rom_safe",
       "name": "피임 습관",
-      "desc": "둘 다 피임을 챙긴다 (엔진: 임신 걱정 확률을 낮춘다)",
+      "desc": "콘돔을 챙기는 습관. 습관이라 3년쯤 지나면 흐려진다 (엔진 contraception.ts: 같은 노출의 임신 위험 × 0.15)",
+      "visible": false,
+      "duration": 3
+    },
+    {
+      "id": "rom_pill_use",
+      "name": "피임약 복용 중",
+      "desc": "경구피임약을 먹는 중. 남성 주인공이면 상대가 먹는다 (엔진 contraception.ts: 위험 × 0.08, 2년 뒤 끝)",
+      "visible": false,
+      "duration": 2
+    },
+    {
+      "id": "rom_larc",
+      "name": "장기 피임 중",
+      "desc": "자궁 내 장치나 피하 이식. 남성 주인공이면 상대의 것 (엔진 contraception.ts: 위험 × 0.005, 장치 수명 5년)",
       "visible": false,
       "duration": 5
     },
@@ -4913,6 +4927,7 @@
       "who": "married",
       "sex": "M",
       "age": [30, 55],
+      "notFlags": ["med_vasectomy"],
       "if": "family.children >= 2",
       "w": 0.4,
       "group": "rom_vasectomy",
@@ -4922,7 +4937,7 @@
         {
           "text": "수술을 받는다",
           "result": "생각보다 금방 끝났다. 이틀 동안 얼음찜질을 하며 소파에 누워 있었다. 그 이틀 동안 {배우자}은/는 아주 다정했다.",
-          "fx": { "stress": -2, "cost": 300000, "add": ["rom_safe"] },
+          "fx": { "stress": -2, "cost": 300000, "add": ["med_vasectomy"] },
           "close": 7
         },
         {
@@ -4936,6 +4951,53 @@
           "result": "협탁 서랍을 채워 두었다. 책임은 나눠 지는 거였다.",
           "fx": { "add": ["rom_safe"] },
           "close": 3
+        }
+      ]
+    },
+    {
+      "id": "rom_family_planning",
+      "title": "다음 아이는",
+      "zoom": "산후 검진",
+      "who": "married",
+      "age": [22, 46],
+      "childAge": [0, 1],
+      "if": "@가임",
+      "w": 0.5,
+      "group": "rom_family_planning",
+      "tone": "neutral",
+      "text": "아이가 태어나고 몇 달 뒤 산후 검진. 의사가 다음 아이 계획을 묻고, 당분간 쓸 수 있는 피임 방법을 하나씩 짚어 줬다. 집에 오는 길에 {배우자}와/과 그 이야기를 이어서 했다.",
+      "choices": [
+        {
+          "text": "콘돔을 챙기기로 한다",
+          "result": "협탁 서랍에 한 상자를 넣어 두었다. 누가 먼저랄 것 없이 서로 챙기기로 했다.",
+          "fx": { "add": ["rom_safe"] },
+          "close": 2
+        },
+        {
+          "text": "자궁 내 장치를 하기로 한다",
+          "if": "sex == 'F'",
+          "result": "다음 진료 때 장치를 넣었다. 몇 년은 이 일로 달력을 들여다볼 일이 줄었다.",
+          "fx": { "stress": -2, "cost": 300000, "add": ["rom_larc"] },
+          "close": 3
+        },
+        {
+          "text": "피임약을 처방받는다",
+          "if": "sex == 'F'",
+          "result": "약 봉투를 화장대 서랍에 넣어 두었다. 휴대폰 알람이 하나 늘었다.",
+          "fx": { "cost": 100000, "add": ["rom_pill_use"] },
+          "close": 2
+        },
+        {
+          "text": "다음 진료에 같이 가서 상담을 받는다",
+          "if": "sex == 'M'",
+          "result": "진료실에 둘이 나란히 앉았다. {배우자}이/가 자궁 내 장치를 하기로 했다. 비용은 반씩 냈다.",
+          "fx": { "cost": 150000, "add": ["rom_larc"] },
+          "close": 5
+        },
+        {
+          "text": "아직은 정하지 않는다",
+          "result": "\"생기면 생기는 대로.\" 둘 다 너무 피곤해서 그 이상 이야기할 힘이 없었다.",
+          "fx": { "stress": 1 }
         }
       ]
     },
@@ -5107,7 +5169,7 @@
         {
           "text": "피임약을 먹기 시작한다",
           "result": "휴대폰에 매일 밤 10시 알람을 맞췄다. 알람 이름은 '비타민'.",
-          "fx": { "stress": -1, "cost": 150000, "add": ["rom_safe"] }
+          "fx": { "stress": -1, "cost": 150000, "add": ["rom_pill_use"] }
         },
         {
           "text": "다른 피임법도 상담받는다",
@@ -5119,6 +5181,11 @@
           "result": "\"당연하지.\" {연인}이/가 다음 진료에 같이 왔다. 대기실에서 제일 긴장한 사람이었다.",
           "fx": { "stress": -2, "add": ["rom_safe"] },
           "close": 6
+        },
+        {
+          "text": "자궁 내 장치를 하기로 한다",
+          "result": "상담을 받고 다음 주에 장치를 넣었다. 하루는 아랫배가 묵직했다. 몇 년은 이 일로 달력을 볼 일이 줄었다.",
+          "fx": { "stress": -1, "cost": 300000, "add": ["rom_larc"] }
         }
       ]
     },
@@ -5136,16 +5203,21 @@
         {
           "text": "피임은 내가 챙기겠다고 말한다",
           "result": "\"약은 쉬어도 돼. 내가 챙길게.\" {연인}이/가 한참 나를 봤다. 고맙다는 눈이었다.",
-          "fx": { "add": ["rom_safe"] },
+          "fx": { "add": ["rom_safe"], "remove": ["rom_pill_use"] },
           "close": 7
         },
         {
           "text": "다음 진료에 같이 가자고 한다",
           "result": "산부인과 대기실에 같이 앉아 있었다. 의사가 약을 바꿔 보자고 했다. 두통이 줄었다.",
-          "fx": { "stress": -1, "add": ["rom_safe"] },
+          "fx": { "stress": -1, "add": ["rom_pill_use"] },
           "close": 6
         },
-        { "text": "괜찮아질 거라며 넘긴다", "result": "{연인}이/가 '그래' 하고 말았다. 그 '그래'가 오래 마음에 걸렸다.", "close": -4 }
+        {
+          "text": "괜찮아질 거라며 넘긴다",
+          "result": "{연인}이/가 '그래' 하고 말았다. 그 '그래'가 오래 마음에 걸렸다.",
+          "fx": { "add": ["rom_pill_use"] },
+          "close": -4
+        }
       ]
     },
     {
@@ -5626,7 +5698,8 @@
           "next": [
             { "event": "rom_pregnancy_negative", "w": 65 },
             { "event": "rom_pregnancy_positive", "w": 35 }
-          ]
+          ],
+          "pregnancy": "rom_pregnancy_positive"
         },
         {
           "text": "혼자 확인하고 싶다고 말한다",
@@ -5635,7 +5708,8 @@
           "next": [
             { "event": "rom_pregnancy_negative", "w": 65 },
             { "event": "rom_pregnancy_positive", "w": 35 }
-          ]
+          ],
+          "pregnancy": "rom_pregnancy_positive"
         },
         {
           "text": "같이 결과를 기다린다",

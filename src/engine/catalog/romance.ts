@@ -11,6 +11,7 @@
 
 import type { Action, ChoiceDef, Effects, EventDef, NextRef, OutcomeDef, TagDef } from '../schema';
 import type { Sex, Tone } from '../types';
+import { conceivedIf } from '../contraception';
 import { josa } from '../format';
 import { addFx, and, makeEvent, overlap, toEffects, type Fx } from './build';
 
@@ -45,6 +46,11 @@ interface Row {
   /** 데이트 장면: 이 단계에서만 보인다 / 이 단계에서는 빠진다 */
   only?: string[];
   not?: string[];
+  /**
+   * 임신 결과가 걸린 선택지: next 가운데 임신 쪽 사건. 노출 때 엔진이 피임 방법으로 임신 여부를 정해 두었으면
+   * (ctx.conceived) 그 결과를 따르고, 없으면 next의 가중치를 쓴다. 펼칠 때 셋으로 나누고 화면에는 하나만 보인다
+   */
+  pregnancy?: string;
 }
 
 interface Phase {
@@ -241,6 +247,31 @@ function effectsOf(
   if (parents) list.push({ type: 'npcCloseness', role: 'parents', delta: parents });
   if (list.length) out.do = list;
   return Object.keys(out).length ? out : undefined;
+}
+
+/**
+ * 임신 결과가 걸린 선택지(row.pregnancy)를 셋으로 나눈다 (검토 R-013): 노출 때 임신이었다 → 임신 쪽 사건,
+ * 아니었다 → 나머지 사건, 정해 둔 결과가 없다 → 원래 가중치. 확률은 contraception.ts가 피임 방법으로 정한다.
+ * 원래 자리에는 '결과가 없을 때'의 선택지를 두고 결과별 선택지는 뒤에 붙인다: 옛 저장에 떠 있던 카드의
+ * 선택지 번호가 예전과 같은 선택지(기본 가중치)를 가리킨다.
+ */
+function splitByConception(rows: Row[], where: string): Row[] {
+  const decided: Row[] = [];
+  const inPlace = rows.map((r) => {
+    if (!r.pregnancy) return r;
+    const next = r.next;
+    const rest = Array.isArray(next) ? next.filter((n) => n.event !== r.pregnancy) : [];
+    if (!Array.isArray(next) || rest.length === next.length || rest.length === 0) {
+      throw new Error(`romance.json › ${where}: pregnancy(${r.pregnancy})는 next 가중치 목록의 한 사건이어야 한다`);
+    }
+    const base = { ...r, pregnancy: undefined };
+    decided.push(
+      { ...base, if: and(r.if, conceivedIf('yes')), next: r.pregnancy },
+      { ...base, if: and(r.if, conceivedIf('no')), next: rest.length === 1 ? rest[0].event : rest },
+    );
+    return { ...base, if: and(r.if, conceivedIf('unknown')) };
+  });
+  return [...inPlace, ...decided];
 }
 
 function outcome(text: string, fx: Effects | undefined, next: NextRef | undefined): OutcomeDef {
@@ -445,7 +476,7 @@ export function expandRomance(data: RomanceCatalog): EventDef[] {
           cooldown: e.cooldown,
           group: e.group,
           effects: toEffects(e.fx),
-          choices: e.choices?.map((r) => toChoice(r)),
+          choices: e.choices && splitByConception(e.choices, e.id).map((r) => toChoice(r)),
           next: e.next,
         }),
       ),
