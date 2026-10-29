@@ -1,4 +1,4 @@
-// 시뮬레이터 지표 계산 (순수 함수). run.ts가 쓰고, tests/records-metrics.test.ts가 작은 가짜 자료로 검산한다.
+// 시뮬레이터 지표 계산과 판정 규칙 (순수 함수). run.ts가 쓰고, tests/records-metrics.test.ts가 작은 가짜 자료로 검산한다.
 // 추정값은 모두 표본 수(분모가 되는 사람 수)와 95% 신뢰구간을 함께 가진다.
 
 /** 95% 양측 정규 분위수 */
@@ -111,20 +111,54 @@ export function fertilityRate(mothers: readonly MotherHistory[], from = 15, to =
   return { value: tfr, lo, hi, n, births, personYears, asfr };
 }
 
+/** 판정: 통과 · 경계(신뢰구간만 겹침) · 실패(신뢰구간까지 벗어남) · 판정 불가(표본 부족) */
+export type Verdict = 'pass' | 'border' | 'fail' | 'insufficient';
+
+/** 판정에 필요한 최소 표본 (추정의 분모가 되는 사람 수). 정규 근사를 믿을 수 있고 우연한 일치를 거른다 */
+export const MIN_SAMPLE = 200;
+
 export interface CheckResult {
-  /** 95% 신뢰구간이 허용 범위 [목표 − 허용, 목표 + 허용]과 겹친다 */
-  pass: boolean;
+  verdict: Verdict;
+  /** 허용 범위 [목표 − 허용, 목표 + 허용] */
+  band: [number, number];
   /** 점추정이 허용 범위 안이다 */
   inside: boolean;
+  /** 95% 신뢰구간이 허용 범위와 겹친다 */
+  overlap: boolean;
+  /** 95% 신뢰구간의 반폭 (hi − lo) / 2 */
+  halfWidth: number;
+  /** 반폭을 허용 오차 이하로 줄이는 데 필요한 표본 수 어림 (반폭은 1/√n로 준다). 모르면 최소 표본 */
+  neededN: number;
 }
 
 /**
- * 허용 오차 판정. 95% 신뢰구간이 '목표 ± 허용'과 겹치면 통과한다: 표본 오차만으로는 떨어지지 않고,
- * 표본이 클수록 허용 오차 그대로 판정하게 된다. 표본이 없으면 통과하지 않는다.
+ * 허용 오차 판정. 표본이 minN명 이상이고 95% 신뢰구간의 반폭이 허용 오차 이하여야 판정한다.
+ * - 통과: 점추정이 허용 범위 안
+ * - 경계: 점추정은 밖이지만 신뢰구간이 허용 범위와 겹친다 (허용 오차를 확인하지 못했으므로 통과가 아니다)
+ * - 실패: 신뢰구간까지 허용 범위 밖 (구간이 넓어도 이미 확정이다)
+ * - 판정 불가: 표본이 minN명보다 적거나, 구간이 허용 범위보다 넓어 허용 오차를 가를 수 없다
  */
-export function checkWithin(est: Estimate, target: number, tol: number): CheckResult {
-  if (est.n === 0 || Number.isNaN(est.value)) return { pass: false, inside: false };
-  const lo = target - tol;
-  const hi = target + tol;
-  return { pass: est.hi >= lo && est.lo <= hi, inside: est.value >= lo && est.value <= hi };
+export function checkWithin(est: Estimate, target: number, tol: number, minN = MIN_SAMPLE): CheckResult {
+  const band: [number, number] = [target - tol, target + tol];
+  // NaN과의 비교는 모두 거짓이라 표본이 없으면 inside·overlap이 거짓이 된다
+  const inside = est.value >= band[0] && est.value <= band[1];
+  const overlap = est.hi >= band[0] && est.lo <= band[1];
+  const halfWidth = (est.hi - est.lo) / 2;
+  const measurable = est.n >= minN && Number.isFinite(est.value) && Number.isFinite(halfWidth);
+  const neededN = measurable ? Math.max(minN, Math.ceil(est.n * (halfWidth / tol) ** 2)) : minN;
+  let verdict: Verdict;
+  if (!measurable) verdict = 'insufficient';
+  else if (!overlap) verdict = 'fail';
+  else if (halfWidth > tol) verdict = 'insufficient';
+  else verdict = inside ? 'pass' : 'border';
+  return { verdict, band, inside, overlap, halfWidth, neededN };
 }
+
+/** 종합 판정: 실패가 하나라도 있으면 실패, 그다음 판정 불가, 경계 순. 모든 항목이 통과여야 통과다 */
+export function overallVerdict(verdicts: readonly Verdict[]): Verdict {
+  if (verdicts.length === 0) return 'insufficient';
+  return (['fail', 'insufficient', 'border'] as const).find((v) => verdicts.includes(v)) ?? 'pass';
+}
+
+/** 종료 코드: 통과 0, 실패 1, (인자 오류 2), 판정 불가 3, 경계 4 */
+export const EXIT_CODE: Record<Verdict, number> = { pass: 0, fail: 1, insufficient: 3, border: 4 };

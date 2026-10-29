@@ -1,10 +1,11 @@
 // 범죄·사법: 체포 → 기소 → 재판 → 벌금·집행유예·실형 → 교도소 → 출소 후 전과자.
 // 형량은 대법원 양형기준의 큰 줄기를 단순화했다. 미성년자는 소년법을 따른다.
-// 처분은 모두 ch.legal.records에 한 건씩 남긴다. 전과·재범·채용의 정의는 records.ts에 있다.
+// 처분은 모두 ch.legal.records에 한 건씩 남긴다. 전과·재범·채용·결격의 정의는 records.ts에 있다.
+// 수감 중에 받은 실형(탈옥 시도 등)은 지금 형이 끝난 뒤에 이어서 산다.
 
 import { leaveJob } from './career';
 import { formatWon } from './format';
-import { addSentence, barredFromJob, convictionCount, FINE_EXPIRY_YEARS } from './records';
+import { addSentence, barredFromJob, closePrisonRecords, convictionCount, FINE_EXPIRY_YEARS } from './records';
 import type { Rng } from './rng';
 import type { Change, GameState } from './types';
 
@@ -179,7 +180,10 @@ export function prosecute(state: GameState, crimeId: string, rng: Rng, lenient =
   }
 
   const years = Math.max(1, Math.ceil(months / 12));
-  ch.legal.prisonUntil = ch.age + years;
+  // 이미 수감 중이면 남은 형기 뒤에 이어서 산다 (덮어쓰면 새 형 때문에 출소가 오히려 당겨진다)
+  const current = ch.legal.prisonUntil;
+  const serving = current !== undefined && ch.age < current;
+  ch.legal.prisonUntil = (serving ? current : ch.age) + years;
   addSentence(ch, { age: ch.age, crime: crimeId, kind: 'prison', months, until: ch.legal.prisonUntil });
   if (state.ch.career.jobId && !state.ch.career.business) leaveJob(state, 0);
   if (state.ch.career.business) {
@@ -190,7 +194,8 @@ export function prosecute(state: GameState, crimeId: string, rng: Rng, lenient =
   if (['elementary', 'middle', 'high', 'university'].includes(ch.edu.status)) ch.edu.status = 'dropout';
   ch.stats.happiness = Math.max(0, ch.stats.happiness - 15);
   changes.push({ text: `징역 ${term} (실형)`, sign: 'bad' });
-  return { kind, text: `${crime.name}. 징역 ${term}. 법정에서 바로 구속됐다.`, changes };
+  const after = serving ? '지금 형기를 마치면 이어서 산다.' : '법정에서 바로 구속됐다.';
+  return { kind, text: `${crime.name}. 징역 ${term}. ${after}`, changes };
 }
 
 /** 전과자 태그. 처음 붙을 때만 알리고, 붙은 나이는 첫 유죄 판결 그대로 둔다 */
@@ -217,7 +222,10 @@ export function payOrBorrow(state: GameState, amount: number): void {
   }
 }
 
+/** 출소. 실형 기록의 끝을 실제 출소 나이에 맞춘다 (결격·실효 기간이 여기서 시작한다) */
 export function release(state: GameState): void {
-  state.ch.legal.prisonUntil = undefined;
-  state.ch.flags.ex_convict_release = { since: state.ch.age, until: state.ch.age + 3 };
+  const ch = state.ch;
+  closePrisonRecords(ch, ch.age);
+  ch.legal.prisonUntil = undefined;
+  ch.flags.ex_convict_release = { since: ch.age, until: ch.age + 3 };
 }
