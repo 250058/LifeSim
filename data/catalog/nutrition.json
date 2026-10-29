@@ -6997,6 +6997,9 @@
         "id": "glp1",
         "age": [25, 70],
         "if": "!military.serving && !legal.inPrison && money.cash > 3000000",
+        "notFlags": ["nut_glp1", "nut_glp1_stopped"],
+        "once": false,
+        "cooldown": 6,
         "title": "비만 치료 주사",
         "zoom": "비만 클리닉",
         "text": "일주일에 한 번 배에 놓는 비만 치료 주사. 식욕을 줄여 1년에 체중의 10~15%까지 빠진다는 약이다. 비만 진단을 받은 사람이 처방 대상이고, 한 달 비용이 수십만 원이다.",
@@ -7005,13 +7008,12 @@
             "text": "처방받아 시작한다",
             "result": "첫 달은 메스꺼워서 밥 냄새도 싫었다. 석 달 만에 7kg이 빠졌다.",
             "fx": {
-              "health": 1,
               "cost": 1200000,
               "treat": [{ "tag": "nut_glp1", "act": "start" }],
               "later": [{ "event": "nut_follow_glp1_year", "inYears": 1 }]
             }
           },
-          { "text": "주사 없이 식단과 운동부터 해 본다", "result": "느렸다. 대신 돈은 들지 않았다.", "fx": { "health": 1 } },
+          { "text": "주사 없이 식단과 운동부터 해 본다", "result": "느렸다. 대신 돈은 들지 않았다." },
           { "text": "비싸서 포기한다", "result": "광고 속 사람들의 사진이 눈에 밟혔다." }
         ]
       },
@@ -8400,6 +8402,44 @@
         ]
       },
       {
+        "id": "return",
+        "age": [16, 80],
+        "flags": ["nut_ed"],
+        "notFlags": ["nut_ed_recovery"],
+        "if": "!legal.inPrison",
+        "once": false,
+        "cooldown": 6,
+        "tone": "drama",
+        "impact": 8,
+        "title": "다시 도움을 청할 때",
+        "zoom": "진료 예약 화면",
+        "text": "끼니를 거르다가 몰래 먹고, 먹고 나면 자책하는 날이 다시 이어졌다. 섭식장애는 좋아졌다가도 다시 흔들리는 일이 흔하다. 예전에 치료를 그만뒀더라도, 몇 번째든 다시 시작해도 늦지 않다.",
+        "w": 1.2,
+        "modifiers": [{ "if": "flags.nut_ed_recovery_stopped", "x": 1.5 }],
+        "choices": [
+          {
+            "text": "치료를 받으러 병원을 예약한다",
+            "result": "섭식장애를 보는 병원에 예약했다. 의사, 상담사, 영양사와 함께 끼니부터 다시 세우기로 했다.",
+            "fx": {
+              "stress": -1,
+              "cost": 50000,
+              "remove": ["nut_ed"],
+              "treat": [{ "tag": "nut_ed_recovery", "act": "start" }]
+            }
+          },
+          {
+            "text": "가까운 정신건강복지센터에 전화해 본다",
+            "result": "무료 상담을 받았다. 병원에 갈 마음은 아직 다 모으지 못했다. 상담사는 언제든 다시 연락하라고 했다.",
+            "fx": { "stress": -1, "later": [{ "event": "nut_follow_ed_return", "inYears": 2 }] }
+          },
+          {
+            "text": "아직은 괜찮다고 넘긴다",
+            "result": "그날도 끼니를 걸렀다. 괜찮다는 말이 점점 버릇이 됐다.",
+            "fx": { "stress": 1, "later": [{ "event": "nut_follow_ed_return", "inYears": 2 }] }
+          }
+        ]
+      },
+      {
         "id": "friend",
         "age": [14, 35],
         "if": "!military.serving && !legal.inPrison",
@@ -8881,6 +8921,38 @@
     ]
   },
   "follow": [
+    {
+      "id": "ed_return",
+      "age": [16, 85],
+      "if": "!legal.inPrison",
+      "flags": ["nut_ed"],
+      "notFlags": ["nut_ed_recovery"],
+      "title": "여전히 힘든 끼니",
+      "zoom": "늦은 밤 식탁",
+      "text": "그 뒤로 두 해가 지났지만 먹는 일은 여전히 싸움이었다. 섭식장애는 혼자 버티는 시간이 길수록 몸이 먼저 지친다. 도움을 청할 곳은 그때도 지금도 그대로 있었다.",
+      "choices": [
+        {
+          "text": "이번에는 치료를 받는다",
+          "result": "섭식장애를 보는 병원을 찾아 첫 진료 날짜를 바로 잡았다. 미뤄 온 두 해가 길었다.",
+          "fx": {
+            "stress": -1,
+            "cost": 50000,
+            "remove": ["nut_ed"],
+            "treat": [{ "tag": "nut_ed_recovery", "act": "start" }]
+          }
+        },
+        {
+          "text": "정신건강복지센터에서 상담부터 받는다",
+          "result": "병원은 아직 겁이 났다. 그래도 상담사에게 요즘 끼니 이야기를 끝까지 털어놓았다.",
+          "fx": { "stress": -1, "later": [{ "event": "nut_follow_ed_return", "inYears": 2 }] }
+        },
+        {
+          "text": "아직은 괜찮다고 넘긴다",
+          "result": "오늘도 괜찮다고 스스로에게 말했다. 접시는 반도 비우지 못했다.",
+          "fx": { "stress": 1, "later": [{ "event": "nut_follow_ed_return", "inYears": 2 }] }
+        }
+      ]
+    },
     {
       "id": "glp1_year",
       "age": [25, 75],
