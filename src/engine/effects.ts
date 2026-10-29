@@ -12,6 +12,7 @@ import {
   startBusiness,
   takeJob,
 } from './career';
+import { applyCrimeAction } from './crime';
 import { REGIONS, TAG_BY_ID } from './data';
 import { addImpact } from './director';
 import { formatWon, HIGH_TYPE_LABEL, josa, signedWon } from './format';
@@ -558,6 +559,10 @@ function runAction(state: GameState, a: Action, ec: EffectContext): void {
       changes.push({ text: `집 ${formatWon(price)} (대출 ${formatWon(price - down)})`, sign: 'info' });
       break;
     }
+    case 'crime':
+      // 범죄 피해·목격·지원 사건: 사건 열기·대응·기관 단계 (crime.ts)
+      applyCrimeAction(state, a, ec);
+      break;
     case 'substance':
       // 술·담배·약물: 사용·거절·줄이기·끊기·치료. 미성년자의 사용은 substances.ts가 막는다
       applySubstanceAction(state, a, ec);

@@ -577,28 +577,29 @@
       "trigger": { "age": [12, 85], "if": "!legal.inPrison && !military.serving" },
       "weight": { "base": 0.00004, "modifiers": [{ "if": "region.metro", "x": 1.5 }] },
       "limit": { "oncePerLife": true },
+      "effects": { "do": [{ "type": "crime", "op": "open", "scene": "random_attack" }] },
       "choices": [
         {
           "text": "같이 뛰어 가게 안으로 숨는다",
           "result": "편의점 창고에서 경찰 사이렌을 들었다. 그 뒤로 그 역에서 내리지 못한다.",
-          "effects": { "stats": { "mental": -8, "stress": 15 } }
+          "effects": { "stats": { "mental": -8, "stress": 15 }, "do": [{ "type": "crime", "op": "respond", "act": "avoid" }] }
         },
         {
           "text": "쓰러진 사람을 끌고 피한다",
           "check": { "stats": ["stamina", "luck"], "dc": 55 },
           "onSuccess": {
             "text": "피를 흘리던 대학생을 지하 통로까지 끌고 갔다. 그 학생은 살았다.",
-            "effects": { "addFlags": ["hero"], "stats": { "reputation": 10, "morality": 10, "mental": -6 } }
+            "effects": { "addFlags": ["hero"], "stats": { "reputation": 10, "morality": 10, "mental": -6 }, "do": [{ "type": "crime", "op": "respond", "act": "intervene" }] }
           },
           "onFail": {
-            "text": "팔을 베였다. 열여섯 바늘을 꿰맸다.",
-            "effects": { "addFlags": ["ptsd"], "stats": { "health": -15, "mental": -10 } }
+            "text": "팔을 베였다. 열여섯 바늘을 꿰맸다. {결과}",
+            "effects": { "stats": { "health": -15, "mental": -10 }, "do": [{ "type": "crime", "op": "respond", "act": "hurt" }] }
           }
         },
         {
           "text": "112에 신고하며 위치를 알린다",
           "result": "가장 먼저 신고한 사람 중 하나였다. 범인은 4분 만에 제압됐다.",
-          "effects": { "stats": { "morality": 4, "stress": 10 } }
+          "effects": { "stats": { "morality": 4, "stress": 10 }, "do": [{ "type": "crime", "op": "respond", "act": "report" }] }
         }
       ]
     }

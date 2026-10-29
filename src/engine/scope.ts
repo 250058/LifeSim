@@ -1,6 +1,7 @@
 // 조건식이 읽는 값들. 사건 JSON의 trigger.if, modifiers, choices.if 에서
 // 'stats.intelligence', 'family.siblings', 'world.economy' 처럼 쓴다.
 
+import { crimeScope } from './crime';
 import { JOB_BY_ID, REGION_BY_ID } from './data';
 import { familySupport, alive, npcAge, partnerOf, spouseOf } from './relations';
 import { ELITE_HIGH, stageOf } from './format';
@@ -182,6 +183,8 @@ export function buildScope(state: GameState, ctx: Record<string, string> = {}): 
       onProbation: legal.probationUntil !== undefined && ch.age < legal.probationUntil,
       releaseNow: legal.prisonUntil !== undefined && ch.age === legal.prisonUntil,
     },
+    // 범죄 피해·목격·지원: crime.cases, crime.victim … ctx.caseId가 있으면 crime.case.canReport 같은 사건별 값
+    crime: crimeScope(state, ctx),
     world: {
       economy: state.world.economy.phase,
       tension: state.world.tension,
