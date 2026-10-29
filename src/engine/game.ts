@@ -16,7 +16,7 @@ import { birthStory, createCharacter, type NewGameOptions } from './character';
 import { hireChance, jobOpenings, leaveJob, takeJob, yearlyEarnings } from './career';
 import { ACTIVITY_BY_ID, JOB_BY_ID, REGION_BY_ID } from './data';
 import { directorYearEnd, initDirector } from './director';
-import { addFlag, changeAttr, killCharacter, removeFlag } from './effects';
+import { addFlag, changeAttr, expireFlags, killCharacter, removeFlag } from './effects';
 import { chooseOption, dismissCard, drawYearEvents, milestonesFor, presentCard } from './eventEngine';
 import { ELITE_HIGH, formatWon, josa, signedWon } from './format';
 import { agingDeltas, deathProbability, pickCause, yearlyHealthDelta } from './health';
@@ -497,10 +497,8 @@ function settleYear(state: GameState, rng: Rng): PendingCard[] {
     state.log.push({ year: state.year, age: ch.age, kind: 'event', title: '마지막 근무', text: `나이 때문에 ${title} 일을 그만뒀다.`, tone: 'neutral', impact: 5 });
   }
 
-  // 기한이 지난 태그는 사라진다
-  for (const [id, f] of Object.entries(ch.flags)) {
-    if (f.until !== undefined && ch.age >= f.until) delete ch.flags[id];
-  }
+  // 기한이 지난 태그는 사라진다 (until 나이의 결산 때). 이어 가지 않은 계속 치료는 '중단 후' 태그를 남긴다
+  expireFlags(state);
 
   // 올해 한 일 한 줄 요약: 가장 많이 한 활동 세 가지와 돈
   const acts = Object.entries(state.actions).sort((a, b) => b[1] - a[1]).slice(0, 3);

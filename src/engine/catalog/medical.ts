@@ -1,8 +1,12 @@
 // 의료 사건사고 (병원 풀): data/catalog/medical.json 의 표를 사건으로 펼친다.
 //
 //   conditions  병 하나 = 증상(무작위) → 진단(연속) → 참으면 이듬해 악화(연속).
-//               who로 환자를 바꾼다: 나(기본)·자녀(childAge)·부모·배우자
-//   chronic     만성 질환 태그가 붙은 사람에게 오는 관리 장면(care)과, 잘 관리하던 사람의 고비(slip)
+//               who로 환자를 바꾼다: 나(기본)·자녀(childAge)·부모·배우자. 증상·첫 진단은 평생 한 번이다
+//   chronic     만성 질환 태그가 붙은 사람에게 오는 관리 장면(care)과, 잘 관리하던 사람의 고비(slip).
+//               관리와 재발은 되풀이되는 일이라 평생 한 번이 아니라 쿨다운(관리 2년·고비 3년)으로 다시 열린다.
+//               대신 오래 남는 수치(건강·체력·사교성·멘탈 등)의 오름은 '관리 안 됨 → 관리 중'으로 실제로
+//               바뀔 때만 준다 (transition). 같은 카드를 되풀이하거나 관리 중인 채 고비를 넘겨도 쌓이지 않는다.
+//               기분(행복·스트레스)은 해마다 제자리로 돌아가므로 그대로 둔다
 //   injuries    상황 × 다친 곳. 둘의 tags가 하나라도 겹치면 한 장면 (only·not으로 좁힌다)
 //   incidents   의료 제도 속 사건(오진, 응급실 뺑뺑이, 간병비…) × 환자 변형
 //   checkups    검진 장소 × 검진 소견 (그해 건강검진을 받았으면 더 잘 나온다)
@@ -17,6 +21,8 @@
 // - 감염병 선택지의 [병원]은 장소마다 가는 곳(의무대, 현지 병원…)으로 바뀐다.
 // - 미성년자는 병원비를 내지 않는다. 돈이 오가는 선택지는 만 19세 이상용과 미만용(보호자가 낸다)으로 나뉜다.
 // - 장소를 따로 정하지 않은 사건은 수감 중이거나 복무 중인 사람에게 나오지 않는다 (where: military·prison·any).
+// - 기간이 있는 치료 태그(결핵 치료 중처럼 tags의 stopped가 있는 것)는 add 대신 treat로 시작·중단·재개한다.
+//   treat는 내 태그를 바꾸므로 환자가 나일 때만 쓴다.
 
 import type { Action, ChoiceDef, Effects, EventDef, TagDef } from '../schema';
 import type { Sex, Tone } from '../types';
@@ -269,6 +275,9 @@ function patientHealth(r: Row, who: Who): Row {
 }
 
 function patientScene(s: Scene, who: Who): Scene {
+  if (who !== 'self' && s.choices.some((r) => r.fx?.treat?.length || r.failFx?.treat?.length)) {
+    throw new Error(`${s.title}: 치료 단계(treat)는 내가 환자일 때만 쓴다 (${who})`);
+  }
   return {
     ...s,
     title: patient(s.title, who),
@@ -416,7 +425,8 @@ interface DrawnOpts {
   who?: Who;
   /** 가중치 배수 (분류·상황) */
   x: number;
-  group: string;
+  /** 같은 묶음은 몇 해 안에 다시 뽑히지 않는다. 없으면 사건마다의 쿨다운만 본다 */
+  group?: string;
   ref: Ref;
   worseRef?: Ref;
   fx?: Fx;
@@ -544,10 +554,55 @@ function tagKey(tag: string): string {
   return tag.replace(/^med_/, '');
 }
 
+// 만성 질환에서 카드와 행동의 역할
+//  - 첫 진단(증상·진단 카드)은 평생 한 번이다.
+//  - 관리 카드(care)는 관리 안 된 동안 가끔 오는 진료 계기다. 미루면 쿨다운 뒤에 다시 온다.
+//    그해 건강검진(활동 메뉴에서 직접 하는 행동)을 받았으면 두 배 잘 나온다.
+//  - 고비 카드(slip)는 관리 중인 동안의 재발 에피소드다.
+//  - 보상은 카드를 본 횟수가 아니라 상태 변화에 붙는다. 활동 메뉴에서 바로 약을 타러 가는 행동은 아직 없다.
+
+/** 관리 장면이 다시 나오기까지 최소 햇수 (관리를 미뤘거나 다시 나빠진 사람에게 다음 진료 기회) */
+const CARE_COOLDOWN = 2;
+/** 잘 관리하던 사람의 고비가 다시 오기까지 최소 햇수 */
+const SLIP_COOLDOWN = 3;
+/** 그해 건강검진을 받았으면 관리 카드가 더 잘 나온다 */
+const CHECKUP_MOD = { if: 'flags.checked_up', x: 2 };
+/**
+ * 오래 남는 수치. 기분(행복·스트레스)은 해마다 제자리로 돌아가므로 되풀이해도 쌓이지 않아 여기서 뺀다
+ * (건강은 나이 기준점으로 천천히 돌아가고, 체력·사교성은 돌아가지 않는다)
+ */
+export const LASTING_STATS = ['health', 'stamina', 'intelligence', 'looks', 'sociability', 'reputation', 'mental', 'morality'] as const;
+
+/**
+ * 관리 장면 선택지의 오래 남는 수치(+)를 상태 변화에 묶는다. 관리 안 되는 태그(c.tag)를 지우는 선택지면
+ * '실제로 지워졌을 때'(ok 태그도 붙이면 '없다가 생겼을 때')만 주고, 상태가 그대로인 선택지에서는 뺀다.
+ * 깎이는 수치(−)는 그대로 둔다: 미루거나 다시 놓으면 그때마다 대가가 있다.
+ */
+function gateLasting(fx: Fx | undefined, c: Chronic): Fx | undefined {
+  if (!fx) return fx;
+  const gains: Partial<Record<(typeof LASTING_STATS)[number], number>> = {};
+  const out: Fx = { ...fx };
+  for (const k of LASTING_STATS) {
+    const v = fx[k];
+    if (v === undefined || v <= 0) continue;
+    gains[k] = v;
+    delete out[k];
+  }
+  if (Object.keys(gains).length === 0) return fx;
+  if (fx.remove?.includes(c.tag)) {
+    const to = c.ok && fx.add?.includes(c.ok) ? c.ok : undefined;
+    out.transition = { from: c.tag, ...(to ? { to } : {}), stats: gains };
+  }
+  return out;
+}
+
+function gateRow(r: Row, c: Chronic): Row {
+  return { ...r, fx: gateLasting(r.fx, c), ...(r.failFx ? { failFx: gateLasting(r.failFx, c) } : {}) };
+}
+
 function expandChronic(ctx: Ctx, list: Chronic[], x: number): void {
   for (const c of list) {
     const key = tagKey(c.tag);
-    const group = c.group ?? `care_${key}`;
     const scenes: [string, Scene, string][] = [
       ...c.care.map((s, i): [string, Scene, string] => [`med_care_${key}_${i + 1}`, s, c.tag]),
       ...(c.slip ?? []).map((s, i): [string, Scene, string] => {
@@ -557,18 +612,21 @@ function expandChronic(ctx: Ctx, list: Chronic[], x: number): void {
     ];
     for (const [id, scene, flag] of scenes) {
       const ref = refFor(id);
+      const slip = flag === c.ok;
       // 확대 표시: '고혈압과 사는 법' / '당뇨 관리'
-      const zoom = scene.zoom ?? (flag === c.ok ? `${c.name} 관리` : `${josa(c.name, '과/와')} 사는 법`);
+      const zoom = scene.zoom ?? (slip ? `${c.name} 관리` : `${josa(c.name, '과/와')} 사는 법`);
       drawnEvent(ctx, {
         id,
-        d: { ...c, w: (scene.w ?? c.w ?? 0.6) * (flag === c.ok ? 0.6 : 1) },
-        scene: { ...scene, zoom },
+        // 첫 진단과 달리 되풀이된다. 묶음 쿨다운(6년)은 쓰지 않는다: 재발한 뒤의 재관리를 오래 막지 않게
+        d: { ...c, w: (scene.w ?? c.w ?? 0.6) * (slip ? 0.6 : 1), once: false, cooldown: c.cooldown ?? (slip ? SLIP_COOLDOWN : CARE_COOLDOWN) },
+        scene: { ...scene, zoom, choices: scene.choices.map((r) => gateRow(r, c)) },
         x,
-        group,
+        group: c.group,
         ref,
         extraFlags: [flag],
-        tone: flag === c.ok ? 'drama' : 'neutral',
-        impact: flag === c.ok ? 7 : 5,
+        mods: slip ? undefined : [CHECKUP_MOD],
+        tone: slip ? 'drama' : 'neutral',
+        impact: slip ? 7 : 5,
       });
     }
   }
