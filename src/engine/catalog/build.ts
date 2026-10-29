@@ -1,7 +1,7 @@
 // 사건 목록(catalog) 공용 도구. data/catalog/*.json의 짧은 표를 엔진의 사건(EventDef)으로 펼친다.
 // 표에는 장면 문장과 수치만 적고, 사건 모양(종류·풀·제한·선택지 구조)은 여기서 정한다.
 
-import type { ChoiceDef, Effects, EventDef, PoolId, TriggerDef } from '../schema';
+import type { Action, ChoiceDef, Effects, EventDef, PoolId, TriggerDef } from '../schema';
 import type { Sex, Tone } from '../types';
 
 /** 표에 쓰는 짧은 효과 표기 */
@@ -24,6 +24,8 @@ export interface Fx {
   remove?: string[];
   /** n년 뒤 이어지는 사건 */
   later?: { event: string; inYears: number }[];
+  /** 엔진 행동 (예: npcCloseness, haveChild) */
+  do?: Action[];
 }
 
 const STAT_FIELDS = [
@@ -50,6 +52,7 @@ export function toEffects(f: Fx | undefined): Effects | undefined {
   if (f.add?.length) out.addFlags = [...f.add];
   if (f.remove?.length) out.removeFlags = [...f.remove];
   if (f.later?.length) out.later = f.later.map((l) => ({ ...l }));
+  if (f.do?.length) out.do = f.do.map((a) => ({ ...a }));
   return Object.keys(out).length ? out : undefined;
 }
 
@@ -66,6 +69,7 @@ export function addFx(a: Fx | undefined, b: Fx | undefined): Fx | undefined {
   out.add = [...(a.add ?? []), ...(b.add ?? [])];
   out.remove = [...(a.remove ?? []), ...(b.remove ?? [])];
   out.later = [...(a.later ?? []), ...(b.later ?? [])];
+  out.do = [...(a.do ?? []), ...(b.do ?? [])];
   return out;
 }
 

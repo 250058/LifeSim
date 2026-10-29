@@ -138,13 +138,13 @@ export function applyEffects(state: GameState, fx: Effects | undefined, ec: Effe
     const r = ch.res;
     if (m.cash !== undefined) {
       const amount = rollRange(m.cash, rng);
-      if (amount < 0) payOrBorrow(state, -amount);
+      if (amount < 0) pay(state, -amount);
       else r.cash += amount;
       if (amount !== 0) changes.push({ text: `현금 ${signedWon(amount)}`, sign: amount > 0 ? 'good' : 'bad' });
     }
     if (m.cash2026 !== undefined) {
       const amount = Math.round((rollRange(m.cash2026, rng) * state.world.economy.priceIndex) / 1000) * 1000;
-      if (amount < 0) payOrBorrow(state, -amount);
+      if (amount < 0) pay(state, -amount);
       else r.cash += amount;
       if (amount !== 0) changes.push({ text: `현금 ${signedWon(amount)}`, sign: amount > 0 ? 'good' : 'bad' });
     }
@@ -187,6 +187,19 @@ export function applyEffects(state: GameState, fx: Effects | undefined, ec: Effe
   }
   if (fx.tension) addImpact(state, fx.tension);
   if (fx.death) killCharacter(state, fx.death);
+}
+
+/**
+ * 사건이 요구한 지출. 미성년자는 가진 돈까지만 내고 나머지는 보호자가 낸다 (아이에게 빚이 생기지 않는다).
+ * 성인은 모자라면 빚이 된다.
+ */
+function pay(state: GameState, amount: number): void {
+  const r = state.ch.res;
+  if (state.ch.age < 19) {
+    r.cash = Math.max(0, r.cash - amount);
+    return;
+  }
+  payOrBorrow(state, amount);
 }
 
 export function killCharacter(state: GameState, cause: string): void {
