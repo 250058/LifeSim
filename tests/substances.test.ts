@@ -741,7 +741,10 @@ describe('데이터 경계', () => {
     for (const ev of EVENTS) {
       expect(causesUse(ev.effects), ev.id).toBe(false);
       (ev.choices ?? []).forEach((c, i) => {
-        if (causesUse(c.effects) || !(causesUse(c.onSuccess?.effects) || causesUse(c.onFail?.effects))) return;
+        // 판정의 성공·실패 모두 사용이면 판정은 정도만 가르는 '사용' 선택이다
+        const okUse = causesUse(c.onSuccess?.effects);
+        const failUse = causesUse(c.onFail?.effects);
+        if (causesUse(c.effects) || okUse === failUse) return;
         // 참으려다 실패해 쓰게 되는 것은 의존이 남은 사람의 갈망 장면뿐이다
         expect(ev.trigger?.if ?? '', `${ev.id} › ${i + 1}`).toMatch(/quitting/);
         expect(ev.trigger?.if ?? '', `${ev.id} › ${i + 1}`).toMatch(/craving >= \d+/);
