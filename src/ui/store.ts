@@ -33,7 +33,6 @@ interface Store {
   act<T>(fn: (s: GameState) => T): T | undefined;
   openSheet(s: Sheet | null): void;
   notify(n: Omit<Notice, 'id'>): void;
-  clearNotice(): void;
   /** 다른 탭·업데이트에서 넘겨받은 상태 */
   restore(game: GameState | null): void;
 }
@@ -113,10 +112,6 @@ export const useGame = create<Store>((set, get) => ({
   notify(n) {
     noticeId += 1;
     set({ notice: { ...n, id: noticeId } });
-  },
-
-  clearNotice() {
-    set({ notice: null });
   },
 
   restore(game) {

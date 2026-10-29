@@ -15,7 +15,16 @@ export function TitleScreen() {
   const { game, graves, adult, setAdult, start, resume } = useGame();
   const [mode, setMode] = useState<Mode>('drama');
   const [seed, setSeed] = useState('');
+  // 살던 인생이 있으면 한 번 더 눌러야 새로 태어난다 (저장이 하나뿐이다)
+  const [confirming, setConfirming] = useState(false);
   const living = game && game.phase !== 'dead' ? game : null;
+  const born = () => {
+    if (living && !confirming) {
+      setConfirming(true);
+      return;
+    }
+    start({ seed: normalizeSeed(seed), mode });
+  };
 
   return (
     <main className="title page">
@@ -86,14 +95,15 @@ export function TitleScreen() {
             spellCheck={false}
           />
         </label>
-        <button
-          className={`btn ${living ? '' : 'primary'} wide`}
-          type="button"
-          disabled={!adult}
-          onClick={() => start({ seed: normalizeSeed(seed), mode })}
-        >
-          태어나기
+        <button className={`btn ${living && !confirming ? '' : 'primary'} wide`} type="button" disabled={!adult} onClick={born}>
+          {confirming ? '그래도 새로 태어나기' : '태어나기'}
         </button>
+        {confirming && living && (
+          <p className="hint warn" role="alert">
+            {living.ch.surname}
+            {living.ch.given}({living.ch.age}세)의 인생은 사라진다.
+          </p>
+        )}
         {!adult && <p className="hint">만 19세 이상임을 확인해야 시작할 수 있다.</p>}
       </section>
 

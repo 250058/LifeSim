@@ -273,7 +273,7 @@
         "age": [19, 90],
         "if": "world.news.flood && region.lowland && family.wealth <= 2 && !family.livesWithParents && !flags.homeowner && !legal.inPrison && !military.serving"
       },
-      "weight": { "base": 0.12, "noMode": true },
+      "weight": { "base": 0.04, "noMode": true },
       "limit": { "oncePerLife": true },
       "choices": [
         {

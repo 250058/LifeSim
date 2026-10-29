@@ -17,7 +17,6 @@ export function GameScreen({ game }: { game: GameState }) {
     <div className="game">
       <Header game={game} />
       <LifeLog game={game} />
-      <Toast />
       <TabBar game={game} />
       {sheet && <SheetHost game={game} sheet={sheet} />}
       {showCard && <EventCard game={game} card={game.card!} />}
@@ -162,25 +161,7 @@ function Entry({ e }: { e: LogEntry }) {
   );
 }
 
-// ── 알림: 활동 결과 ──────────────────────────────────────
-
-function Toast() {
-  const notice = useGame((s) => s.notice);
-  const sheet = useGame((s) => s.sheet);
-  const clear = useGame((s) => s.clearNotice);
-  useEffect(() => {
-    if (!notice) return;
-    const t = setTimeout(clear, 4500);
-    return () => clearTimeout(t);
-  }, [notice, clear]);
-  if (!notice || sheet) return null;
-  return (
-    <div className="toast" role="status" onClick={clear}>
-      <p>{notice.text}</p>
-      {notice.changes && notice.changes.length > 0 && <Changes list={notice.changes} />}
-    </div>
-  );
-}
+// ── 변화 목록 (사건 카드·시트 공용) ─────────────────────
 
 export function Changes({ list }: { list: { text: string; sign: string }[] }) {
   return (
@@ -206,7 +187,6 @@ const TABS: { id: Sheet; label: string; icon: () => JSX.Element }[] = [
 function TabBar({ game }: { game: GameState }) {
   const act = useGame((s) => s.act);
   const openSheet = useGame((s) => s.openSheet);
-  const clear = useGame((s) => s.clearNotice);
   const left = game.points.left;
   const busy = game.phase !== 'action';
   return (
@@ -215,10 +195,7 @@ function TabBar({ game }: { game: GameState }) {
         type="button"
         className="tab next"
         disabled={busy}
-        onClick={() => {
-          clear();
-          act(endTurn);
-        }}
+        onClick={() => act(endTurn)}
       >
         <IconYear />
         <span>+1년</span>

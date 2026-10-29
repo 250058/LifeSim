@@ -71,6 +71,8 @@ for (const s of lives) causes[s.ch.death?.cause ?? '?'] = (causes[s.ch.death?.ca
 
 const row = (label: string, value: string, target?: string) =>
   console.log(`  ${label.padEnd(22)} ${value.padStart(9)}${target ? `   목표 ${target}` : ''}`);
+/** 몇 명이 겪었는가 (목표값 없음) */
+const countRow = (label: string, n: number) => console.log(`  ${label.padEnd(22)} ${`${n}명`.padStart(9)}   ${pct(n / N)}`);
 
 console.log(`\n대한민국 인생 시뮬레이터 · 밸런스 검사`);
 console.log(`  ${N.toLocaleString()}명 · ${MODE} 모드 · ${secs.toFixed(1)}초\n`);
@@ -111,13 +113,13 @@ row('수시·실기·특기자로 진학', pct(grown.filter((s) => s.ch.flags.ea
 
 console.log('\n희귀·초희귀 사건 (인생 중 한 번 이상)');
 for (const id of ['overseas_job_offer', 'compound_arrival', 'compound_death', 'casting_offer', 'trainee_debut', 'political_offer', 'presidential_run', 'lotto_jackpot', 'parents_divorce', 'jeonse_fraud', 'phishing_loss', 'courier_arrest', 'mil_abuse_start']) {
-  row(id, `${(livesWith[id] ?? 0)}명`, pct(share(id)));
+  countRow(id, livesWith[id] ?? 0);
 }
-row('대통령 당선', `${lives.filter((s) => s.ch.flags.president).length}명`);
+countRow('대통령 당선', lives.filter((s) => s.ch.flags.president).length);
 
 console.log('\n재난·전쟁 (인생 중 한 번 이상)');
 for (const id of ['missile_alert', 'skirmish_border', 'war_outbreak', 'war_outbreak_child', 'war_combat', 'war_kia', 'war_end_unification', 'house_fire', 'workplace_fire', 'fire_death', 'earthquake', 'typhoon', 'banjiha_flood', 'heatwave', 'wildfire', 'crowd_crush', 'random_attack']) {
-  row(id, `${(livesWith[id] ?? 0)}명`, pct(share(id)));
+  countRow(id, livesWith[id] ?? 0);
 }
 row('전쟁을 겪음', pct(lives.filter((s) => s.world.war.startYear !== undefined).length / N));
 row('통일을 봄', pct(lives.filter((s) => s.world.unified).length / N));

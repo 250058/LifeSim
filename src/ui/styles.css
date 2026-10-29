@@ -404,6 +404,9 @@ button:disabled {
   font-size: 0.8rem;
   color: var(--ink-3);
 }
+.hint.warn {
+  color: var(--bad);
+}
 .graves ol {
   display: flex;
   flex-direction: column;
@@ -501,7 +504,7 @@ button:disabled {
 }
 .stat {
   display: grid;
-  grid-template-columns: 2.1em minmax(0, 1fr) 1.6em;
+  grid-template-columns: 2.1em minmax(0, 1fr) 2.3em;
   align-items: center;
   gap: 0.35rem;
   font-size: 0.75rem;
@@ -512,6 +515,7 @@ button:disabled {
 .stat-num {
   text-align: right;
   font-size: 0.75rem;
+  white-space: nowrap;
 }
 /* 막대: 원고지 열 칸 */
 .bar {
@@ -738,24 +742,7 @@ button:disabled {
   text-align: center;
 }
 
-/* 알림 */
-.toast {
-  position: fixed;
-  left: 50%;
-  bottom: calc(var(--tabbar-h) + env(safe-area-inset-bottom, 0px) + 0.6rem);
-  z-index: 25;
-  width: min(calc(100% - 32px), 30rem);
-  padding: 0.75rem 0.9rem;
-  border: 1px solid var(--grid);
-  border-radius: 8px;
-  background: var(--sheet);
-  box-shadow: var(--shadow);
-  transform: translateX(-50%);
-  animation: rise 0.2s ease-out;
-}
-.toast p {
-  margin: 0;
-}
+/* 변화 목록 */
 .changes {
   display: flex;
   flex-wrap: wrap;
@@ -1377,19 +1364,6 @@ button:disabled {
   }
   to {
     transform: none;
-    opacity: 1;
-  }
-}
-.toast {
-  animation-name: rise-toast;
-}
-@keyframes rise-toast {
-  from {
-    transform: translate(-50%, 12px);
-    opacity: 0;
-  }
-  to {
-    transform: translate(-50%, 0);
     opacity: 1;
   }
 }

@@ -310,7 +310,7 @@ function CareerSheet({ game }: { game: GameState }) {
             <dd>
               {SCHOOL_LABEL[edu.status]}
               {edu.highType && edu.status === 'high' ? ` · ${HIGH_TYPE_LABEL[edu.highType]}` : ''}
-              {edu.status === 'university' && edu.univ ? ` · ${edu.univ.name}` : ''}
+              {edu.status === 'university' && edu.univ ? ` · ${edu.univ.name}${edu.onLeave ? ' (휴학)' : ''}` : ''}
             </dd>
           </div>
           <div>
