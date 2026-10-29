@@ -2,77 +2,80 @@
   "schema_version": 1,
   "repository": "250058/LifeSim",
   "current_plan_path": "docs/PLAN.md",
-  "latest_report_path": "docs/reviews/2026-10-29T04-32-17Z.md",
+  "latest_report_path": "docs/reviews/2026-10-29T04-55-12Z.md",
   "handoff_issue_number": 1,
   "initial_full_review_pending": true,
-  "last_completed_review_at": "2026-10-29T04:33:21Z",
+  "last_completed_review_at": "2026-10-29T05:04:15Z",
   "reviewed_refs": {
     "ccr-d37c47c4-qxyoxr": {
-      "base_sha": "e91f6f452fb4319c153530a9dd77e554d2918d66",
-      "head_sha": "9a7905569e2c6904f2c2a8581590c857cc6575e0",
-      "review_kind": "scoped_baseline",
-      "report_path": "docs/reviews/2026-10-29T03-55-12Z.md",
-      "completed_at": "2026-10-29T04:07:34.355697Z",
-      "static_files": [
-        "src/engine/game.ts",
-        "src/engine/eventEngine.ts",
-        "src/engine/director.ts",
-        "src/engine/activities.ts",
-        "src/engine/career.ts",
+      "base_sha": "9a7905569e2c6904f2c2a8581590c857cc6575e0",
+      "head_sha": "3d211f0346e39fe6d08eb8de958c39c52633f909",
+      "review_kind": "incremental_scoped",
+      "report_path": "docs/reviews/2026-10-29T04-55-12Z.md",
+      "completed_at": "2026-10-29T05:04:15Z",
+      "diff_files": [
+        "data/catalog/parenting.json",
+        "data/catalog/romance.json",
+        "data/events/adult.json",
+        "docs/review/RESPONSE.md",
+        "src/engine/catalog/parenting.ts",
+        "src/engine/catalog/romance.ts",
         "src/engine/effects.ts",
-        "src/engine/health.ts",
-        "src/engine/heir.ts",
         "src/engine/relations.ts",
-        "src/engine/rng.ts",
-        "src/engine/save.ts",
-        "src/engine/scope.ts",
-        "src/engine/conditions.ts",
-        "src/engine/text.ts",
-        "src/engine/world.ts",
-        "src/engine/summary.ts",
-        "src/engine/character.ts",
-        "src/engine/data.ts",
-        "src/engine/pools.ts",
-        "src/engine/validate.ts",
+        "src/ui/EventCard.tsx"
+      ],
+      "full_new_source_reads": [
+        "src/engine/catalog/parenting.ts",
+        "src/engine/catalog/romance.ts"
+      ],
+      "related_paths_read": [
         "src/engine/catalog/build.ts",
-        "src/engine/catalog/physiology.ts",
-        "src/engine/catalog/index.ts",
-        "tools/simulator/run.ts",
-        "tests/engine.test.ts"
+        "src/engine/eventEngine.ts",
+        "src/engine/text.ts",
+        "src/engine/scope.ts",
+        "src/engine/activities.ts",
+        "src/engine/game.ts"
       ],
       "partial_static_scope": [
-        "schema.ts/types.ts 관련 모델",
-        "src/ui 주요 흐름 및 CSS 화면 폭·접근성 설정",
-        "관련 사건 데이터와 생리 현상 생성 원자료"
+        "data/catalog/parenting.json: structure, counts and targeted scene samples",
+        "data/catalog/romance.json: structure, counts and targeted event samples",
+        "src/ui/EventCard.tsx: changed line and its checkLabel producer"
       ],
       "validation": {
         "build": "passed (includes typecheck)",
         "tests": {
           "passed": 22,
-          "failed": 0
+          "failed": 0,
+          "duration_seconds": 33.57
         },
         "event_validate": {
-          "events": 1514,
+          "events": 2229,
+          "pools": {
+            "physiology": 1339,
+            "romance": 334,
+            "parenting": 381
+          },
           "errors": 0,
           "warnings": 0
         },
         "reality_sim": {
           "n": 1000,
-          "seed_prefix": "REVIEW-20261029",
-          "life_expectancy": 83.99,
-          "exit_code": 0
+          "seed_prefix": "REVIEW-20261029-0455",
+          "life_expectancy_display": 83.6,
+          "exit_code": 0,
+          "duration_seconds": 33.4
         },
         "targeted_reproductions": [
-          "R-001 cap",
-          "R-004 zero probability",
-          "R-006 minor heir",
-          "R-007 pension units",
-          "R-008 abstinent hangover",
-          "R-009 smoking age",
-          "R-010 fine record",
-          "active-card save and duplicate-choice guard"
+          "R-011 missing child context affects both children",
+          "R-012 deceased child survives delayed-context reload validation",
+          "R-013 500 paired activity runs ignore rom_safe"
+        ],
+        "confirmed_improvements": [
+          "par_first_smile binds selected child only when childId exists"
         ]
-      }
+      },
+      "ready_for_review_declared": false,
+      "inherited_static_evidence_report": "docs/reviews/2026-10-29T03-55-12Z.md"
     }
   },
   "observed_refs_at_handoff": {
@@ -177,14 +180,38 @@
       "report_path": "docs/reviews/2026-10-29T03-55-12Z.md",
       "claude_response_status": "accepted_in_progress",
       "claude_response_sha": "2266b14066b02ba7a958674628b27abc66ccdccd"
+    },
+    {
+      "id": "R-011",
+      "priority": "P2",
+      "status": "open",
+      "last_checked_sha": "3d211f0346e39fe6d08eb8de958c39c52633f909",
+      "report_path": "docs/reviews/2026-10-29T04-55-12Z.md",
+      "claude_response_status": "awaiting_response"
+    },
+    {
+      "id": "R-012",
+      "priority": "P2",
+      "status": "open",
+      "last_checked_sha": "3d211f0346e39fe6d08eb8de958c39c52633f909",
+      "report_path": "docs/reviews/2026-10-29T04-55-12Z.md",
+      "claude_response_status": "awaiting_response"
+    },
+    {
+      "id": "R-013",
+      "priority": "P2",
+      "status": "open",
+      "last_checked_sha": "3d211f0346e39fe6d08eb8de958c39c52633f909",
+      "report_path": "docs/reviews/2026-10-29T04-55-12Z.md",
+      "claude_response_status": "awaiting_response"
     }
   ],
   "observed_refs_at_review": {
-    "main": "2ccefdbe011bd3d98d901b1ba689d901b8a4f13d",
-    "ccr-d37c47c4-qxyoxr": "2266b14066b02ba7a958674628b27abc66ccdccd"
+    "main": "2cbefa993d78b3c15082f126730388cec942dc8c",
+    "ccr-d37c47c4-qxyoxr": "3d211f0346e39fe6d08eb8de958c39c52633f909"
   },
-  "latest_code_report_path": "docs/reviews/2026-10-29T03-55-12Z.md",
-  "last_completed_code_review_at": "2026-10-29T04:07:34.355697Z",
+  "latest_code_report_path": "docs/reviews/2026-10-29T04-55-12Z.md",
+  "last_completed_code_review_at": "2026-10-29T05:04:15Z",
   "last_completed_document_review_at": "2026-10-29T04:33:21Z",
   "reviewed_document_refs": {
     "ccr-d37c47c4-qxyoxr": {
@@ -227,6 +254,92 @@
       ],
       "implementation_verified": false,
       "ready_for_review": false
+    }
+  ],
+  "review_history": [
+    {
+      "branch": "ccr-d37c47c4-qxyoxr",
+      "base_sha": "e91f6f452fb4319c153530a9dd77e554d2918d66",
+      "head_sha": "9a7905569e2c6904f2c2a8581590c857cc6575e0",
+      "review_kind": "scoped_baseline",
+      "report_path": "docs/reviews/2026-10-29T03-55-12Z.md",
+      "completed_at": "2026-10-29T04:07:34.355697Z",
+      "static_files": [
+        "src/engine/game.ts",
+        "src/engine/eventEngine.ts",
+        "src/engine/director.ts",
+        "src/engine/activities.ts",
+        "src/engine/career.ts",
+        "src/engine/effects.ts",
+        "src/engine/health.ts",
+        "src/engine/heir.ts",
+        "src/engine/relations.ts",
+        "src/engine/rng.ts",
+        "src/engine/save.ts",
+        "src/engine/scope.ts",
+        "src/engine/conditions.ts",
+        "src/engine/text.ts",
+        "src/engine/world.ts",
+        "src/engine/summary.ts",
+        "src/engine/character.ts",
+        "src/engine/data.ts",
+        "src/engine/pools.ts",
+        "src/engine/validate.ts",
+        "src/engine/catalog/build.ts",
+        "src/engine/catalog/physiology.ts",
+        "src/engine/catalog/index.ts",
+        "tools/simulator/run.ts",
+        "tests/engine.test.ts"
+      ],
+      "partial_static_scope": [
+        "schema.ts/types.ts 관련 모델",
+        "src/ui 주요 흐름 및 CSS 화면 폭·접근성 설정",
+        "관련 사건 데이터와 생리 현상 생성 원자료"
+      ],
+      "validation": {
+        "build": "passed (includes typecheck)",
+        "tests": {
+          "passed": 22,
+          "failed": 0
+        },
+        "event_validate": {
+          "events": 1514,
+          "errors": 0,
+          "warnings": 0
+        },
+        "reality_sim": {
+          "n": 1000,
+          "seed_prefix": "REVIEW-20261029",
+          "life_expectancy": 83.99,
+          "exit_code": 0
+        },
+        "targeted_reproductions": [
+          "R-001 cap",
+          "R-004 zero probability",
+          "R-006 minor heir",
+          "R-007 pension units",
+          "R-008 abstinent hangover",
+          "R-009 smoking age",
+          "R-010 fine record",
+          "active-card save and duplicate-choice guard"
+        ]
+      }
+    }
+  ],
+  "last_live_detection": {
+    "observed_at": "2026-10-29T04:56:25Z",
+    "commit": "e019046f26a73744e0c31152fdb3079e02511c38",
+    "commit_time": "2026-10-29T04:56:22Z",
+    "source": "branch_poll",
+    "ready_message": false,
+    "subsequent_reviewed_sha": "3d211f0346e39fe6d08eb8de958c39c52633f909"
+  },
+  "feature_proposals": [
+    {
+      "id": "F-004",
+      "title": "보호자 연락처 변경과 아이별 학교 알림",
+      "status": "proposed",
+      "report_path": "docs/reviews/2026-10-29T04-55-12Z.md"
     }
   ]
 }
