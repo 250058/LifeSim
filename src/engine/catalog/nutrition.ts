@@ -3,19 +3,28 @@
 //   1. 음식(foods) × 먹는 상황(situations): 음식의 tags와 상황의 tags가 하나라도 겹치면 한 장면 (only·not으로 좁힌다).
 //      본문 = 상황 장면(<F> 자리에 음식 이름) + 음식의 영양 정보 한 줄. 선택지는 음식 것 + 상황의 exit.
 //      값은 상황의 pay 배수를 받는다 (급식·회식·명절처럼 남이 내면 0).
+//      술(alcohol)은 만 19세부터 열리는 성인 장면이다. 마시는 선택지(use)는 substances.ts에 그만큼 마신 것으로,
+//      마시지 않는 선택지는 거절로 남는다. 마시지 않고 넘어가는 길이 표에 없으면 맨 끝에 붙인다 (검토 R-014).
+//      장면은 술을 권하거나 술이 놓인 데서 멈춘다: 주인공이 이미 시켰거나 땄다고 쓰지 않는다 (상황의 alcohol 문장).
 //   2. 영양소(nutrients): 생애 단계별 결핍·과잉 장면. 선택지를 안 쓰면 영양소의 low/high 기본 선택지를 쓴다.
 //   3. 영양제(supplements) × 권유 상황(supplementSituations): <S> 자리에 영양제 이름.
 //   4. 손으로 쓴 장면(scenes): 식단, 식품 안전·알레르기, 생애 단계, 마음(섭식장애), 밥상 문화.
 //   follow는 다른 사건이 later로 부르는 뒷이야기 (추첨되지 않는다).
 
-import type { EventDef, TagDef } from '../schema';
+import type { Action, EventDef, TagDef } from '../schema';
 import type { Sex, Tone } from '../types';
 import { josa } from '../format';
 import { and, choice, makeEvent, overlap, type ChoiceRow, type Fx } from './build';
 
 type Modifier = { if: string; x: number };
-/** 표의 선택지. fixed면 상황의 값 배수를 받지 않는다 */
-type Row = ChoiceRow & { fixed?: boolean };
+/**
+ * 표의 선택지. fixed면 상황의 값 배수를 받지 않는다.
+ * use는 술 음식에서 이 선택지로 마시는 양이다 (substances.ts: 사건 속 술자리 한 번 = 0.5, 한두 잔 = 0.25)
+ */
+type Row = ChoiceRow & { fixed?: boolean; use?: number };
+
+/** 술은 만 19세부터 (청소년보호법. substances.ts의 ADULT_AGE와 같다) */
+const ADULT_AGE = 19;
 
 interface Situation {
   id: string;
@@ -29,6 +38,8 @@ interface Situation {
   lead: string;
   /** 마실 것일 때의 장면 (없으면 lead) */
   drink?: string;
+  /** 술일 때의 장면 (없으면 drink): 누가 권하거나 술이 놓인 데까지만 쓴다. 마실지는 선택지가 정한다 */
+  alcohol?: string;
   /** 값을 치르는 배수. 0이면 남이 낸다 (급식·회식·명절), 2면 두 사람 몫 */
   pay?: number;
   fx?: Fx;
@@ -42,6 +53,8 @@ interface Food {
   name: string;
   title?: string;
   drink?: boolean;
+  /** 술: 만 19세부터, 고른 만큼 substances.ts에 음주로 남는다 */
+  alcohol?: boolean;
   tags: string[];
   age?: [number, number];
   if?: string;
@@ -53,6 +66,8 @@ interface Food {
   /** 영양 정보 문장. 여러 개면 상황마다 돌아가며 쓴다 */
   lines: string[];
   choices: Row[];
+  /** 술 장면에 마시지 않는 길이 없을 때 붙이는 선택지 (없으면 표의 alcoholDecline) */
+  decline?: Row;
 }
 
 interface NutrientScene {
@@ -140,6 +155,8 @@ export interface NutritionCatalog {
   tags?: TagDef[];
   situations: Situation[];
   foods: Food[];
+  /** 술 장면의 기본 '마시지 않기' 선택지 */
+  alcoholDecline: Row;
   nutrients: Nutrient[];
   supplementSituations: SupplementSituation[];
   supplements: Supplement[];
@@ -206,19 +223,54 @@ function fits(f: Food, s: Situation): boolean {
   return f.tags.some((t) => s.tags.includes(t));
 }
 
+/** 장면 문장: 술이면 권하는 장면, 마실 것이면 마실 것 장면, 아니면 기본 장면 */
+function leadFor(f: Food, s: Situation): string {
+  if (f.alcohol && s.alcohol) return s.alcohol;
+  return f.drink && s.drink ? s.drink : s.lead;
+}
+
+/** 음식과 상황의 나이가 겹치는 구간. 술은 만 19세 아래로 내려가지 않는다 */
+function ageFor(f: Food, s: Situation): [number, number] | null {
+  const age = overlap(f.age, s.age);
+  return age && f.alcohol ? overlap(age, [ADULT_AGE, 120]) : age;
+}
+
+/**
+ * 술 음식의 선택지에 substances.ts 기록을 붙인다. use가 있으면 그만큼 마신 것(판정이 있으면 성공·실패 모두),
+ * 없으면 마시지 않기로 한 것(거절)이다. 술이 아닌 음식은 그대로 둔다.
+ */
+function drinkRow(f: Food, row: Row): Row {
+  if (!f.alcohol) return row;
+  const act: Action = row.use
+    ? { type: 'substance', substance: 'alcohol', act: 'use', amount: row.use }
+    : { type: 'substance', substance: 'alcohol', act: 'refuse' };
+  const withAct = (fx: Fx | undefined): Fx => ({ ...fx, do: [...(fx?.do ?? []), act] });
+  return { ...row, fx: withAct(row.fx), ...(row.check ? { failFx: withAct(row.failFx) } : {}) };
+}
+
+/** 조건 없이 늘 보이는 '마시지 않는' 선택지가 표에 있는가 */
+function hasDecline(rows: Row[]): boolean {
+  return rows.some((r) => !r.use && !r.if);
+}
+
 function expandFoods(data: NutritionCatalog, out: EventDef[]): void {
   for (const f of data.foods) {
     for (const s of data.situations) {
       if (!fits(f, s)) continue;
-      const age = overlap(f.age, s.age);
+      const age = ageFor(f, s);
       if (!age) continue;
       // 용돈이 없는 일곱 살 전부터 열리는 장면은 보호자가 낸다
       const pay = age[0] < 7 ? 0 : (s.pay ?? 1);
       const line = f.lines[pickIndex(s.id, f.lines.length)];
-      const lead = fill(f.drink && s.drink ? s.drink : s.lead, f.name);
-      const rows = f.choices.map((r) => scaleRow(r, pay));
+      const lead = fill(leadFor(f, s), f.name);
+      const rows = f.choices.map((r) => drinkRow(f, scaleRow(r, pay)));
       const choices = rows.map((r) => choice(r, '', s.fx));
       if (s.exit && choices.filter((c) => !c.if).length < 4) choices.push(choice(scaleRow(s.exit, pay)));
+      // 술을 권하는 자리에는 마시지 않고 넘어가는 길이 늘 있다 (R-014). 표에 그런 선택지가 없으면 맨 끝(상황의 출구 뒤)에
+      // 붙인다: 앞 선택지의 순서가 그대로라 진행 중이던 저장 카드의 선택이 다른 선택지로 바뀌지 않는다
+      if (f.alcohol && !hasDecline(f.choices) && choices.filter((c) => !c.if).length < 4) {
+        choices.push(choice(drinkRow(f, scaleRow(f.decline ?? data.alcoholDecline, pay)), '', s.fx));
+      }
       const base = (f.w ?? FOOD_W) * (s.w ?? 1);
       out.push(
         makeEvent({
@@ -235,6 +287,7 @@ function expandFoods(data: NutritionCatalog, out: EventDef[]): void {
           modifiers: capModifiers(Math.min(1, base), [...(f.modifiers ?? []), ...(s.modifiers ?? [])]),
           group: `nut_food_${f.id}`,
           impact: 3,
+          adult: f.alcohol,
           choices,
         }),
       );
