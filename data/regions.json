@@ -1,0 +1,158 @@
+{
+  "source": "출생아 수: 통계청 인구동향조사 2024 (충남도청 복지통계 재게시). 생활비 지수·집값은 게임용 근사치",
+  "regions": [
+    {
+      "id": "seoul",
+      "name": "서울특별시",
+      "short": "서울",
+      "births2024": 41605,
+      "costIndex": 1.25,
+      "homePrice": 1250000000,
+      "metro": true
+    },
+    {
+      "id": "busan",
+      "name": "부산광역시",
+      "short": "부산",
+      "births2024": 13063,
+      "costIndex": 1,
+      "homePrice": 420000000,
+      "metro": true
+    },
+    {
+      "id": "daegu",
+      "name": "대구광역시",
+      "short": "대구",
+      "births2024": 10103,
+      "costIndex": 1,
+      "homePrice": 380000000,
+      "metro": true
+    },
+    {
+      "id": "incheon",
+      "name": "인천광역시",
+      "short": "인천",
+      "births2024": 15236,
+      "costIndex": 1.08,
+      "homePrice": 450000000,
+      "metro": true
+    },
+    {
+      "id": "gwangju",
+      "name": "광주광역시",
+      "short": "광주",
+      "births2024": 6034,
+      "costIndex": 0.97,
+      "homePrice": 340000000,
+      "metro": true
+    },
+    {
+      "id": "daejeon",
+      "name": "대전광역시",
+      "short": "대전",
+      "births2024": 7266,
+      "costIndex": 0.98,
+      "homePrice": 360000000,
+      "metro": true
+    },
+    {
+      "id": "ulsan",
+      "name": "울산광역시",
+      "short": "울산",
+      "births2024": 5282,
+      "costIndex": 1,
+      "homePrice": 330000000,
+      "metro": true
+    },
+    {
+      "id": "sejong",
+      "name": "세종특별자치시",
+      "short": "세종",
+      "births2024": 2895,
+      "costIndex": 1.02,
+      "homePrice": 480000000,
+      "metro": true
+    },
+    {
+      "id": "gyeonggi",
+      "name": "경기도",
+      "short": "경기",
+      "births2024": 71285,
+      "costIndex": 1.1,
+      "homePrice": 560000000,
+      "metro": false
+    },
+    {
+      "id": "gangwon",
+      "name": "강원특별자치도",
+      "short": "강원",
+      "births2024": 6592,
+      "costIndex": 0.92,
+      "homePrice": 230000000,
+      "metro": false
+    },
+    {
+      "id": "chungbuk",
+      "name": "충청북도",
+      "short": "충북",
+      "births2024": 7540,
+      "costIndex": 0.92,
+      "homePrice": 240000000,
+      "metro": false
+    },
+    {
+      "id": "chungnam",
+      "name": "충청남도",
+      "short": "충남",
+      "births2024": 9855,
+      "costIndex": 0.92,
+      "homePrice": 250000000,
+      "metro": false
+    },
+    {
+      "id": "jeonbuk",
+      "name": "전북특별자치도",
+      "short": "전북",
+      "births2024": 6780,
+      "costIndex": 0.9,
+      "homePrice": 210000000,
+      "metro": false
+    },
+    {
+      "id": "jeonnam",
+      "name": "전라남도",
+      "short": "전남",
+      "births2024": 8225,
+      "costIndex": 0.88,
+      "homePrice": 190000000,
+      "metro": false
+    },
+    {
+      "id": "gyeongbuk",
+      "name": "경상북도",
+      "short": "경북",
+      "births2024": 10333,
+      "costIndex": 0.9,
+      "homePrice": 200000000,
+      "metro": false
+    },
+    {
+      "id": "gyeongnam",
+      "name": "경상남도",
+      "short": "경남",
+      "births2024": 13067,
+      "costIndex": 0.93,
+      "homePrice": 260000000,
+      "metro": false
+    },
+    {
+      "id": "jeju",
+      "name": "제주특별자치도",
+      "short": "제주",
+      "births2024": 3156,
+      "costIndex": 1,
+      "homePrice": 420000000,
+      "metro": false
+    }
+  ]
+}

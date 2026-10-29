@@ -1,0 +1,190 @@
+{
+  "stage": "노년 65세~. 연금, 질병, 사별, 치매, 고독, 마지막 소원",
+  "events": [
+    {
+      "id": "pension_day",
+      "type": "milestone",
+      "title": "연금 첫 수령",
+      "text": "통장에 국민연금이 처음 찍혔다. 한 달 {연금}. 생각보다 적고, 생각보다 고맙다.",
+      "tone": "neutral",
+      "impact": 8,
+      "trigger": { "age": [65, 65] },
+      "limit": { "oncePerLife": true },
+      "effects": { "do": [{ "type": "retire" }] },
+      "choices": [
+        {
+          "text": "노인복지관 강좌에 등록한다",
+          "result": "스마트폰 사진 찍기 반. 짝꿍이 생겼다.",
+          "effects": { "stats": { "sociability": 3, "happiness": 4 } }
+        },
+        {
+          "text": "손주 용돈으로 쓴다",
+          "if": "family.children > 0",
+          "result": "용돈 주는 재미가 쏠쏠하다.",
+          "effects": {
+            "stats": { "happiness": 5 },
+            "do": [{ "type": "npcCloseness", "role": "child", "delta": 8 }]
+          }
+        },
+        { "text": "아껴서 모은다", "result": "병원비는 늘 생각보다 많이 나온다.", "effects": { "stats": { "stress": -3 } } }
+      ]
+    },
+    {
+      "id": "dementia_signs",
+      "type": "random",
+      "motif": "65세 이상 치매 유병률 약 10% (중앙치매센터)",
+      "title": "깜빡",
+      "text": "냄비를 또 태웠다. 아는 사람 이름이 잠깐 떠오르지 않았다. 달력에 동그라미 친 날이 무슨 날인지 모르겠다.",
+      "tone": "tragedy",
+      "impact": 30,
+      "trigger": { "age": [65, 110], "notFlags": ["dementia", "dementia_mild"] },
+      "weight": {
+        "base": 0.012,
+        "noMode": true,
+        "ageCurve": { "65": 0.4, "75": 1, "85": 2.5, "95": 4 },
+        "modifiers": [
+          { "if": "stats.intelligence > 70", "x": 0.7 },
+          { "if": "stats.sociability < 30", "x": 1.4 }
+        ]
+      },
+      "limit": { "oncePerLife": true },
+      "choices": [
+        {
+          "text": "치매안심센터에서 검사를 받는다",
+          "result": "경도인지장애. 약을 먹고 매주 인지 훈련을 받는다. 진행이 느려졌다.",
+          "effects": { "addFlags": ["dementia_mild"], "stats": { "intelligence": -3 } }
+        },
+        {
+          "text": "나이 들면 다 그렇다며 넘긴다",
+          "result": "1년 뒤, 집에 가는 길을 잃었다.",
+          "effects": { "addFlags": ["dementia"], "stats": { "intelligence": -10, "happiness": -6 } }
+        }
+      ]
+    },
+    {
+      "id": "lonely_days",
+      "type": "random",
+      "motif": "고독사 연 3천여 명, 50~60대 남성 비중이 높다 (보건복지부 고독사 실태조사)",
+      "title": "아무와도 말하지 않은 날",
+      "text": "오늘도 텔레비전 소리뿐이다. 마지막으로 누군가와 말한 게 언제였는지 생각해 본다.",
+      "tone": "drama",
+      "impact": 15,
+      "trigger": { "age": [60, 110], "if": "!family.married" },
+      "weight": {
+        "base": 0.1,
+        "noMode": true,
+        "modifiers": [
+          { "if": "family.children == 0", "x": 1.5 },
+          { "if": "sex == 'M'", "x": 1.3 },
+          { "if": "stats.sociability < 40", "x": 1.5 }
+        ]
+      },
+      "limit": { "cooldown": 3 },
+      "choices": [
+        {
+          "text": "경로당에 나가 본다",
+          "result": "화투판에 끼었다. 10원짜리였지만 크게 웃었다.",
+          "effects": { "stats": { "sociability": 4, "happiness": 6 }, "removeFlags": ["isolated"] }
+        },
+        {
+          "text": "자녀에게 전화를 건다",
+          "if": "family.children > 0",
+          "result": "\"무슨 일 있으세요?\" 일 없다고 했다. 그냥 목소리가 듣고 싶었다.",
+          "effects": {
+            "stats": { "happiness": 4 },
+            "do": [{ "type": "npcCloseness", "role": "child", "delta": 6 }]
+          }
+        },
+        {
+          "text": "혼자가 편하다",
+          "result": "그날도 혼자 저녁을 먹었다.",
+          "effects": { "addFlags": ["isolated"], "stats": { "happiness": -4 } }
+        }
+      ],
+      "filler": true
+    },
+    {
+      "id": "senior_job",
+      "type": "random",
+      "motif": "노인일자리 공익활동형 월 29만 원 (보건복지부)",
+      "title": "노인 일자리",
+      "text": "주민센터 게시판에 노인 일자리 모집 공고가 붙었다. 하루 세 시간 공원 정리, 한 달 29만 원.",
+      "tone": "positive",
+      "impact": 8,
+      "trigger": { "age": [65, 85], "if": "!job.employed && money.cash < 100000000" },
+      "weight": { "base": 0.15, "noMode": true },
+      "limit": { "cooldown": 3 },
+      "choices": [
+        {
+          "text": "신청한다",
+          "result": "형광 조끼를 입고 공원을 돈다. 아는 얼굴이 늘었다.",
+          "effects": {
+            "money": { "cash": 3480000 },
+            "stats": { "sociability": 3, "happiness": 4, "stamina": 1 }
+          }
+        },
+        { "text": "안 한다", "result": "그 시간에 낮잠을 잤다." }
+      ],
+      "filler": true
+    },
+    {
+      "id": "grandchild",
+      "type": "npc",
+      "title": "손주",
+      "text": "{자녀}이/가 아기를 안고 현관에 들어섰다. \"인사드려. {조부모}야.\" 작은 손이 내 손가락을 쥔다.",
+      "tone": "positive",
+      "impact": 12,
+      "trigger": { "age": [50, 95], "if": "family.children > 0" },
+      "weight": { "base": 0.05, "noMode": true, "ageCurve": { "50": 0.4, "60": 1, "75": 0.6, "95": 0.2 } },
+      "limit": { "max": 2, "cooldown": 4 },
+      "choices": [
+        {
+          "text": "용돈 봉투를 꺼낸다",
+          "result": "백일 반지도 맞춰 줬다.",
+          "effects": {
+            "money": { "cash": -1000000 },
+            "stats": { "happiness": 8 },
+            "do": [{ "type": "npcCloseness", "role": "child", "delta": 8 }]
+          }
+        },
+        {
+          "text": "육아를 돕겠다고 한다",
+          "result": "주 3일 손주를 봤다. 허리가 아팠지만 웃을 일이 늘었다.",
+          "effects": {
+            "stats": { "happiness": 10, "stamina": -2, "stress": 4 },
+            "do": [{ "type": "npcCloseness", "role": "child", "delta": 12 }]
+          }
+        }
+      ]
+    },
+    {
+      "id": "last_wish",
+      "type": "random",
+      "title": "마지막 소원",
+      "text": "몸이 예전 같지 않다는 걸 안다. 하고 싶은 일 하나만 고르라면 무엇일까.",
+      "tone": "recovery",
+      "impact": 10,
+      "trigger": { "age": [70, 120], "if": "stats.health < 45 && !legal.inPrison" },
+      "weight": { "base": 0.25, "noMode": true },
+      "limit": { "oncePerLife": true },
+      "choices": [
+        {
+          "text": "태어난 동네에 다녀온다",
+          "result": "{고향}. 다니던 학교 자리엔 아파트가 섰다. 그래도 골목은 그대로였다.",
+          "effects": { "stats": { "happiness": 10, "mental": 4 } }
+        },
+        {
+          "text": "가족에게 편지를 쓴다",
+          "result": "한 사람에 한 장씩. 쓰다 보니 밤이 샜다.",
+          "effects": { "stats": { "happiness": 8, "mental": 6 } }
+        },
+        {
+          "text": "제주도에서 한 달 살아 본다",
+          "if": "money.cash >= 5000000",
+          "result": "바다가 보이는 방에서 한 달. 매일 해 지는 걸 봤다.",
+          "effects": { "money": { "cash": -5000000 }, "stats": { "happiness": 12 } }
+        }
+      ]
+    }
+  ]
+}

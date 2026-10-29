@@ -1,0 +1,369 @@
+{
+  "stage": "장년 30~49세. 결혼·출산·내 집, 승진·해고, 이혼, 부모 병환",
+  "events": [
+    {
+      "id": "marriage_talk",
+      "type": "random",
+      "motif": "2025년 평균 초혼 연령 남 33.9세, 여 31.6세 (통계청) https://www.mt.co.kr/economy/2026/03/20/2026031915130297984",
+      "title": "결혼 이야기",
+      "text": "{연인}와/과 사귄 지 꽤 됐다. 양가 어른들이 슬슬 날짜 얘기를 꺼낸다. 예식장, 신혼집, 예단. 계산기를 두드려 본다.",
+      "tone": "positive",
+      "impact": 20,
+      "trigger": { "age": [22, 70], "if": "family.hasPartner && !family.married && !legal.inPrison" },
+      "weight": {
+        "base": 0.24,
+        "noMode": true,
+        "ageCurve": { "22": 0.2, "26": 0.6, "30": 1.2, "34": 1.3, "40": 0.8, "50": 0.4, "70": 0.2 },
+        "modifiers": [
+          { "if": "family.partnerYears < 2", "x": 0.4 },
+          { "if": "money.cash < 20000000", "x": 0.6 },
+          { "if": "job.employed", "x": 1.3 },
+          { "if": "sex == 'M' && age < 31", "x": 0.6 },
+          { "if": "sex == 'F' && age >= 34", "x": 0.85 }
+        ]
+      },
+      "limit": { "cooldown": 1 },
+      "choices": [
+        {
+          "text": "결혼한다",
+          "result": "하객 300명. 축의금 장부가 두 권이었다. 신혼여행은 다낭.",
+          "effects": {
+            "do": [{ "type": "marry" }],
+            "money": { "cashPct": -0.3 },
+            "stats": { "happiness": 15, "stress": 5 }
+          }
+        },
+        {
+          "text": "작은 결혼식을 하자고 한다",
+          "check": { "stat": "sociability", "dc": 45 },
+          "onSuccess": {
+            "text": "가족끼리 밥 한 끼로 대신했다. 남은 돈은 신혼집 보증금에 보탰다.",
+            "effects": {
+              "do": [{ "type": "marry" }],
+              "money": { "cashPct": -0.08 },
+              "stats": { "happiness": 12 }
+            }
+          },
+          "onFail": {
+            "text": "양가 부모님 반대로 한 달을 싸웠다. 결국 식은 크게 올렸다.",
+            "effects": {
+              "do": [{ "type": "marry" }],
+              "money": { "cashPct": -0.3 },
+              "stats": { "happiness": 6, "stress": 10 }
+            }
+          }
+        },
+        {
+          "text": "아직은 아니다",
+          "result": "{연인}이/가 말없이 창밖을 봤다.",
+          "effects": { "do": [{ "type": "npcCloseness", "role": "partner", "delta": -12 }] }
+        },
+        {
+          "text": "헤어진다",
+          "result": "몇 년이 한 번의 통화로 끝났다.",
+          "effects": { "do": [{ "type": "breakUp" }], "stats": { "happiness": -12 } }
+        }
+      ]
+    },
+    {
+      "id": "pregnancy",
+      "type": "random",
+      "motif": "2025년 합계출산율 0.80명, 출생아 25만 4,300명 (통계청)",
+      "title": "두 줄",
+      "text": "임신 테스트기에 선명한 두 줄. 둘 다 한참 말이 없었다. 그러다 동시에 웃었다.",
+      "tone": "positive",
+      "impact": 20,
+      "trigger": { "age": [20, 60], "if": "family.married && family.fertile && !legal.inPrison" },
+      "weight": {
+        "base": 0.18,
+        "noMode": true,
+        "ageCurve": { "20": 0.6, "28": 1, "33": 1, "38": 0.6, "42": 0.25, "45": 0.1 },
+        "modifiers": [
+          { "if": "family.children >= 1", "x": 0.45 },
+          { "if": "family.children >= 2", "x": 0.25 },
+          { "if": "money.cash < 10000000", "x": 0.7 },
+          { "if": "family.marriedYears < 1", "x": 0.6 }
+        ]
+      },
+      "limit": { "max": 4, "cooldown": 1 },
+      "choices": [
+        {
+          "text": "육아휴직을 쓴다",
+          "if": "job.employed",
+          "result": "1년 동안 아이 곁에 있었다. 복직하니 내 자리에 다른 사람이 앉아 있었다.",
+          "effects": {
+            "do": [{ "type": "haveChild" }],
+            "stats": { "happiness": 12, "stress": 6 },
+            "money": { "cashPct": -0.1 }
+          }
+        },
+        {
+          "text": "맞벌이를 유지한다",
+          "if": "job.employed",
+          "result": "등원 도우미와 할머니 찬스로 버틴다. 매일이 전쟁이다.",
+          "effects": { "do": [{ "type": "haveChild" }], "stats": { "happiness": 8, "stress": 15 } }
+        },
+        {
+          "text": "아이 곁에 있는다",
+          "if": "!job.employed",
+          "result": "밤에 세 번씩 깼다. 처음으로 부모님이 이해됐다.",
+          "effects": { "do": [{ "type": "haveChild" }], "stats": { "happiness": 12, "stress": 10 } }
+        }
+      ]
+    },
+    {
+      "id": "promotion",
+      "type": "random",
+      "title": "인사 발표",
+      "text": "사내 게시판에 인사 발표가 떴다. 스크롤을 내리는 손가락이 떨린다. 내 이름이 있다.",
+      "tone": "positive",
+      "impact": 12,
+      "trigger": {
+        "age": [27, 60],
+        "if": "job.employed && !job.business && job.id != 'youtuber' && job.id != 'entertainer'"
+      },
+      "weight": {
+        "base": 0.12,
+        "noMode": true,
+        "modifiers": [
+          { "if": "stats.intelligence > 60", "x": 1.3 },
+          { "if": "personality.conscientiousness > 60", "x": 1.3 },
+          { "if": "stats.sociability > 60", "x": 1.2 },
+          { "if": "state.stress > 75", "x": 0.6 }
+        ]
+      },
+      "limit": { "max": 4, "cooldown": 5 },
+      "effects": { "do": [{ "type": "promote", "pct": 0.15 }] },
+      "choices": [
+        {
+          "text": "팀원들에게 한턱낸다",
+          "result": "고깃집에서 법인카드 대신 내 카드를 긁었다. 32만 원.",
+          "effects": {
+            "money": { "cash": -320000, "network": 3 },
+            "stats": { "sociability": 2, "happiness": 5 }
+          }
+        },
+        {
+          "text": "티 내지 않고 일한다",
+          "result": "책임이 늘었다. 퇴근이 한 시간 늦어졌다.",
+          "effects": { "stats": { "stress": 6, "happiness": 3 } }
+        }
+      ]
+    },
+    {
+      "id": "layoff",
+      "type": "random",
+      "title": "구조조정",
+      "text": "회사 실적이 나빠지자 '희망퇴직' 공고가 붙었다. 팀장이 조용히 나를 회의실로 부른다.",
+      "tone": "tragedy",
+      "impact": 30,
+      "trigger": { "age": [28, 62], "if": "job.employed && !job.business && job.layoffRisk >= 0.5" },
+      "weight": {
+        "base": 0.02,
+        "modifiers": [
+          { "if": "world.economy == 'recession'", "x": 2.5 },
+          { "if": "world.economy == 'crisis'", "x": 5 },
+          { "if": "job.layoffRisk > 1", "x": 1.5 },
+          { "if": "age >= 50", "x": 1.8 },
+          { "if": "job.id == 'developer' && world.automation > 50", "x": 1.5 }
+        ]
+      },
+      "limit": { "cooldown": 3 },
+      "choices": [
+        {
+          "text": "위로금을 받고 나간다",
+          "result": "1년 치 연봉을 받았다. 다음 날 아침, 갈 곳이 없었다.",
+          "effects": {
+            "do": [{ "type": "loseJob", "severanceMonths": 12 }],
+            "stats": { "happiness": -10, "stress": 8 }
+          }
+        },
+        {
+          "text": "버틴다",
+          "check": { "stats": ["mental", "intelligence"], "dc": 55 },
+          "onSuccess": { "text": "남았다. 대신 옆 팀의 일까지 떠안았다.", "effects": { "stats": { "stress": 15 } } },
+          "onFail": {
+            "text": "책상이 창고 옆으로 옮겨졌다. 석 달 뒤 결국 사표를 냈다.",
+            "effects": {
+              "do": [{ "type": "loseJob", "severanceMonths": 3 }],
+              "stats": { "happiness": -12, "mental": -6 }
+            }
+          }
+        },
+        {
+          "text": "노조와 함께 싸운다",
+          "check": { "stat": "sociability", "dc": 55 },
+          "onSuccess": {
+            "text": "단체협상 끝에 정리해고가 철회됐다.",
+            "effects": { "stats": { "reputation": 4, "stress": 10 } }
+          },
+          "onFail": {
+            "text": "농성 40일. 해고는 철회되지 않았다.",
+            "effects": {
+              "do": [{ "type": "loseJob", "severanceMonths": 6 }],
+              "stats": { "stress": 15, "happiness": -8 }
+            }
+          }
+        }
+      ]
+    },
+    {
+      "id": "parent_stroke",
+      "type": "npc",
+      "title": "새벽 전화",
+      "text": "새벽 3시, {부모} 번호로 전화가 왔다. 받아 보니 119 구급대원이다. 뇌졸중이라고 한다.",
+      "tone": "tragedy",
+      "impact": 35,
+      "trigger": { "age": [18, 75], "if": "family.parentMaxAge >= 60" },
+      "weight": {
+        "base": 0.02,
+        "modifiers": [
+          { "if": "family.parentMaxAge >= 75", "x": 2 },
+          { "if": "family.parentMaxAge >= 85", "x": 1.5 }
+        ]
+      },
+      "limit": { "max": 2, "cooldown": 4 },
+      "effects": { "do": [{ "type": "parentHealth", "delta": -35 }] },
+      "choices": [
+        {
+          "text": "내가 모시고 간병한다",
+          "result": "기저귀를 갈고, 밤에 두 번 깨서 자세를 바꿔 드린다. 회사에 눈치가 보인다.",
+          "effects": {
+            "addFlags": ["caregiver"],
+            "stats": { "stress": 15, "happiness": -6, "morality": 4 },
+            "do": [{ "type": "npcCloseness", "role": "parents", "delta": 10 }]
+          }
+        },
+        {
+          "text": "요양병원에 모신다",
+          "result": "한 달 200만 원. 주말마다 찾아간다. 갈 때마다 더 작아지신다.",
+          "effects": { "money": { "cash": -12000000 }, "stats": { "stress": 6, "happiness": -4 } }
+        },
+        {
+          "text": "형제들과 돌아가며 맡는다",
+          "if": "family.siblings > 0",
+          "check": { "stat": "sociability", "dc": 50 },
+          "onSuccess": { "text": "단톡방에 순번표를 만들었다. 다들 지켰다.", "effects": { "stats": { "stress": 5 } } },
+          "onFail": {
+            "text": "\"넌 가까이 살잖아.\" 결국 대부분 내 몫이 됐다. 형제 사이가 틀어졌다.",
+            "effects": {
+              "addFlags": ["caregiver"],
+              "stats": { "stress": 15, "happiness": -8 },
+              "do": [{ "type": "npcCloseness", "role": "sibling", "delta": -15 }]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "id": "divorce_papers",
+      "type": "random",
+      "motif": "2025년 이혼 8만 8천 건. 이혼율이 가장 높은 나이: 남 40대 후반, 여 40대 초반 (통계청)",
+      "title": "협의이혼 신청서",
+      "text": "식탁 위에 서류 한 장이 놓여 있다. 협의이혼 의사확인 신청서. {배우자}의 서명은 이미 되어 있다.",
+      "tone": "tragedy",
+      "impact": 40,
+      "trigger": { "age": [25, 80], "if": "family.married" },
+      "weight": {
+        "base": 0.008,
+        "ageCurve": { "25": 0.6, "35": 1, "42": 1.4, "47": 1.4, "55": 1, "65": 0.6, "80": 0.3 },
+        "modifiers": [
+          { "if": "family.spouseCloseness < 35", "x": 3 },
+          { "if": "state.stress > 70", "x": 1.5 },
+          { "if": "flags.gambling_addict", "x": 2 },
+          { "if": "money.debt > 100000000", "x": 1.5 }
+        ]
+      },
+      "limit": { "max": 2, "cooldown": 5 },
+      "choices": [
+        {
+          "text": "서명한다",
+          "result": "숙려 기간 한 달. 법원 복도에서 마지막으로 마주쳤다. 재산은 반으로 나눴다.",
+          "effects": { "do": [{ "type": "divorce" }], "stats": { "happiness": -15, "stress": 10 } }
+        },
+        {
+          "text": "부부 상담을 받자고 한다",
+          "check": { "stats": ["sociability", "mental"], "dc": 55 },
+          "onSuccess": {
+            "text": "열두 번의 상담. 처음으로 서로의 말을 끝까지 들었다.",
+            "effects": {
+              "do": [{ "type": "npcCloseness", "role": "spouse", "delta": 25 }],
+              "stats": { "stress": -5 },
+              "money": { "cash": -1200000 }
+            }
+          },
+          "onFail": {
+            "text": "세 번째 상담에서 {배우자}이/가 먼저 일어섰다. 결국 서명했다.",
+            "effects": { "do": [{ "type": "divorce" }], "stats": { "happiness": -18, "stress": 12 } }
+          }
+        },
+        {
+          "text": "소송으로 간다",
+          "result": "1년 반의 소송. 변호사비만 2,000만 원이 들었다.",
+          "effects": {
+            "do": [{ "type": "divorce" }],
+            "money": { "cash": -20000000 },
+            "stats": { "happiness": -15, "stress": 20 }
+          }
+        }
+      ]
+    },
+    {
+      "id": "company_dinner",
+      "type": "random",
+      "title": "2차 노래방",
+      "text": "회식 1차가 끝났다. 부장이 넥타이를 머리에 두르며 외친다. \"2차는 노래방! 빠지는 사람 없지?\"",
+      "tone": "neutral",
+      "impact": 4,
+      "trigger": { "age": [22, 60], "if": "job.employed && !job.business && job.id != 'youtuber'" },
+      "weight": { "base": 0.25, "noMode": true },
+      "limit": { "max": 3, "cooldown": 4 },
+      "choices": [
+        {
+          "text": "탬버린을 잡는다",
+          "result": "새벽 2시 택시를 탔다. 다음 날 부장이 나를 '분위기 메이커'라고 불렀다.",
+          "effects": { "stats": { "sociability": 2, "health": -2, "stress": 3 }, "money": { "network": 3 } }
+        },
+        {
+          "text": "조용히 빠진다",
+          "check": { "stat": "sociability", "dc": 45 },
+          "onSuccess": { "text": "아무도 눈치채지 못했다. 집에 가서 일찍 잤다.", "effects": { "stats": { "stress": -3 } } },
+          "onFail": { "text": "다음 날 아침 회의에서 부장이 내 이름만 빼고 칭찬했다.", "effects": { "stats": { "stress": 5 } } }
+        },
+        { "text": "\"장염이라서요.\"", "result": "통하는 핑계다. 세 번까지는.", "effects": { "stats": { "stress": -1 } } }
+      ],
+      "filler": true
+    },
+    {
+      "id": "burnout",
+      "type": "consequence",
+      "title": "번아웃",
+      "text": "아침에 눈을 떴는데 몸이 움직이지 않는다. 회사 메신저 알림 소리만 들어도 심장이 뛴다.",
+      "tone": "tragedy",
+      "impact": 25,
+      "trigger": { "age": [20, 65], "if": "job.employed && state.stress >= 78" },
+      "weight": { "base": 0.35, "noMode": true },
+      "limit": { "cooldown": 3 },
+      "choices": [
+        {
+          "text": "정신건강의학과에 간다",
+          "result": "우울증 진단. 약을 먹으며 석 달 병가를 냈다.",
+          "effects": {
+            "stats": { "stress": -25, "mental": 6, "happiness": 3 },
+            "money": { "cash": -1500000 }
+          }
+        },
+        {
+          "text": "퇴사한다",
+          "result": "사표를 내고 일주일 동안 잠만 잤다.",
+          "effects": { "do": [{ "type": "loseJob" }], "stats": { "stress": -30, "happiness": 2 } }
+        },
+        {
+          "text": "참고 출근한다",
+          "result": "모니터 앞에서 숨이 잘 쉬어지지 않는다.",
+          "effects": { "stats": { "health": -8, "mental": -8, "stress": 5 } }
+        }
+      ]
+    }
+  ]
+}

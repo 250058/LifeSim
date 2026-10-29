@@ -1,0 +1,240 @@
+{
+  "stage": "중등 13~15세. 사춘기, 일탈, 캐스팅, 고입",
+  "events": [
+    {
+      "id": "middle_entry",
+      "type": "milestone",
+      "title": "중학교 입학",
+      "text": "교복이 아직 크다. \"금방 큰다\"며 두 치수 크게 샀다. 1학년 3반, 처음 보는 얼굴이 더 많다.",
+      "tone": "neutral",
+      "impact": 5,
+      "trigger": { "age": [13, 13], "if": "edu.status == 'elementary'" },
+      "limit": { "oncePerLife": true },
+      "effects": { "do": [{ "type": "enroll", "school": "middle" }] },
+      "choices": [
+        {
+          "text": "동아리 박람회에서 방송부에 지원한다",
+          "check": { "stat": "sociability", "dc": 50 },
+          "onSuccess": {
+            "text": "합격. 점심시간마다 노래를 틀게 됐다.",
+            "effects": {
+              "stats": { "sociability": 3, "reputation": 2 },
+              "do": [{ "type": "discoverTalent", "talent": "music" }]
+            }
+          },
+          "onFail": { "text": "면접에서 말을 더듬었다. 남는 자리는 독서부였다.", "effects": { "stats": { "intelligence": 1 } } }
+        },
+        {
+          "text": "운동부 선배들 눈에 띈다",
+          "check": { "stat": "stamina", "dc": 55 },
+          "onSuccess": {
+            "text": "축구부 감독이 테스트를 보자고 했다.",
+            "effects": { "stats": { "stamina": 3 }, "do": [{ "type": "discoverTalent", "talent": "sports" }] }
+          },
+          "onFail": { "text": "공 한 번 차 보고 끝났다." }
+        },
+        { "text": "조용히 1년을 보낸다", "result": "아무 일도 없었다. 그게 제일 어렵다는 걸 나중에 알았다." }
+      ]
+    },
+    {
+      "id": "puberty_slam",
+      "type": "random",
+      "title": "사춘기",
+      "text": "\"방 좀 치워.\" 그 한마디에 이유도 모르게 화가 치밀었다. 방문이 쾅 닫혔다.",
+      "tone": "neutral",
+      "impact": 5,
+      "trigger": { "age": [13, 16], "if": "family.type != 'facility' && family.livesWithParents" },
+      "weight": {
+        "base": 0.35,
+        "noMode": true,
+        "modifiers": [{ "if": "personality.neuroticism > 60", "x": 1.5 }]
+      },
+      "limit": { "cooldown": 2 },
+      "choices": [
+        {
+          "text": "저녁 먹으며 먼저 사과한다",
+          "result": "{보호자}이/가 반찬을 내 앞으로 밀어 줬다.",
+          "effects": {
+            "stats": { "happiness": 2 },
+            "do": [{ "type": "npcCloseness", "role": "parents", "delta": 4 }]
+          }
+        },
+        {
+          "text": "이틀 동안 말을 안 한다",
+          "result": "집 안 공기가 무거웠다.",
+          "effects": {
+            "stats": { "happiness": -2, "stress": 3 },
+            "do": [{ "type": "npcCloseness", "role": "parents", "delta": -4 }]
+          }
+        },
+        {
+          "text": "이어폰을 끼고 밤새 음악을 듣는다",
+          "result": "가사 한 줄이 꼭 내 얘기 같았다.",
+          "effects": { "stats": { "stress": -4 }, "do": [{ "type": "discoverTalent", "talent": "music" }] }
+        }
+      ],
+      "filler": true
+    },
+    {
+      "id": "exam_night",
+      "type": "random",
+      "title": "중간고사 전날",
+      "text": "새벽 1시. 범위의 절반도 못 봤다. 단톡방에는 '나 하나도 안 함'이라는 거짓말이 올라온다.",
+      "tone": "neutral",
+      "impact": 4,
+      "trigger": { "age": [13, 18], "if": "edu.status == 'middle' || edu.status == 'high'" },
+      "weight": { "base": 0.3, "noMode": true },
+      "limit": { "max": 2, "cooldown": 2 },
+      "choices": [
+        {
+          "text": "밤을 새운다",
+          "check": { "stat": "stamina", "dc": 45 },
+          "onSuccess": {
+            "text": "아는 문제만 나왔다.",
+            "effects": { "do": [{ "type": "grade", "delta": 5 }], "stats": { "stress": 4 } }
+          },
+          "onFail": {
+            "text": "3교시에 잠들었다. 답안지에 침 자국이 남았다.",
+            "effects": { "do": [{ "type": "grade", "delta": -3 }], "stats": { "stress": 6 } }
+          }
+        },
+        {
+          "text": "자고 일어나서 본다",
+          "result": "머리는 맑았다. 결과는 딱 공부한 만큼이었다.",
+          "effects": { "stats": { "stress": -2 } }
+        },
+        {
+          "text": "포기하고 게임을 한다",
+          "result": "현실은 내일의 내가 감당한다.",
+          "effects": { "do": [{ "type": "grade", "delta": -5 }], "stats": { "happiness": 3 } }
+        }
+      ],
+      "filler": true
+    },
+    {
+      "id": "casting_offer",
+      "type": "chain_start",
+      "arc": "entertainment",
+      "motif": "길거리 캐스팅과 함께 '프로필 촬영비'를 받는 연습생 사칭 사기가 공존한다",
+      "title": "명함 한 장",
+      "text": "학교 앞에서 정장 입은 사람이 명함을 내밀었다. '캐스팅 디렉터'. 오디션을 보러 오라고 한다.",
+      "tone": "drama",
+      "impact": 20,
+      "trigger": { "age": [12, 19], "notFlags": ["trainee", "celebrity"] },
+      "weight": {
+        "base": 0.0008,
+        "modifiers": [
+          { "if": "stats.looks > 75", "x": 4 },
+          { "if": "stats.looks > 85", "x": 3 },
+          { "if": "region.id == 'seoul'", "x": 1.5 },
+          { "if": "found.music || found.art", "x": 1.5 }
+        ]
+      },
+      "limit": { "oncePerLife": true },
+      "choices": [
+        {
+          "text": "오디션을 보러 간다",
+          "check": { "stats": ["looks", "sociability"], "dc": 62 },
+          "onSuccess": {
+            "text": "합격. 회사 지하 연습실에서 매일 밤 11시까지 춤과 노래를 배운다. 계약 기간 7년.",
+            "effects": { "addFlags": ["trainee"], "stats": { "happiness": 8, "stress": 10, "reputation": 3 } }
+          },
+          "onFail": {
+            "text": "\"다음에 다시 보자.\" 대기실에는 나 같은 아이가 백 명쯤 있었다.",
+            "effects": { "stats": { "happiness": -4 } }
+          }
+        },
+        {
+          "text": "{보호자}와/과 회사를 검색해 본다",
+          "check": { "stat": "intelligence", "dc": 45 },
+          "onSuccess": {
+            "text": "등록되지 않은 회사였다. '프로필 촬영비 80만 원'을 요구했다는 후기가 나왔다.",
+            "effects": { "stats": { "intelligence": 1 } }
+          },
+          "onFail": {
+            "text": "그럴듯한 홈페이지가 있었다. 프로필 촬영비 80만 원을 냈고, 회사는 연락이 끊겼다.",
+            "effects": { "money": { "cash": -800000 }, "stats": { "happiness": -5 } }
+          }
+        },
+        { "text": "명함을 버린다", "result": "가끔 그 명함이 생각났다." }
+      ]
+    },
+    {
+      "id": "trainee_debut",
+      "type": "consequence",
+      "arc": "entertainment",
+      "title": "데뷔 평가",
+      "text": "월말 평가 날. 대표가 직접 내려왔다. 이번에 데뷔조를 확정한다고 한다.",
+      "tone": "drama",
+      "impact": 25,
+      "trigger": { "age": [14, 26], "flags": ["trainee"] },
+      "weight": { "base": 0.35, "noMode": true },
+      "limit": { "max": 3, "cooldown": 1 },
+      "choices": [
+        {
+          "text": "밤새 연습한 안무를 보여 준다",
+          "check": { "stats": ["looks", "stamina", "sociability"], "dc": 60 },
+          "onSuccess": {
+            "text": "데뷔조 확정. 6개월 뒤 첫 음악방송 무대에 섰다.",
+            "effects": {
+              "removeFlags": ["trainee"],
+              "addFlags": ["celebrity"],
+              "stats": { "reputation": 25, "happiness": 10, "stress": 10 },
+              "do": [{ "type": "getJob", "job": "entertainer" }]
+            }
+          },
+          "onFail": {
+            "text": "이름이 불리지 않았다. 다음 평가까지 다시 6개월.",
+            "effects": { "stats": { "happiness": -6, "stress": 8 } }
+          }
+        },
+        {
+          "text": "그만두고 학교로 돌아간다",
+          "result": "연습실 열쇠를 반납했다. 위약금 얘기가 나오지 않은 게 다행이었다.",
+          "effects": { "removeFlags": ["trainee"], "stats": { "stress": -10 } }
+        }
+      ]
+    },
+    {
+      "id": "first_cigarette",
+      "type": "random",
+      "title": "학교 뒤편",
+      "text": "체육관 뒤에서 무리가 담배를 돌린다. 한 명이 나에게도 내민다. \"너도 해 봐. 별거 아냐.\"",
+      "tone": "neutral",
+      "impact": 8,
+      "trigger": { "age": [13, 18], "notFlags": ["smoker"] },
+      "weight": {
+        "base": 0.05,
+        "modifiers": [
+          { "if": "stats.happiness < 40", "x": 1.8 },
+          { "if": "hidden.morality < 40", "x": 1.8 },
+          { "if": "flags.bully", "x": 1.5 }
+        ]
+      },
+      "limit": { "oncePerLife": true },
+      "choices": [
+        {
+          "text": "받아서 피운다",
+          "result": "기침이 멈추지 않았다. 그래도 무리에 낀 기분이었다.",
+          "effects": {
+            "addFlags": ["smoker"],
+            "stats": { "health": -2, "sociability": 2, "morality": -3, "stress": -3 }
+          }
+        },
+        {
+          "text": "웃으며 거절한다",
+          "check": { "stat": "sociability", "dc": 45 },
+          "onSuccess": {
+            "text": "\"그래, 너는 공부해라.\" 다들 웃고 넘어갔다.",
+            "effects": { "stats": { "sociability": 1 } }
+          },
+          "onFail": {
+            "text": "\"재미없네.\" 다음 날부터 무리가 나를 빼고 다녔다.",
+            "effects": { "stats": { "sociability": -2, "happiness": -2 } }
+          }
+        },
+        { "text": "그 자리를 뜬다", "result": "뒤에서 뭐라고 하는 소리가 들렸다.", "effects": { "stats": { "morality": 2 } } }
+      ]
+    }
+  ]
+}

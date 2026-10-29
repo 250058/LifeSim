@@ -1,0 +1,232 @@
+{
+  "arc": "보이스피싱",
+  "motif": "2025년 보이스피싱 피해액 1조 2,578억 원, 건당 약 5,384만 원, 기관 사칭형 1만 3,323건. https://www.inews24.com/view/2008688 · 대처: 112·1332 지급정지 (경찰청 매뉴얼). 사기 수법 묘사는 경찰청·금감원이 예방용으로 공개한 수준까지만",
+  "events": [
+    {
+      "id": "courier_offer",
+      "type": "chain_start",
+      "arc": "voice_phishing",
+      "motif": "'고액 알바'로 모집된 현금 수거책은 사기 공범·방조로 처벌된다",
+      "title": "외근직 일당 30만 원",
+      "text": "구직 사이트에 '채권 회수 외근직, 일당 30만 원, 경력 무관'이 떴다. 지원하자 메신저로 연락이 왔다. 얼굴도 이름도 모르는 '팀장'이 첫 업무를 알려 준다. 어떤 사람에게 서류 봉투를 받아서 전달만 하면 된다고 한다.",
+      "tone": "drama",
+      "impact": 20,
+      "trigger": {
+        "age": [19, 35],
+        "if": "!job.employed && !military.serving && !legal.inPrison && edu.status != 'university'"
+      },
+      "weight": {
+        "base": 0.02,
+        "modifiers": [
+          { "if": "money.debt > 10000000", "x": 2 },
+          { "if": "flags.credit_default", "x": 2 },
+          { "if": "stats.intelligence > 70", "x": 0.5 },
+          { "if": "world.news.voicePhishing", "x": 0.7 }
+        ]
+      },
+      "limit": { "oncePerLife": true },
+      "choices": [
+        { "text": "해 본다", "next": "courier_first_job" },
+        {
+          "text": "회사 이름과 번호를 검색한다",
+          "check": { "stat": "intelligence", "dc": 45 },
+          "onSuccess": {
+            "text": "'현금 수거책 모집 수법'이라는 경찰 보도자료가 나왔다. 대화방을 나왔다.",
+            "effects": { "stats": { "intelligence": 1, "morality": 2 } }
+          },
+          "onFail": { "text": "아무것도 나오지 않았다. 일단 한 번만 해 보기로 했다.", "next": "courier_first_job" }
+        },
+        {
+          "text": "112에 신고한다",
+          "result": "경찰이 대화 내용을 캡처해 갔다. 비슷한 신고가 하루에도 수십 건이라고 한다.",
+          "effects": { "stats": { "morality": 4 } }
+        }
+      ]
+    },
+    {
+      "id": "courier_first_job",
+      "type": "chain",
+      "arc": "voice_phishing",
+      "zoom": "첫 출근 · 지하철역 3번 출구",
+      "title": "봉투",
+      "text": "약속 장소에 나온 사람은 일흔은 넘어 보이는 할머니였다. 손을 떨며 두꺼운 봉투를 건넨다. \"우리 아들 일, 잘 처리해 주는 거죠?\"",
+      "tone": "tragedy",
+      "impact": 30,
+      "choices": [
+        {
+          "text": "시키는 대로 하고 일당을 받는다",
+          "result": "30만 원이 들어왔다. 팀장은 내일 일정도 보냈다. 그만두면 '손해배상'을 물리겠다고 한다.",
+          "effects": {
+            "money": { "cash": 300000 },
+            "addFlags": ["scam_courier"],
+            "stats": { "morality": -15, "stress": 10 }
+          }
+        },
+        {
+          "text": "할머니에게 사기라고 말한다",
+          "result": "할머니는 처음엔 믿지 않았다. 같이 근처 파출소에 들어갔다. 경찰은 나도 조사해야 한다고 했다.",
+          "effects": {
+            "stats": { "morality": 10, "stress": 8 },
+            "do": [{ "type": "prosecute", "crime": "courier_selfreport" }]
+          }
+        },
+        {
+          "text": "봉투를 들고 경찰서로 간다",
+          "result": "자수했다. 조직은 바로 대화방을 지웠다. 수사관은 협조하면 정상참작이 된다고 했다.",
+          "effects": {
+            "stats": { "morality": 8, "stress": 6 },
+            "do": [{ "type": "prosecute", "crime": "courier_selfreport" }]
+          }
+        }
+      ]
+    },
+    {
+      "id": "courier_arrest",
+      "type": "consequence",
+      "arc": "voice_phishing",
+      "title": "체포",
+      "text": "열한 번째 '출근'. 봉투를 받는 순간 양옆에서 사복 경찰이 팔을 잡았다. 피해자 진술은 이미 끝나 있었다.",
+      "tone": "tragedy",
+      "impact": 40,
+      "trigger": { "flags": ["scam_courier"] },
+      "weight": { "base": 0.7, "noMode": true },
+      "limit": { "oncePerLife": true },
+      "effects": { "removeFlags": ["scam_courier"] },
+      "choices": [
+        {
+          "text": "모르고 한 일이라고 주장한다",
+          "check": { "stat": "luck", "dc": 70 },
+          "onSuccess": { "text": "고의가 인정되지 않았다. 무혐의.", "effects": { "stats": { "stress": 10 } } },
+          "onFail": {
+            "text": "\"일당 30만 원짜리 서류 전달이 정상이라고 생각했습니까?\" 판사는 받아들이지 않았다. {판결}",
+            "effects": { "do": [{ "type": "prosecute", "crime": "scam_accomplice" }] }
+          }
+        },
+        {
+          "text": "혐의를 인정하고 조직 정보를 넘긴다",
+          "result": "윗선 두 명이 검거됐다. 감형 사유가 됐다. {판결}",
+          "effects": { "do": [{ "type": "prosecute", "crime": "scam_accomplice_coop" }] }
+        }
+      ]
+    },
+    {
+      "id": "phishing_call",
+      "type": "chain_start",
+      "arc": "voice_phishing",
+      "motif": "기관 사칭형 보이스피싱 1만 3,323건 (2025, 경찰청). 대본은 경찰청·금감원 예방 홍보물 수준으로만 쓴다",
+      "title": "검찰청 수사관입니다",
+      "text": "모르는 번호. \"서울중앙지검 수사관입니다. 선생님 명의 통장이 사기 사건에 쓰였습니다. 피의자가 되지 않으려면 자산을 '안전계좌'로 옮겨 확인받으셔야 합니다. 보안 사항이라 가족에게도 말하면 안 됩니다.\"",
+      "tone": "drama",
+      "impact": 25,
+      "trigger": { "age": [40, 100], "if": "money.cash >= 10000000" },
+      "weight": {
+        "base": 0.04,
+        "ageCurve": { "40": 0.5, "55": 1, "70": 1.5, "85": 1.5 },
+        "modifiers": [{ "if": "world.news.voicePhishing", "x": 1.3 }]
+      },
+      "limit": { "max": 3, "cooldown": 5 },
+      "choices": [
+        {
+          "text": "끊고 112에 직접 확인한다",
+          "result": "\"검찰은 전화로 돈을 옮기라고 하지 않습니다.\" 경찰관의 목소리가 담담했다.",
+          "effects": { "stats": { "intelligence": 1 } }
+        },
+        { "text": "시키는 대로 이체한다", "next": "phishing_loss" },
+        {
+          "text": "수사관 이름과 사건번호를 되묻는다",
+          "check": { "stat": "intelligence", "dc": 50 },
+          "onSuccess": { "text": "말이 꼬이자 상대가 욕을 하고 끊었다.", "effects": { "stats": { "mental": 2 } } },
+          "onFail": { "text": "막힘없이 대답했다. 사건번호까지 불러 줬다. 믿기로 했다.", "next": "phishing_loss" }
+        }
+      ]
+    },
+    {
+      "id": "phishing_loss",
+      "type": "chain",
+      "arc": "voice_phishing",
+      "zoom": "이체 20분 뒤",
+      "title": "안전계좌",
+      "text": "이체 완료 문자가 오자 전화가 끊겼다. 다시 걸자 없는 번호라고 나온다. 등줄기가 서늘해진다.",
+      "tone": "tragedy",
+      "impact": 40,
+      "effects": {
+        "money": { "cashPct": -0.6 },
+        "addFlags": ["phishing_victim"],
+        "stats": { "happiness": -15, "stress": 20, "mental": -8 }
+      },
+      "choices": [
+        {
+          "text": "바로 112·1332에 지급정지를 신청한다",
+          "check": { "stat": "luck", "dc": 45 },
+          "onSuccess": {
+            "text": "돈이 다 빠져나가기 전에 계좌가 묶였다. 피해구제 절차로 절반을 돌려받았다.",
+            "effects": { "do": [{ "type": "refundPct", "pct": 0.5 }] }
+          },
+          "onFail": {
+            "text": "이미 수십 개 계좌로 쪼개져 빠져나간 뒤였다. 돌려받은 건 몇 퍼센트뿐이다.",
+            "effects": { "do": [{ "type": "refundPct", "pct": 0.05 }] }
+          }
+        },
+        {
+          "text": "창피해서 아무에게도 말하지 않는다",
+          "result": "몇 달 동안 혼자 앓았다.",
+          "effects": { "stats": { "mental": -10, "happiness": -8 } }
+        }
+      ]
+    },
+    {
+      "id": "parent_phishing",
+      "type": "npc",
+      "arc": "voice_phishing",
+      "title": "노후자금",
+      "text": "{부모}에게서 떨리는 목소리로 전화가 왔다. \"검찰이라는 사람이 시켜서 돈을 옮겼는데... 이상해.\" 노후자금 7,000만 원이다.",
+      "tone": "tragedy",
+      "impact": 35,
+      "trigger": { "age": [25, 65], "if": "family.parentMaxAge >= 60" },
+      "weight": {
+        "base": 0.006,
+        "modifiers": [
+          { "if": "family.parentMaxAge >= 75", "x": 1.5 },
+          { "if": "world.news.voicePhishing", "x": 1.3 }
+        ]
+      },
+      "limit": { "oncePerLife": true },
+      "choices": [
+        {
+          "text": "당장 112·1332로 지급정지를 신청한다",
+          "check": { "stat": "luck", "dc": 50 },
+          "onSuccess": {
+            "text": "30분 만에 계좌가 묶였다. 피해구제 신청으로 절반 가까이 돌아왔다.",
+            "effects": { "stats": { "stress": 8 } }
+          },
+          "onFail": {
+            "text": "이미 빠져나간 뒤였다. 일부만 환급됐다. {부모}은/는 한 달 내내 자책했다.",
+            "effects": {
+              "stats": { "stress": 12, "happiness": -6 },
+              "do": [{ "type": "parentHealth", "delta": -10 }]
+            }
+          }
+        },
+        {
+          "text": "내 돈으로 메워 드린다",
+          "if": "money.cash >= 30000000",
+          "result": "3,000만 원을 보냈다. {부모}은/는 고맙다는 말 대신 울기만 했다.",
+          "effects": {
+            "money": { "cash": -30000000 },
+            "do": [{ "type": "npcCloseness", "role": "parents", "delta": 15 }]
+          }
+        },
+        {
+          "text": "왜 그랬냐고 화를 낸다",
+          "result": "전화를 끊고 나서야 후회했다.",
+          "effects": {
+            "do": [
+              { "type": "npcCloseness", "role": "parents", "delta": -12 },
+              { "type": "parentHealth", "delta": -8 }
+            ]
+          }
+        }
+      ]
+    }
+  ]
+}

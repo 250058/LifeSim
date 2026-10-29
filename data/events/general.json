@@ -1,0 +1,444 @@
+{
+  "stage": "여러 나이에 걸친 사건: 사고, 로또, 팬데믹, 경제위기, 교도소, 부고, 상속, 명절, 마음의 병",
+  "events": [
+    {
+      "id": "traffic_accident",
+      "type": "random",
+      "motif": "교통사고 부상자 연 약 30만 명 (도로교통공단 교통사고분석시스템)",
+      "title": "교차로",
+      "text": "신호가 바뀌자마자 오른쪽에서 차가 튀어나왔다. 쾅. 잠깐 아무 소리도 들리지 않았다.",
+      "tone": "tragedy",
+      "impact": 30,
+      "trigger": { "age": [5, 95], "if": "!legal.inPrison" },
+      "weight": {
+        "base": 0.006,
+        "modifiers": [{ "if": "job.id == 'delivery_rider'", "x": 4 }, { "if": "age >= 70", "x": 1.5 }]
+      },
+      "limit": { "cooldown": 5 },
+      "effects": { "stats": { "health": [-25, -8], "stress": 10 } },
+      "choices": [
+        {
+          "text": "구급차에 실려 간다",
+          "result": "골절 두 군데. 6주 동안 깁스를 했다. 보험사와 과실 비율로 석 달을 다퉜다.",
+          "effects": { "money": { "cash": 2000000 } }
+        },
+        {
+          "text": "괜찮다며 현장에서 합의한다",
+          "result": "사흘 뒤부터 목과 허리가 아팠다. 합의서에는 이미 서명을 했다.",
+          "effects": { "stats": { "health": -5 }, "money": { "cash": 500000 } }
+        }
+      ]
+    },
+    {
+      "id": "friend_wedding",
+      "type": "npc",
+      "title": "청첩장",
+      "text": "{친구}에게서 모바일 청첩장이 왔다. 마지막으로 연락한 게 2년 전이다.",
+      "tone": "neutral",
+      "impact": 4,
+      "trigger": { "age": [25, 45], "if": "!legal.inPrison" },
+      "weight": { "base": 0.3, "noMode": true, "ageCurve": { "25": 0.6, "31": 1.2, "38": 0.8, "45": 0.3 } },
+      "limit": { "max": 4, "cooldown": 3 },
+      "choices": [
+        {
+          "text": "참석하고 10만 원 낸다",
+          "result": "밥값이 7만 원이라는 소문을 들었다. 그래도 신랑 신부가 웃었다.",
+          "effects": { "money": { "cash": -100000, "network": 2 }, "stats": { "sociability": 1 } }
+        },
+        {
+          "text": "참석은 못 하고 5만 원만 보낸다",
+          "result": "\"고마워!\" 답장에 하트가 세 개 붙어 있었다.",
+          "effects": { "money": { "cash": -50000 } }
+        },
+        {
+          "text": "읽고 답장하지 않는다",
+          "result": "동창 단톡방에서 내 이름이 조용히 사라졌다.",
+          "effects": { "do": [{ "type": "loseFriend" }] }
+        }
+      ],
+      "filler": true
+    },
+    {
+      "id": "holiday_nagging",
+      "type": "random",
+      "title": "명절",
+      "text": "추석 차례상 앞. 큰아버지가 전을 집으며 묻는다. \"{잔소리}\"",
+      "tone": "neutral",
+      "impact": 4,
+      "trigger": {
+        "age": [14, 45],
+        "if": "family.type != 'facility' && family.parentsAlive > 0 && !legal.inPrison"
+      },
+      "weight": { "base": 0.28, "noMode": true },
+      "limit": { "max": 4, "cooldown": 4 },
+      "choices": [
+        {
+          "text": "웃으며 \"열심히 하고 있어요\"",
+          "result": "용돈 봉투를 받았다. 전 부치는 일이 기다리고 있었다.",
+          "effects": { "money": { "cash": 100000 }, "stats": { "stress": 3 } }
+        },
+        {
+          "text": "\"큰아버지는 노후 준비 잘 되세요?\"",
+          "result": "정적. 사촌 동생이 웃음을 참았다. 부엌에서 엄마가 나를 노려봤다.",
+          "effects": {
+            "stats": { "happiness": 3 },
+            "do": [{ "type": "npcCloseness", "role": "parents", "delta": -3 }]
+          }
+        },
+        {
+          "text": "올해는 안 간다",
+          "if": "age >= 19",
+          "result": "혼자 편의점 도시락을 먹었다. 생각보다 괜찮았다.",
+          "effects": { "stats": { "stress": -4, "happiness": 1 } }
+        }
+      ],
+      "filler": true
+    },
+    {
+      "id": "lotto_habit",
+      "type": "random",
+      "title": "토요일의 기대",
+      "text": "편의점 계산대 옆에 로또 용지가 꽂혀 있다. 1등 당첨 확률 8,145,060분의 1. 그래도 일주일은 설렌다.",
+      "tone": "neutral",
+      "impact": 5,
+      "trigger": { "age": [20, 90], "notFlags": ["lotto_habit"], "if": "!legal.inPrison" },
+      "weight": { "base": 0.04, "noMode": true },
+      "limit": { "max": 2, "cooldown": 5 },
+      "choices": [
+        {
+          "text": "매주 한 장씩 사기로 한다",
+          "result": "토요일 저녁 8시 35분이 기다려진다.",
+          "effects": { "addFlags": ["lotto_habit"], "stats": { "happiness": 2 } }
+        },
+        {
+          "text": "이번 한 번만 산다",
+          "check": { "stat": "luck", "dc": 75 },
+          "onSuccess": {
+            "text": "4등. 5만 원.",
+            "effects": { "money": { "cash": 50000 }, "stats": { "happiness": 3 } }
+          },
+          "onFail": { "text": "하나도 맞지 않았다." }
+        },
+        { "text": "안 산다", "result": "기대도 실망도 없는 한 주." }
+      ],
+      "filler": true
+    },
+    {
+      "id": "lotto_jackpot",
+      "type": "consequence",
+      "motif": "로또 6/45 1등: 한 장당 8,145,060분의 1. 매주 한 장이면 연 52장 ≈ 0.00064%. 현실 모드는 이 숫자를 그대로 쓴다",
+      "title": "여섯 개 전부",
+      "text": "토요일 밤. 번호를 맞춰 보다 손이 멈췄다. 다시 맞춰 봤다. 또 맞춰 봤다. 여섯 개가 전부 같다.",
+      "tone": "positive",
+      "impact": 50,
+      "trigger": { "flags": ["lotto_habit"] },
+      "weight": { "base": 0.0000064 },
+      "limit": { "oncePerLife": true },
+      "effects": { "addFlags": ["lotto_winner"], "money": { "cash": 1370000000 } },
+      "choices": [
+        {
+          "text": "아무에게도 말하지 않는다",
+          "result": "농협 본점 상담실에서 세금을 떼고 받았다. 다음 날도 평소처럼 출근했다.",
+          "effects": { "stats": { "happiness": 20, "stress": 5 } }
+        },
+        {
+          "text": "가족에게만 알린다",
+          "result": "그날 밤 친척 단톡방이 생겼다. 다음 달, 돈을 빌려 달라는 전화가 열한 통 왔다.",
+          "effects": { "stats": { "happiness": 12, "stress": 15 }, "money": { "cash": -200000000 } }
+        },
+        {
+          "text": "다음 날 회사에 사표를 낸다",
+          "if": "job.employed",
+          "result": "팀장 얼굴을 보며 웃었다. 1년 뒤, 할 일이 없어 다시 이력서를 썼다.",
+          "effects": { "do": [{ "type": "loseJob" }], "stats": { "happiness": 15 } }
+        }
+      ]
+    },
+    {
+      "id": "pandemic_life",
+      "type": "world",
+      "motif": "2020년 코로나19 유행",
+      "title": "새로운 감염병",
+      "text": "{연도}년 봄, 새로운 감염병이 번졌다. 마스크 없이는 엘리베이터도 못 탄다. 학교와 회사가 문을 닫았다.",
+      "tone": "drama",
+      "impact": 25,
+      "trigger": { "if": "world.pandemicStart" },
+      "weight": { "base": 0.95, "noMode": true },
+      "limit": { "cooldown": 5 },
+      "choices": [
+        {
+          "text": "집에서 버틴다",
+          "result": "화면 속 얼굴들만 보며 1년을 보냈다.",
+          "effects": { "stats": { "sociability": -4, "happiness": -5, "stress": 6 } }
+        },
+        {
+          "text": "배달 일을 시작한다",
+          "if": "age >= 19 && !job.employed && !legal.inPrison",
+          "result": "주문이 끝없이 들어왔다. 몸은 힘들었지만 통장은 찼다.",
+          "effects": { "money": { "cash": 15000000 }, "stats": { "stamina": 2, "health": -3, "stress": 8 } }
+        },
+        {
+          "text": "이 기회에 주식을 산다",
+          "if": "age >= 19 && money.cash >= 10000000",
+          "result": "{결과}",
+          "effects": { "do": [{ "type": "gamble", "stakePct": 0.4, "winChance": 0.6, "winMult": 1.8 }] }
+        }
+      ]
+    },
+    {
+      "id": "crisis_hit",
+      "type": "world",
+      "motif": "1997 외환위기, 2008 글로벌 금융위기",
+      "title": "위기",
+      "text": "환율이 하루에 50원씩 오른다. 뉴스는 매일 '제2의 IMF'를 말한다. 회사 메신저에 '비용 절감' 공지가 떴다.",
+      "tone": "drama",
+      "impact": 20,
+      "trigger": { "age": [19, 95], "if": "world.economy == 'crisis'" },
+      "weight": { "base": 0.8, "noMode": true },
+      "limit": { "cooldown": 4 },
+      "choices": [
+        {
+          "text": "허리띠를 졸라맨다",
+          "result": "외식을 끊고 적금을 늘렸다.",
+          "effects": { "stats": { "stress": 6, "happiness": -3 } }
+        },
+        {
+          "text": "폭락한 주식을 산다",
+          "if": "money.cash >= 10000000",
+          "result": "{결과}",
+          "effects": { "do": [{ "type": "gamble", "stakePct": 0.5, "winChance": 0.55, "winMult": 2.2 }] }
+        },
+        {
+          "text": "금을 산다",
+          "if": "money.cash >= 5000000",
+          "result": "금은방 앞에 줄이 길었다. 1년 뒤 조금 올랐다.",
+          "effects": { "money": { "cashPct": 0.05 }, "stats": { "stress": -2 } }
+        }
+      ]
+    },
+    {
+      "id": "dark_days",
+      "type": "consequence",
+      "title": "긴 밤",
+      "text": "몇 주째 잠이 오지 않는다. 좋아하던 것들이 아무렇지 않다. 다 그만두고 사라지고 싶다는 생각이 자꾸 든다.",
+      "tone": "tragedy",
+      "impact": 25,
+      "trigger": { "age": [13, 120], "if": "stats.happiness < 22 && hidden.mental < 35" },
+      "weight": { "base": 0.4, "noMode": true },
+      "limit": { "cooldown": 2 },
+      "choices": [
+        {
+          "text": "자살예방 상담전화 109에 전화한다",
+          "result": "상담사는 서두르지 않았다. 한 시간 넘게 이야기했다. 가까운 정신건강복지센터를 연결해 줬다.",
+          "effects": { "stats": { "mental": 12, "happiness": 8, "stress": -10 } }
+        },
+        {
+          "text": "정신건강의학과 진료를 예약한다",
+          "result": "첫 진료까지 2주. 약이 맞기까지 한 달이 더 걸렸다. 그래도 잠이 오기 시작했다.",
+          "effects": { "stats": { "mental": 10, "happiness": 6, "stress": -8 }, "money": { "cash": -300000 } }
+        },
+        {
+          "text": "가까운 사람에게 연락한다",
+          "if": "family.friends > 0 || family.siblings > 0 || family.parentsAlive > 0 || family.married",
+          "result": "\"지금 갈게.\" 그날 밤 같이 라면을 먹었다. 아무 말 안 해도 괜찮았다.",
+          "effects": { "stats": { "mental": 8, "happiness": 8 } }
+        },
+        {
+          "text": "혼자 견딘다",
+          "result": "아무에게도 말하지 않았다. 밤은 여전히 길다.",
+          "effects": { "stats": { "mental": -4, "health": -3 } }
+        }
+      ]
+    },
+    {
+      "id": "arrested",
+      "type": "chain",
+      "title": "경찰서",
+      "text": "{혐의} 혐의로 경찰서에 불려 왔다. CCTV 화면을 캡처한 사진이 책상 위에 놓여 있다.",
+      "tone": "drama",
+      "impact": 25,
+      "choices": [
+        {
+          "text": "혐의를 인정하고 반성문을 쓴다",
+          "result": "{판결}",
+          "effects": {
+            "do": [{ "type": "prosecute", "crime": "ctx", "lenient": true }],
+            "stats": { "morality": 3 }
+          }
+        },
+        {
+          "text": "끝까지 부인한다",
+          "check": { "stat": "luck", "dc": 65 },
+          "onSuccess": { "text": "증거가 부족했다. 무혐의로 풀려났다.", "effects": { "stats": { "morality": -3 } } },
+          "onFail": {
+            "text": "영상은 선명했다. 괘씸죄까지 붙었다. {판결}",
+            "effects": { "do": [{ "type": "prosecute", "crime": "ctx" }] }
+          }
+        }
+      ]
+    },
+    {
+      "id": "prison_days",
+      "type": "random",
+      "title": "수감 번호",
+      "text": "6인실. 누가 뭘 하다 들어왔는지는 사흘이면 다 안다. 면회는 일주일에 한 번, 10분.",
+      "tone": "drama",
+      "impact": 15,
+      "trigger": { "if": "legal.inPrison" },
+      "weight": { "base": 0.6, "noMode": true },
+      "limit": { "cooldown": 1 },
+      "choices": [
+        {
+          "text": "교도소 직업훈련을 받는다",
+          "result": "제과제빵 기능사 자격증을 땄다.",
+          "effects": { "stats": { "intelligence": 2, "mental": 3 }, "addFlags": ["certified"] }
+        },
+        {
+          "text": "고개 숙이고 하루하루 센다",
+          "result": "모범수로 분류됐다.",
+          "effects": { "stats": { "mental": 2 }, "addFlags": ["model_prisoner"] }
+        },
+        {
+          "text": "탈옥을 계획한다",
+          "result": "계획은 같은 방 수감자의 밀고로 끝났다. 형기가 늘었다. {판결}",
+          "effects": {
+            "stats": { "morality": -5, "stress": 15 },
+            "do": [{ "type": "prosecute", "crime": "escape" }]
+          }
+        }
+      ]
+    },
+    {
+      "id": "prison_release",
+      "type": "milestone",
+      "title": "출소",
+      "text": "교도소 정문이 열렸다. 영치금으로 받은 돈과 들어올 때 입었던 옷. 두부를 사 들고 기다리는 사람이 있을까.",
+      "tone": "recovery",
+      "impact": 15,
+      "trigger": { "if": "legal.releaseNow" },
+      "effects": { "do": [{ "type": "release" }] },
+      "choices": [
+        {
+          "text": "가족에게 전화한다",
+          "if": "family.parentsAlive > 0 || family.married || family.siblings > 0",
+          "result": "신호가 한참 갔다. \"...밥은 먹었니?\"",
+          "effects": { "stats": { "happiness": 6, "mental": 4 } }
+        },
+        {
+          "text": "아무도 모르는 동네로 간다",
+          "result": "고시원 방 한 칸에서 다시 시작했다.",
+          "effects": { "do": [{ "type": "moveRegion" }], "stats": { "stress": -4 } }
+        }
+      ]
+    },
+    {
+      "id": "bankruptcy",
+      "type": "consequence",
+      "motif": "개인회생·파산 면책 제도 (대한법률구조공단 상담 132)",
+      "title": "독촉장",
+      "text": "독촉 전화가 하루에 스무 통이다. 빚이 {빚}을 넘었다. 법률구조공단 상담사가 개인회생과 파산 절차를 설명해 준다.",
+      "tone": "drama",
+      "impact": 25,
+      "trigger": {
+        "age": [20, 110],
+        "flags": ["credit_default"],
+        "notFlags": ["bankrupt"],
+        "if": "money.debt > 50000000 && !legal.inPrison"
+      },
+      "weight": { "base": 0.3, "noMode": true },
+      "limit": { "cooldown": 6 },
+      "choices": [
+        {
+          "text": "개인회생을 신청한다",
+          "if": "money.income > 0",
+          "result": "5년 동안 소득의 일부를 갚으면 나머지는 탕감된다. 허리띠를 졸라맸다.",
+          "effects": { "do": [{ "type": "debtRelief", "pct": 0.6 }], "stats": { "stress": -10 } }
+        },
+        {
+          "text": "파산을 신청한다",
+          "result": "면책 결정까지 1년. 빚은 사라졌고, 남은 건 아무것도 없다.",
+          "effects": {
+            "do": [{ "type": "debtRelief", "pct": 1 }],
+            "stats": { "stress": -15, "reputation": -3 }
+          }
+        },
+        {
+          "text": "어떻게든 버틴다",
+          "result": "새벽에도 문자가 온다. 휴대폰을 뒤집어 놓고 잤다.",
+          "effects": { "stats": { "stress": 10, "mental": -5 } }
+        }
+      ]
+    },
+    {
+      "id": "npc_death",
+      "type": "chain",
+      "title": "{고인관계}의 부고",
+      "text": "{고인관계} {고인}이/가 세상을 떠났다. 향년 {향년}세. {사인}.",
+      "tone": "tragedy",
+      "impact": 30,
+      "choices": [
+        { "text": "장례를 치른다", "result": "사흘 동안 조문객을 받았다. 발인 날 아침, 처음으로 소리 내어 울었다." },
+        { "text": "혼자 오래 걷는다", "result": "{고인}이/가 좋아하던 길을 걸었다.", "effects": { "stats": { "mental": 2 } } }
+      ]
+    },
+    {
+      "id": "inheritance",
+      "type": "chain",
+      "title": "상속",
+      "text": "부모님이 남긴 것을 정리했다. 집과 예금, 그리고 생각지 못한 서류 몇 장. 상속세와 빚을 정리하고 남은 내 몫은 {상속액}.",
+      "tone": "neutral",
+      "impact": 15,
+      "choices": [
+        {
+          "text": "법정 상속분대로 받는다",
+          "if": "family.siblings == 0 && family.hiddenDebt == 0",
+          "result": "통장에 숫자가 찍혔다. 이상하게 기쁘지 않았다.",
+          "effects": { "do": [{ "type": "inherit", "share": 1 }] }
+        },
+        {
+          "text": "법정 상속분대로 나누자고 한다",
+          "if": "family.siblings > 0 && family.hiddenDebt == 0",
+          "check": { "stat": "sociability", "dc": 50 },
+          "onSuccess": {
+            "text": "어렵게 합의했다. 서운한 말은 서로 묻어 두기로 했다.",
+            "effects": { "do": [{ "type": "inherit", "share": 1 }] }
+          },
+          "onFail": {
+            "text": "{형제}이/가 소송을 걸었다. 2년 뒤 판결이 났지만 형제는 남이 됐다.",
+            "effects": {
+              "do": [
+                { "type": "inherit", "share": 0.8 },
+                { "type": "npcCloseness", "role": "sibling", "delta": -40 }
+              ],
+              "stats": { "stress": 15 }
+            }
+          }
+        },
+        {
+          "text": "부모님을 모신 형제에게 양보한다",
+          "if": "family.siblings > 0 && family.hiddenDebt == 0",
+          "result": "절반을 양보했다. {형제}이/가 처음으로 고맙다고 했다.",
+          "effects": {
+            "do": [
+              { "type": "inherit", "share": 0.5 },
+              { "type": "npcCloseness", "role": "sibling", "delta": 20 }
+            ],
+            "stats": { "morality": 5, "happiness": 3 }
+          }
+        },
+        {
+          "text": "빚까지 함께 상속받는다",
+          "if": "family.hiddenDebt > 0",
+          "result": "몰랐던 빚이 있었다. 그래도 부모님 이름으로 남은 걸 정리하고 싶었다.",
+          "effects": { "do": [{ "type": "inherit", "share": 1 }], "stats": { "stress": 10 } }
+        },
+        {
+          "text": "한정승인을 신청한다",
+          "if": "family.hiddenDebt > 0",
+          "result": "물려받은 재산 한도 안에서만 빚을 갚기로 했다. 법원 서류가 두 뼘이었다.",
+          "effects": { "do": [{ "type": "inherit", "share": 1, "limited": true }], "stats": { "stress": 5 } }
+        }
+      ]
+    }
+  ]
+}

@@ -1,0 +1,230 @@
+{
+  "tags": [
+    {
+      "id": "bullying_victim",
+      "name": "학폭피해",
+      "desc": "대인관계에 경계심. 우울 확률 상승. 상담을 받으면 '학폭극복'으로 바뀐다",
+      "visible": true,
+      "sign": "bad",
+      "epitaph": "교실에서도",
+      "priority": 6
+    },
+    {
+      "id": "bullying_overcome",
+      "name": "학폭극복",
+      "desc": "견뎌 냈고, 이제는 말할 수 있다",
+      "visible": true,
+      "sign": "good",
+      "epitaph": "교실에서도",
+      "priority": 6
+    },
+    { "id": "bullying_active", "name": "따돌림 중", "desc": "지금도 학교가 지옥이다", "visible": true, "sign": "bad" },
+    { "id": "bully", "name": "학폭가해", "desc": "성인이 된 뒤 폭로당할 수 있다", "visible": true, "sign": "bad" },
+    { "id": "bully_apologized", "name": "사과한 가해자", "visible": true, "sign": "info" },
+    { "id": "bystander", "name": "방관자", "visible": false },
+    { "id": "sv_evidence", "name": "학폭 증거 확보", "visible": false },
+    {
+      "id": "transferred",
+      "name": "전학생",
+      "desc": "새 학교 1년 차",
+      "visible": true,
+      "sign": "info",
+      "duration": 1
+    },
+    { "id": "class_president", "name": "반장 출신", "visible": true, "sign": "good" },
+    { "id": "parents_conflict", "name": "부모 불화", "visible": false, "duration": 3 },
+    { "id": "parents_divorced", "name": "부모 이혼", "visible": true, "sign": "info" },
+    { "id": "parent_died_recent", "name": "최근 부모 사별", "visible": false, "duration": 1 },
+    {
+      "id": "raised_in_facility",
+      "name": "보육원 출신",
+      "visible": true,
+      "sign": "info",
+      "epitaph": "보육원 담장 안에서도",
+      "priority": 3
+    },
+    { "id": "raised_by_grandparents", "name": "조손가정", "visible": true, "sign": "info" },
+    { "id": "chaebol_heir", "name": "재벌2세", "desc": "납치·사기 표적 확률 상승, 상속 분쟁", "visible": true, "sign": "info" },
+    { "id": "smoker", "name": "흡연자", "desc": "건강이 해마다 깎인다", "visible": true, "sign": "bad" },
+    { "id": "heavy_drinker", "name": "술꾼", "visible": true, "sign": "bad" },
+    { "id": "runaway", "name": "가출 경험", "visible": true, "sign": "bad" },
+    { "id": "dropout", "name": "자퇴", "visible": true, "sign": "info" },
+    { "id": "trainee", "name": "연습생", "desc": "데뷔 평가를 기다린다", "visible": true, "sign": "info" },
+    {
+      "id": "celebrity",
+      "name": "연예인",
+      "visible": true,
+      "sign": "good",
+      "achievement": true,
+      "epitaph": "무대 위에서도",
+      "priority": 7
+    },
+    { "id": "gambling_exposed", "name": "도박 경험", "visible": false },
+    {
+      "id": "gambling_addict",
+      "name": "도박중독",
+      "visible": true,
+      "sign": "bad",
+      "epitaph": "도박의 늪에서도",
+      "priority": 4
+    },
+    { "id": "gambling_debt", "name": "도박 빚", "visible": true, "sign": "bad" },
+    {
+      "id": "industrial_injury",
+      "name": "산재",
+      "desc": "현장실습·작업 중 사고의 후유증",
+      "visible": true,
+      "sign": "bad",
+      "epitaph": "기계 소리 속에서도",
+      "priority": 5
+    },
+    { "id": "retake", "name": "재수생", "visible": true, "sign": "info" },
+    { "id": "csat_calm", "name": "수능: 든든한 아침", "visible": false, "duration": 1 },
+    { "id": "csat_drowsy", "name": "수능: 감기약", "visible": false, "duration": 1 },
+    { "id": "csat_rushed", "name": "수능: 지각 위기", "visible": false, "duration": 1 },
+    { "id": "csat_shaken", "name": "수능: 떨리는 손", "visible": false, "duration": 1 },
+    { "id": "csat_focus", "name": "수능: 집중", "visible": false, "duration": 1 },
+    { "id": "csat_panic", "name": "수능: 시간 부족", "visible": false, "duration": 1 },
+    { "id": "unemployed", "name": "무직", "desc": "일도 학교도 없다", "visible": true, "sign": "info" },
+    { "id": "gongsi", "name": "공시생", "visible": true, "sign": "info" },
+    { "id": "certified", "name": "자격증", "visible": true, "sign": "good" },
+    {
+      "id": "military_done",
+      "name": "군필",
+      "visible": true,
+      "sign": "info",
+      "epitaph": "군대에서도",
+      "priority": 1
+    },
+    { "id": "military_exempt", "name": "병역면제", "visible": true, "sign": "info" },
+    {
+      "id": "hazing_victim",
+      "name": "군 가혹행위 피해",
+      "visible": true,
+      "sign": "bad",
+      "epitaph": "막사에서도",
+      "priority": 6
+    },
+    {
+      "id": "hazing_reported",
+      "name": "부조리 신고자",
+      "desc": "침묵하지 않았다",
+      "visible": true,
+      "sign": "good",
+      "epitaph": "막사에서도",
+      "priority": 6
+    },
+    { "id": "hazing_perpetrator", "name": "가혹행위 대물림", "visible": true, "sign": "bad" },
+    { "id": "deserter", "name": "탈영", "visible": true, "sign": "bad" },
+    {
+      "id": "criminal_record",
+      "name": "전과자",
+      "desc": "취업·결혼 불이익, 범죄 조직의 연락 증가",
+      "visible": true,
+      "sign": "bad",
+      "epitaph": "철창 안에서도",
+      "priority": 5
+    },
+    { "id": "juvenile_record", "name": "소년보호처분", "visible": true, "sign": "bad" },
+    { "id": "model_prisoner", "name": "모범수", "visible": false },
+    { "id": "ex_convict_release", "name": "출소 직후", "visible": false },
+    {
+      "id": "credit_default",
+      "name": "신용불량",
+      "desc": "대출 불가. 사채·불법 알바 제안 증가",
+      "visible": true,
+      "sign": "bad",
+      "epitaph": "빚더미 속에서도",
+      "priority": 4
+    },
+    {
+      "id": "bankrupt",
+      "name": "개인회생·파산",
+      "desc": "빚은 정리됐지만 금융 기록이 남았다",
+      "visible": true,
+      "sign": "bad",
+      "duration": 5
+    },
+    { "id": "scam_courier", "name": "현금 수거책", "desc": "보이스피싱 조직의 일을 하고 있다", "visible": true, "sign": "bad" },
+    { "id": "phishing_victim", "name": "보이스피싱 피해", "visible": true, "sign": "bad" },
+    { "id": "in_compound", "name": "해외 감금 중", "visible": true, "sign": "bad" },
+    { "id": "compound_reported", "name": "구조 요청 기록", "visible": false },
+    { "id": "compound_manager", "name": "조직 관리자", "visible": false },
+    {
+      "id": "compound_survivor",
+      "name": "범죄단지생환",
+      "desc": "피해자이자 피의자로 돌아왔다. 트라우마가 남는다",
+      "visible": true,
+      "sign": "bad",
+      "epitaph": "낯선 나라의 감옥에서도",
+      "priority": 9
+    },
+    {
+      "id": "jeonse_victim",
+      "name": "전세사기 피해",
+      "visible": true,
+      "sign": "bad",
+      "epitaph": "빈 전셋집 앞에서도",
+      "priority": 3
+    },
+    { "id": "homeowner", "name": "내 집 마련", "visible": true, "sign": "good", "achievement": true },
+    { "id": "lotto_habit", "name": "매주 로또", "visible": false },
+    { "id": "lotto_winner", "name": "로또 1등", "visible": true, "sign": "good", "achievement": true },
+    { "id": "divorced", "name": "이혼", "visible": true, "sign": "info" },
+    { "id": "widowed", "name": "사별", "visible": true, "sign": "bad" },
+    {
+      "id": "caregiver",
+      "name": "가족 간병",
+      "visible": true,
+      "sign": "bad",
+      "epitaph": "긴 간병의 밤에도",
+      "priority": 5
+    },
+    { "id": "checked_up", "name": "올해 건강검진", "visible": false, "duration": 1 },
+    { "id": "cancer", "name": "암 투병", "visible": true, "sign": "bad" },
+    {
+      "id": "cancer_survivor",
+      "name": "암 생존자",
+      "visible": true,
+      "sign": "good",
+      "achievement": true,
+      "epitaph": "병상에서도",
+      "priority": 7
+    },
+    { "id": "dementia_mild", "name": "경도인지장애", "visible": true, "sign": "bad" },
+    { "id": "dementia", "name": "치매", "visible": true, "sign": "bad" },
+    { "id": "isolated", "name": "고립", "visible": true, "sign": "bad" },
+    { "id": "retired_full", "name": "정년퇴직", "visible": true, "sign": "good", "achievement": true },
+    {
+      "id": "lawmaker",
+      "name": "국회의원",
+      "visible": true,
+      "sign": "good",
+      "achievement": true,
+      "epitaph": "국회에서도",
+      "priority": 8
+    },
+    {
+      "id": "president",
+      "name": "대통령",
+      "visible": true,
+      "sign": "good",
+      "achievement": true,
+      "epitaph": "나라를 떠맡은 5년 동안에도",
+      "priority": 10
+    },
+    { "id": "gifted_admit", "name": "영재학교 합격", "visible": false },
+    {
+      "id": "olympiad_medal",
+      "name": "국제 올림피아드 메달",
+      "visible": true,
+      "sign": "good",
+      "achievement": true,
+      "epitaph": "시상대 위에서도",
+      "priority": 6
+    },
+    { "id": "arts_award", "name": "실기 대회 입상", "visible": true, "sign": "good" },
+    { "id": "ged", "name": "검정고시 출신", "visible": true, "sign": "info" },
+    { "id": "early_admission", "name": "수시 합격", "visible": false }
+  ]
+}

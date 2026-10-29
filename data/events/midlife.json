@@ -1,0 +1,282 @@
+{
+  "stage": "중년 50~64세. 퇴직 압박, 자영업, 건강 이상",
+  "events": [
+    {
+      "id": "retirement_pressure",
+      "type": "random",
+      "title": "명예퇴직",
+      "text": "후배가 팀장이 됐다. 회의 자료에서 내 이름이 빠지기 시작했다. 인사팀에서 명예퇴직 신청 안내 메일이 왔다.",
+      "tone": "drama",
+      "impact": 20,
+      "trigger": { "age": [50, 59], "if": "job.employed && !job.business && job.layoffRisk >= 0.5" },
+      "weight": {
+        "base": 0.1,
+        "modifiers": [{ "if": "world.economy == 'recession' || world.economy == 'crisis'", "x": 1.8 }]
+      },
+      "limit": { "cooldown": 3 },
+      "choices": [
+        {
+          "text": "명예퇴직금을 받고 나간다",
+          "result": "2년 치 연봉. 퇴직 다음 날, 등산복을 샀다.",
+          "effects": {
+            "do": [{ "type": "loseJob", "severanceMonths": 24 }],
+            "stats": { "stress": -10, "happiness": -4 }
+          }
+        },
+        {
+          "text": "정년까지 버틴다",
+          "result": "창가 자리로 옮겼다. 일은 줄었고, 시간은 느리게 갔다.",
+          "effects": { "stats": { "stress": 8, "happiness": -5 } }
+        },
+        {
+          "text": "퇴직하고 치킨집을 차린다",
+          "if": "money.cash >= 30000000",
+          "result": "가맹비, 인테리어, 튀김기. 모아 둔 돈이 금방 나갔다.",
+          "effects": {
+            "do": [
+              { "type": "loseJob", "severanceMonths": 24 },
+              { "type": "startBusiness", "capitalPct": 0.6, "name": "치킨집" }
+            ],
+            "stats": { "stress": 10, "happiness": 4 }
+          }
+        }
+      ]
+    },
+    {
+      "id": "start_business",
+      "type": "random",
+      "title": "사장님",
+      "text": "직장 생활은 이걸로 충분하다는 생각이 든다. 동네 상가에 '임대 문의'가 붙은 1층 가게가 하나 있다.",
+      "tone": "drama",
+      "impact": 15,
+      "trigger": {
+        "age": [30, 65],
+        "if": "!job.business && money.cash >= 50000000 && !legal.inPrison && (!job.employed || age >= 45)"
+      },
+      "weight": { "base": 0.02, "modifiers": [{ "if": "flags.unemployed", "x": 2 }] },
+      "limit": { "max": 1 },
+      "choices": [
+        {
+          "text": "카페를 연다",
+          "result": "원두를 고르고 간판을 달았다. 첫날 손님은 열한 명이었다.",
+          "effects": {
+            "do": [{ "type": "startBusiness", "capitalPct": 0.5, "name": "카페" }],
+            "stats": { "happiness": 6, "stress": 8 }
+          }
+        },
+        {
+          "text": "프랜차이즈 치킨집을 연다",
+          "result": "본사 교육 2주. 닭 튀기는 냄새가 옷에 배기 시작했다.",
+          "effects": {
+            "do": [{ "type": "startBusiness", "capitalPct": 0.6, "name": "치킨집" }],
+            "stats": { "happiness": 4, "stress": 10 }
+          }
+        },
+        { "text": "그만둔다", "result": "가게 앞을 지날 때마다 그때 생각이 났다." }
+      ]
+    },
+    {
+      "id": "business_trouble",
+      "type": "consequence",
+      "motif": "자영업 폐업 증가 (국세청 국세통계)",
+      "title": "가게 앞 임대 문의",
+      "text": "같은 골목에 비슷한 가게가 세 곳 더 생겼다. 배달앱 수수료를 떼고 나면 남는 게 없다. 월세가 석 달째 밀렸다.",
+      "tone": "tragedy",
+      "impact": 30,
+      "trigger": { "if": "job.business" },
+      "weight": {
+        "base": 0.14,
+        "noMode": true,
+        "modifiers": [
+          { "if": "world.economy == 'recession'", "x": 2 },
+          { "if": "world.economy == 'crisis'", "x": 3 },
+          { "if": "world.pandemic", "x": 3 }
+        ]
+      },
+      "limit": { "cooldown": 2 },
+      "choices": [
+        {
+          "text": "폐업 신고를 한다",
+          "result": "권리금은 한 푼도 못 받았다. 집기는 중고상이 헐값에 가져갔다.",
+          "effects": {
+            "do": [{ "type": "closeBusiness", "recoverPct": 0.1 }],
+            "stats": { "happiness": -12, "stress": 10 }
+          }
+        },
+        {
+          "text": "대출을 받아 버틴다",
+          "check": { "stat": "luck", "dc": 55 },
+          "onSuccess": {
+            "text": "근처 아파트 입주가 시작됐다. 주문이 두 배로 늘었다.",
+            "effects": { "money": { "debt": 30000000, "cash": 30000000 }, "stats": { "stress": 8 } }
+          },
+          "onFail": {
+            "text": "1년을 더 버텼지만 결국 문을 닫았다. 빚만 남았다.",
+            "effects": {
+              "money": { "debt": 30000000 },
+              "do": [{ "type": "closeBusiness", "recoverPct": 0.05 }],
+              "stats": { "happiness": -15, "stress": 15 }
+            }
+          }
+        },
+        {
+          "text": "메뉴를 바꾸고 직접 배달한다",
+          "check": { "stats": ["stamina", "sociability"], "dc": 50 },
+          "onSuccess": {
+            "text": "동네 단골이 생겼다. 겨우 숨통이 트였다.",
+            "effects": { "stats": { "stress": 5, "stamina": 2 } }
+          },
+          "onFail": {
+            "text": "몸이 먼저 망가졌다. 허리 디스크로 한 달을 쉬었다.",
+            "effects": { "stats": { "health": -8, "stress": 10 } }
+          }
+        }
+      ]
+    },
+    {
+      "id": "checkup_red",
+      "type": "random",
+      "title": "빨간 글씨",
+      "text": "건강검진 결과지에 빨간 글씨가 세 줄이다. 혈압, 공복혈당, 간 수치. 의사가 생활습관부터 바꾸라고 한다.",
+      "tone": "drama",
+      "impact": 12,
+      "trigger": { "age": [38, 85] },
+      "weight": {
+        "base": 0.06,
+        "noMode": true,
+        "ageCurve": { "38": 0.6, "50": 1, "65": 1.4 },
+        "modifiers": [
+          { "if": "flags.smoker", "x": 1.5 },
+          { "if": "flags.heavy_drinker", "x": 1.5 },
+          { "if": "state.stress > 70", "x": 1.4 },
+          { "if": "stats.health < 50", "x": 1.5 }
+        ]
+      },
+      "limit": { "max": 3, "cooldown": 6 },
+      "choices": [
+        {
+          "text": "술과 담배를 끊고 걷는다",
+          "check": { "stat": "personality.conscientiousness", "dc": 50 },
+          "onSuccess": {
+            "text": "1년 뒤 재검. 수치가 정상 범위로 돌아왔다.",
+            "effects": { "stats": { "health": 8, "stamina": 3 }, "removeFlags": ["smoker", "heavy_drinker"] }
+          },
+          "onFail": { "text": "석 달 만에 다시 손을 댔다.", "effects": { "stats": { "health": -2 } } }
+        },
+        {
+          "text": "약으로 관리한다",
+          "result": "혈압약과 당뇨약이 아침 식탁에 놓였다. 평생 먹어야 한다.",
+          "effects": { "stats": { "health": 3 }, "money": { "cash": -400000 } }
+        },
+        {
+          "text": "다들 이 정도는 있다며 넘긴다",
+          "result": "결과지는 서랍 속으로 들어갔다.",
+          "effects": { "stats": { "health": -5 } }
+        }
+      ],
+      "filler": true
+    },
+    {
+      "id": "cancer_diagnosis",
+      "type": "random",
+      "motif": "암으로 사망할 확률 남 24.5%, 여 15.2% (2024 생명표) https://www.nocutnews.co.kr/news/6437510",
+      "title": "조직검사 결과",
+      "text": "진료실 의사가 모니터를 내 쪽으로 돌렸다. \"{암종}입니다. {병기}입니다.\"",
+      "tone": "tragedy",
+      "impact": 45,
+      "trigger": { "age": [30, 100], "notFlags": ["cancer"] },
+      "weight": {
+        "base": 0.004,
+        "noMode": true,
+        "ageCurve": { "30": 0.25, "40": 0.5, "50": 1, "60": 2, "70": 3.2, "80": 4 },
+        "modifiers": [
+          { "if": "flags.smoker", "x": 1.8 },
+          { "if": "sex == 'M'", "x": 1.25 },
+          { "if": "flags.cancer_survivor", "x": 1.5 },
+          { "if": "sex == 'F'", "x": 0.8 }
+        ]
+      },
+      "limit": { "max": 2, "cooldown": 5 },
+      "effects": { "addFlags": ["cancer"], "stats": { "health": -20, "stress": 20, "happiness": -12 } },
+      "choices": [
+        {
+          "text": "수술과 항암 치료를 받는다",
+          "check": { "stats": ["health", "luck"], "dc": 45 },
+          "onSuccess": {
+            "text": "수술은 잘 끝났다. 항암 여덟 번. 머리카락이 빠졌다가 다시 났다.",
+            "effects": {
+              "money": { "cash": -15000000 },
+              "stats": { "health": 5 },
+              "later": [{ "event": "cancer_remission", "inYears": 2 }]
+            }
+          },
+          "onFail": {
+            "text": "전이가 발견됐다. 치료가 길어질 것이다.",
+            "effects": {
+              "money": { "cash": -25000000 },
+              "stats": { "health": -10 },
+              "later": [{ "event": "cancer_remission", "inYears": 3 }]
+            }
+          }
+        },
+        {
+          "text": "민간요법에 기댄다",
+          "result": "지인이 소개한 비싼 약초물. 석 달 뒤 다시 찾은 병원에서 의사가 한숨을 쉬었다.",
+          "effects": {
+            "money": { "cash": -8000000 },
+            "stats": { "health": -15 },
+            "later": [{ "event": "cancer_remission", "inYears": 4 }]
+          }
+        },
+        {
+          "text": "치료 대신 남은 시간을 고른다",
+          "if": "age >= 75",
+          "result": "호스피스 상담을 받았다. 가족과 여행을 계획했다.",
+          "effects": { "stats": { "happiness": 5, "health": -10 } }
+        }
+      ]
+    },
+    {
+      "id": "cancer_remission",
+      "type": "chain",
+      "title": "재발 소견 없음",
+      "text": "정기 검사 결과, 재발 소견 없음. 의사가 처음으로 웃었다. 이제 5년 생존율을 기다린다.",
+      "tone": "recovery",
+      "impact": 10,
+      "trigger": { "flags": ["cancer"], "if": "stats.health > 25" },
+      "effects": {
+        "removeFlags": ["cancer"],
+        "addFlags": ["cancer_survivor"],
+        "stats": { "happiness": 12, "stress": -15, "health": 10 }
+      }
+    },
+    {
+      "id": "mandatory_retirement",
+      "type": "milestone",
+      "title": "정년퇴직",
+      "text": "마지막 출근 날. 후배들이 꽃다발과 감사패를 건넸다. 사원증을 반납하고 나오니 건물이 낯설다.",
+      "tone": "neutral",
+      "impact": 15,
+      "trigger": { "if": "job.atRetireAge" },
+      "effects": { "do": [{ "type": "loseJob" }], "addFlags": ["retired_full"] },
+      "choices": [
+        {
+          "text": "등산 동호회에 가입한다",
+          "result": "주말마다 산에 간다. 정상에서 먹는 컵라면이 제일 맛있다.",
+          "effects": { "stats": { "stamina": 2, "sociability": 2, "happiness": 3 } }
+        },
+        {
+          "text": "재취업 자리를 알아본다",
+          "result": "경비, 주차관리, 요양보호사. 이력서의 경력이 무거워졌다.",
+          "effects": { "stats": { "stress": 4 } }
+        },
+        {
+          "text": "한동안 아무것도 하지 않는다",
+          "result": "아침에 일어날 이유를 찾는 데 석 달이 걸렸다.",
+          "effects": { "stats": { "happiness": -3, "stress": -8 } }
+        }
+      ],
+      "limit": { "oncePerLife": true }
+    }
+  ]
+}

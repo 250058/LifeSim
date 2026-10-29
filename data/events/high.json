@@ -1,0 +1,404 @@
+{
+  "stage": "고등 16~18세. 내신, 수능(확대 모드), 알바, 가출, 자퇴, 불법 도박 유혹",
+  "events": [
+    {
+      "id": "teen_parttime",
+      "type": "random",
+      "motif": "근로기준법상 18세 미만은 오후 10시~오전 6시 근로가 원칙적으로 금지 (본인 동의와 고용노동부 인가 시 예외)",
+      "title": "알바 공고",
+      "text": "편의점 유리문에 '야간 알바 구함, 시급 {최저시급}원'이 붙었다. 사장은 미성년자도 괜찮다고 한다. 밤 10시부터 아침 6시까지.",
+      "tone": "neutral",
+      "impact": 8,
+      "trigger": { "age": [16, 18], "if": "edu.status == 'high' || edu.status == 'dropout'" },
+      "weight": {
+        "base": 0.12,
+        "modifiers": [{ "if": "family.wealth <= 2", "x": 2 }, { "if": "family.wealth >= 5", "x": 0.3 }]
+      },
+      "limit": { "cooldown": 1 },
+      "choices": [
+        {
+          "text": "야간 알바를 한다",
+          "check": { "stat": "luck", "dc": 45 },
+          "onSuccess": {
+            "text": "한 달에 140만 원. 수업 시간엔 졸았지만 통장이 처음으로 두둑했다.",
+            "effects": {
+              "money": { "cash": 4200000 },
+              "stats": { "stress": 10, "health": -3 },
+              "do": [{ "type": "grade", "delta": -4 }]
+            }
+          },
+          "onFail": {
+            "text": "석 달을 일했는데 월급이 한 번도 제대로 들어오지 않았다.",
+            "next": "wage_theft",
+            "effects": { "stats": { "stress": 10, "health": -3 } }
+          }
+        },
+        {
+          "text": "주말 낮 알바를 찾는다",
+          "result": "주말마다 카페에서 일했다. 시급은 같고 잠은 잘 수 있다.",
+          "effects": { "money": { "cash": 1600000 }, "stats": { "stress": 4, "sociability": 2 } }
+        },
+        { "text": "공부에 집중한다", "result": "부모님이 용돈을 조금 올려 주셨다.", "effects": { "stats": { "intelligence": 1 } } }
+      ]
+    },
+    {
+      "id": "wage_theft",
+      "type": "chain",
+      "motif": "임금체불 신고: 고용노동부 고객상담센터 1350",
+      "title": "밀린 월급",
+      "text": "사장은 \"다음 주에 한꺼번에 줄게\"라는 말만 반복한다. 밀린 돈이 300만 원이다.",
+      "tone": "drama",
+      "impact": 15,
+      "choices": [
+        {
+          "text": "1350에 전화해 임금체불을 신고한다",
+          "check": { "stat": "intelligence", "dc": 40 },
+          "onSuccess": {
+            "text": "근로감독관이 사장에게 출석 요구를 하자 다음 날 바로 입금됐다.",
+            "effects": { "money": { "cash": 3000000 }, "stats": { "mental": 3 } }
+          },
+          "onFail": {
+            "text": "근로계약서를 안 썼다. 출근 기록을 모으는 데 몇 달이 걸렸고, 절반만 받았다.",
+            "effects": { "money": { "cash": 1500000 }, "stats": { "stress": 6 } }
+          }
+        },
+        {
+          "text": "그냥 그만둔다",
+          "result": "300만 원은 수업료라고 생각하기로 했다.",
+          "effects": { "stats": { "happiness": -5, "stress": 4 } }
+        }
+      ]
+    },
+    {
+      "id": "teen_gambling",
+      "type": "chain_start",
+      "arc": "gambling",
+      "motif": "청소년 사이버도박 확산 (경찰청 집중단속), 도박문제 상담 1336",
+      "title": "만 원이 십만 원",
+      "text": "쉬는 시간, 짝이 휴대폰을 내민다. 불법 스포츠토토 사이트다. \"어제 이걸로 30만 원 벌었어. 첫 충전하면 보너스 준대.\"",
+      "tone": "drama",
+      "impact": 15,
+      "trigger": { "age": [14, 19], "notFlags": ["gambling_addict"] },
+      "weight": {
+        "base": 0.03,
+        "modifiers": [
+          { "if": "stats.happiness < 40", "x": 1.5 },
+          { "if": "hidden.morality < 40", "x": 1.5 },
+          { "if": "personality.openness > 65", "x": 1.2 }
+        ]
+      },
+      "limit": { "oncePerLife": true },
+      "choices": [
+        {
+          "text": "만 원만 해 본다",
+          "result": "첫판에 이겼다. 머릿속에 숫자가 계속 떠다닌다.",
+          "effects": {
+            "money": { "cash": 90000 },
+            "addFlags": ["gambling_exposed"],
+            "stats": { "morality": -3 },
+            "later": [{ "event": "gambling_spiral", "inYears": 1 }]
+          }
+        },
+        { "text": "거절한다", "result": "\"쫄보네.\" 그 말이 하루 종일 맴돌았다.", "effects": { "stats": { "morality": 2 } } },
+        {
+          "text": "도박 상담 1336을 알려 준다",
+          "if": "stats.intelligence >= 55",
+          "result": "짝은 웃어넘겼다. 석 달 뒤 그 애 아버지가 학교에 찾아왔다.",
+          "effects": { "stats": { "morality": 3 } }
+        }
+      ]
+    },
+    {
+      "id": "gambling_spiral",
+      "type": "chain",
+      "arc": "gambling",
+      "title": "충전",
+      "text": "잃은 돈을 찾으려고 또 충전했다. 친구에게 빌린 돈이 50만 원을 넘었다. 사이트에서 '대리 입금' 쪽지가 온다.",
+      "tone": "tragedy",
+      "impact": 25,
+      "trigger": { "flags": ["gambling_exposed"] },
+      "choices": [
+        {
+          "text": "잃은 만큼만 다시 찾는다",
+          "result": "찾지 못했다. 빚은 300만 원이 됐다. '대리 입금' 업자가 일주일에 이자를 수십 퍼센트씩 붙인다.",
+          "effects": {
+            "addFlags": ["gambling_addict", "gambling_debt"],
+            "money": { "debt": 3000000 },
+            "stats": { "stress": 15, "happiness": -10, "morality": -5 }
+          }
+        },
+        {
+          "text": "{보호자}에게 털어놓는다",
+          "check": { "stat": "family.support", "dc": 45 },
+          "onSuccess": {
+            "text": "한참을 혼났다. 그래도 빚은 같이 갚았고, 휴대폰은 공기계로 바뀌었다.",
+            "effects": { "removeFlags": ["gambling_exposed"], "stats": { "stress": -8, "happiness": -2 } }
+          },
+          "onFail": {
+            "text": "\"네가 알아서 해.\" 결국 혼자 갚아야 했다.",
+            "effects": {
+              "money": { "debt": 1000000 },
+              "addFlags": ["gambling_debt"],
+              "stats": { "stress": 10 }
+            }
+          }
+        },
+        {
+          "text": "1336에 전화한다",
+          "result": "상담사가 같은 처지의 청소년이 얼마나 많은지 알려 줬다. 사이트 접속을 막는 앱을 깔았다.",
+          "effects": { "removeFlags": ["gambling_exposed"], "stats": { "mental": 5, "stress": -6 } }
+        }
+      ]
+    },
+    {
+      "id": "runaway",
+      "type": "random",
+      "title": "집에 들어가기 싫다",
+      "text": "현관문 앞에서 30분째 서 있다. 안에서 또 고함이 들린다. 휴대폰 배터리는 12%.",
+      "tone": "drama",
+      "impact": 20,
+      "trigger": { "age": [14, 18], "if": "family.livesWithParents && family.type != 'facility'" },
+      "weight": {
+        "base": 0.006,
+        "modifiers": [
+          { "if": "stats.happiness < 30", "x": 4 },
+          { "if": "flags.parents_conflict", "x": 2.5 },
+          { "if": "family.style == 'neglectful' || family.style == 'authoritarian'", "x": 2 }
+        ]
+      },
+      "limit": { "max": 2, "cooldown": 2 },
+      "choices": [
+        {
+          "text": "친구 집에서 며칠 지낸다",
+          "result": "사흘 뒤 친구 엄마가 우리 집에 전화를 걸었다.",
+          "effects": {
+            "stats": { "stress": -4, "happiness": 2 },
+            "do": [{ "type": "npcCloseness", "role": "parents", "delta": -5 }]
+          }
+        },
+        {
+          "text": "역 근처에서 밤을 새운다",
+          "check": { "stat": "luck", "dc": 50 },
+          "onSuccess": {
+            "text": "새벽에 순찰하던 경찰이 말을 걸었다. 청소년쉼터를 알려 줬다.",
+            "effects": { "addFlags": ["runaway"], "stats": { "stress": 5, "health": -2 } }
+          },
+          "onFail": {
+            "text": "\"재워 줄게\"라던 언니 오빠들은 '가출팸'이었다. 휴대폰과 돈을 빼앗겼다.",
+            "effects": {
+              "addFlags": ["runaway"],
+              "money": { "cashPct": -0.8 },
+              "stats": { "health": -6, "mental": -8, "happiness": -10, "stress": 15 }
+            }
+          }
+        },
+        {
+          "text": "청소년상담 1388에 전화한다",
+          "result": "상담사가 한 시간 동안 들어 줬다. 오늘은 들어가기로 했다.",
+          "effects": { "stats": { "mental": 4, "stress": -6 } }
+        },
+        { "text": "그냥 들어간다", "result": "방문을 잠그고 이어폰을 꼈다.", "effects": { "stats": { "happiness": -3 } } }
+      ]
+    },
+    {
+      "id": "dropout_thought",
+      "type": "random",
+      "motif": "고등학생 학업중단율 약 2% (교육부 교육기본통계)",
+      "title": "자퇴서",
+      "text": "교무실 앞에서 자퇴서 양식을 받아 왔다. 학교에 앉아 있는 시간이 아무 의미 없게 느껴진다.",
+      "tone": "drama",
+      "impact": 20,
+      "trigger": { "age": [16, 18], "if": "edu.status == 'high'" },
+      "weight": {
+        "base": 0.01,
+        "modifiers": [
+          { "if": "stats.happiness < 30", "x": 3 },
+          { "if": "flags.bullying_active", "x": 3 },
+          { "if": "edu.grade < 30", "x": 2 },
+          { "if": "flags.trainee", "x": 2 }
+        ]
+      },
+      "limit": { "oncePerLife": true },
+      "choices": [
+        {
+          "text": "자퇴하고 검정고시를 본다",
+          "result": "자퇴서를 냈다. 담임이 마지막으로 한 번 더 물었다. 내년에 검정고시를 본다.",
+          "effects": {
+            "do": [{ "type": "enroll", "school": "dropout" }],
+            "addFlags": ["dropout"],
+            "removeFlags": ["bullying_active"],
+            "stats": { "stress": -10, "happiness": 3 }
+          }
+        },
+        {
+          "text": "Wee클래스 상담 선생님을 찾아간다",
+          "result": "일주일에 한 번, 상담실에서 50분. 그 시간 덕에 버텼다.",
+          "effects": { "stats": { "mental": 6, "stress": -8, "happiness": 2 } }
+        },
+        {
+          "text": "졸업장까지만 버틴다",
+          "result": "졸업식 날, 아무 감정이 없었다.",
+          "effects": { "stats": { "stress": 5, "happiness": -3 } }
+        }
+      ]
+    },
+    {
+      "id": "csat_dawn",
+      "type": "milestone",
+      "zoom": "수능 당일 · 06:20",
+      "title": "수능 날 아침",
+      "text": "알람보다 먼저 눈이 떠졌다. 창밖이 아직 깜깜하다. 목이 조금 칼칼한 것 같기도 하다.",
+      "tone": "drama",
+      "impact": 15,
+      "order": 1,
+      "trigger": {
+        "age": [18, 40],
+        "if": "(age == 18 && edu.status == 'high' && edu.highType != 'vocational' && edu.highType != 'meister') || (age == 18 && edu.status == 'dropout' && edu.degree == 'high') || flags.retake"
+      },
+      "limit": { "max": 3 },
+      "effects": { "removeFlags": ["retake"] },
+      "choices": [
+        {
+          "text": "따뜻한 죽을 먹고 일찍 나선다",
+          "result": "{보호자}이/가 싸 준 보온 도시락을 가방에 넣었다.",
+          "effects": { "addFlags": ["csat_calm"] },
+          "next": [{ "event": "csat_exam", "w": 0.88 }, { "event": "csat_late", "w": 0.12 }]
+        },
+        {
+          "text": "마지막으로 오답 노트를 본다",
+          "result": "밑줄 친 공식이 머릿속을 맴돈다.",
+          "next": [{ "event": "csat_exam", "w": 0.8 }, { "event": "csat_late", "w": 0.2 }]
+        },
+        {
+          "text": "감기약을 먹는다",
+          "result": "목은 괜찮아졌는데 눈꺼풀이 무겁다.",
+          "effects": { "addFlags": ["csat_drowsy"] },
+          "next": [{ "event": "csat_exam", "w": 0.88 }, { "event": "csat_late", "w": 0.12 }]
+        }
+      ]
+    },
+    {
+      "id": "csat_late",
+      "type": "chain",
+      "zoom": "수능 당일 · 07:52",
+      "motif": "매년 수능일 경찰 순찰차·오토바이 수험생 수송",
+      "title": "입실 마감 18분 전",
+      "text": "도로가 꽉 막혔다. 버스는 10분째 그대로다. 입실 마감은 8시 10분.",
+      "tone": "drama",
+      "impact": 10,
+      "choices": [
+        {
+          "text": "내려서 뛴다",
+          "check": { "stat": "stamina", "dc": 50 },
+          "onSuccess": {
+            "text": "8시 7분. 감독관이 문을 닫기 직전에 들어갔다.",
+            "effects": { "addFlags": ["csat_rushed"] },
+            "next": "csat_exam"
+          },
+          "onFail": {
+            "text": "숨이 턱까지 찼다. 결국 경찰 오토바이 뒤에 탔다. 손이 떨려 1교시가 흐릿하다.",
+            "effects": { "addFlags": ["csat_rushed", "csat_shaken"] },
+            "next": "csat_exam"
+          }
+        },
+        {
+          "text": "112에 전화한다",
+          "result": "순찰차가 사이렌을 켜고 시험장 앞까지 데려다줬다. 뉴스 카메라가 그 장면을 찍었다.",
+          "effects": { "addFlags": ["csat_rushed"], "stats": { "reputation": 1 } },
+          "next": "csat_exam"
+        }
+      ]
+    },
+    {
+      "id": "csat_exam",
+      "type": "chain",
+      "zoom": "1교시 국어 · 08:40",
+      "title": "시험지를 넘겼다",
+      "text": "첫 지문부터 처음 보는 철학 이야기다. 옆자리에서 시험지 넘기는 소리가 유난히 크다.",
+      "tone": "drama",
+      "impact": 10,
+      "choices": [
+        {
+          "text": "심호흡하고 처음부터 차분히 푼다",
+          "check": { "stat": "mental", "dc": 50 },
+          "onSuccess": { "text": "두 번째 지문부터 손이 풀렸다.", "effects": { "addFlags": ["csat_focus"] } },
+          "onFail": { "text": "시간이 모자랐다. 마지막 다섯 문제는 찍었다.", "effects": { "addFlags": ["csat_panic"] } },
+          "next": "csat_score"
+        },
+        { "text": "아는 문제부터 푼다", "result": "무난했다. 끝나고 보니 한 문제를 밀려 쓸 뻔했다.", "next": "csat_score" },
+        {
+          "text": "어려운 지문은 건너뛰고 나중에 돌아온다",
+          "check": { "stat": "intelligence", "dc": 55 },
+          "onSuccess": { "text": "전략이 맞았다. 시간이 5분 남았다.", "effects": { "addFlags": ["csat_focus"] } },
+          "onFail": { "text": "돌아올 시간이 없었다.", "effects": { "addFlags": ["csat_panic"] } },
+          "next": "csat_score"
+        }
+      ]
+    },
+    {
+      "id": "csat_score",
+      "type": "chain",
+      "zoom": "12월 · 성적 발표",
+      "title": "성적표",
+      "text": "담임이 성적표를 한 장씩 나눠 준다. {수능}",
+      "tone": "neutral",
+      "impact": 10,
+      "effects": {
+        "do": [{ "type": "computeCsat" }],
+        "removeFlags": ["csat_calm", "csat_drowsy", "csat_rushed", "csat_shaken", "csat_focus", "csat_panic"]
+      }
+    },
+    {
+      "id": "field_training",
+      "type": "milestone",
+      "motif": "2017년 제주 현장실습생 사망 사건 이후 현장실습 제도 개편",
+      "title": "현장실습",
+      "text": "3학년 2학기, 학교가 연결해 준 공장으로 현장실습을 나간다. 첫날부터 혼자 기계를 맡으라고 한다.",
+      "tone": "drama",
+      "impact": 15,
+      "trigger": { "age": [18, 18], "if": "edu.status == 'high' && edu.highType == 'vocational'" },
+      "limit": { "oncePerLife": true },
+      "choices": [
+        {
+          "text": "시키는 대로 한다",
+          "check": { "stat": "luck", "dc": 30 },
+          "onSuccess": {
+            "text": "손에 익을 때까지 버텼다. 졸업과 함께 정규직 제안을 받았다.",
+            "effects": {
+              "do": [{ "type": "graduate" }, { "type": "getJob", "job": "factory" }],
+              "stats": { "stamina": 2, "stress": 6 }
+            }
+          },
+          "onFail": {
+            "text": "기계에 손이 끼었다. 손가락 두 마디를 잃었다. 회사는 '본인 부주의'라고 했다.",
+            "effects": {
+              "do": [{ "type": "graduate" }],
+              "addFlags": ["industrial_injury"],
+              "stats": { "health": -15, "happiness": -12, "mental": -6 }
+            }
+          }
+        },
+        {
+          "text": "안전교육부터 해 달라고 말한다",
+          "check": { "stat": "sociability", "dc": 50 },
+          "onSuccess": {
+            "text": "반장이 머쓱해하며 이틀간 옆에서 가르쳐 줬다. 졸업 후 그대로 입사했다.",
+            "effects": {
+              "do": [{ "type": "graduate" }, { "type": "getJob", "job": "factory" }],
+              "stats": { "mental": 3 }
+            }
+          },
+          "onFail": {
+            "text": "\"요즘 애들은...\" 다음 날 다른 실습생으로 바뀌었다.",
+            "effects": { "do": [{ "type": "graduate" }], "stats": { "happiness": -4 } }
+          }
+        },
+        {
+          "text": "실습을 포기하고 수능을 준비한다",
+          "result": "학교가 말렸지만 버텼다. 남은 석 달 동안 교과서를 다시 폈다.",
+          "effects": { "do": [{ "type": "graduate" }], "addFlags": ["retake"] }
+        }
+      ]
+    }
+  ]
+}

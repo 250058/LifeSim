@@ -1,0 +1,295 @@
+{
+  "stage": "영유아 0~6세. 대부분 부모 NPC가 결정한다",
+  "events": [
+    {
+      "id": "doljabi",
+      "type": "milestone",
+      "title": "돌잔치",
+      "text": "첫 생일. 한복을 입고 앉은 상 위에 실, 연필, 돈, 마이크가 놓였다. 어른들이 숨을 죽이고 내 손끝만 본다.",
+      "tone": "positive",
+      "impact": 5,
+      "trigger": { "age": [1, 1], "if": "family.type != 'facility'" },
+      "limit": { "oncePerLife": true },
+      "choices": [
+        { "text": "실을 잡는다", "result": "\"오래 살겠네!\" 할머니가 제일 크게 웃었다.", "effects": { "stats": { "health": 3 } } },
+        {
+          "text": "연필을 잡는다",
+          "result": "\"공부 잘하겠다!\" 사진이 열 장 넘게 찍혔다.",
+          "effects": { "stats": { "intelligence": 2 } }
+        },
+        {
+          "text": "돈을 잡는다",
+          "result": "\"부자 되겠네!\" 삼촌이 오만 원짜리를 하나 더 얹었다.",
+          "effects": { "money": { "cash": 50000 }, "stats": { "luck": 2 } }
+        },
+        {
+          "text": "마이크를 잡는다",
+          "result": "마이크를 입에 넣었다. 다들 연예인 되겠다며 박수를 쳤다.",
+          "effects": { "stats": { "sociability": 2 } }
+        }
+      ]
+    },
+    {
+      "id": "first_birthday_facility",
+      "type": "milestone",
+      "title": "첫 생일",
+      "text": "보육원 선생님들이 작은 케이크에 초를 하나 꽂아 주었다. 같은 방 아이들이 서툰 박수를 친다.",
+      "tone": "neutral",
+      "impact": 5,
+      "trigger": { "age": [1, 1], "if": "family.type == 'facility'" },
+      "limit": { "oncePerLife": true },
+      "effects": { "stats": { "happiness": 2 } }
+    },
+    {
+      "id": "kindergarten",
+      "type": "milestone",
+      "title": "유치원 입학",
+      "text": "노란 버스가 집 앞에 섰다. 처음으로 {보호자} 손을 놓고 혼자 버스에 올라야 한다.",
+      "tone": "neutral",
+      "impact": 5,
+      "trigger": { "age": [4, 4] },
+      "limit": { "oncePerLife": true },
+      "effects": { "do": [{ "type": "enroll", "school": "kindergarten" }] },
+      "choices": [
+        {
+          "text": "씩씩하게 손을 흔든다",
+          "check": { "stat": "sociability", "dc": 45 },
+          "onSuccess": {
+            "text": "첫날부터 짝꿍 {친구}이/가 생겼다.",
+            "effects": { "stats": { "sociability": 2, "happiness": 2 }, "do": [{ "type": "addFriend" }] }
+          },
+          "onFail": {
+            "text": "버스 안에서 결국 울음이 터졌다. 그래도 저녁엔 웃으며 내렸다.",
+            "effects": { "stats": { "happiness": -1 } }
+          }
+        },
+        {
+          "text": "{보호자} 다리에 매달린다",
+          "result": "결국 {보호자}이/가 버스까지 같이 탔다.",
+          "effects": {
+            "stats": { "happiness": -1 },
+            "do": [{ "type": "npcCloseness", "role": "parents", "delta": 3 }]
+          }
+        },
+        {
+          "text": "영어유치원에 간다",
+          "if": "family.wealth >= 4",
+          "result": "한 달 원비가 200만 원이 넘는다. 원어민 선생님 이름부터 외웠다.",
+          "effects": {
+            "stats": { "intelligence": 2, "stress": 6 },
+            "do": [{ "type": "discoverTalent", "talent": "language" }]
+          }
+        }
+      ]
+    },
+    {
+      "id": "younger_sibling",
+      "type": "npc",
+      "title": "동생이 태어났다",
+      "text": "병원에서 돌아온 엄마 품에 쪼글쪼글한 아기가 안겨 있다. 오늘부터 내 동생이란다.",
+      "tone": "positive",
+      "impact": 10,
+      "trigger": {
+        "age": [1, 9],
+        "if": "family.parentsMarried && family.motherAlive && family.motherAge <= 43 && family.livesWithParents"
+      },
+      "weight": {
+        "base": 0.07,
+        "noMode": true,
+        "ageCurve": { "1": 0.6, "2": 1.3, "4": 1, "7": 0.5, "9": 0.2 },
+        "modifiers": [
+          { "if": "family.siblings >= 1", "x": 0.35 },
+          { "if": "family.siblings >= 2", "x": 0.3 },
+          { "if": "family.wealth >= 4", "x": 1.2 },
+          { "if": "family.motherAge >= 38", "x": 0.4 }
+        ]
+      },
+      "limit": { "max": 2, "cooldown": 2 },
+      "effects": { "do": [{ "type": "addSibling" }] },
+      "choices": [
+        {
+          "text": "아기 손가락을 잡아 본다",
+          "result": "작은 손이 내 손가락을 꽉 쥐었다.",
+          "effects": { "stats": { "happiness": 3, "sociability": 1 } }
+        },
+        {
+          "text": "엄마를 빼앗긴 것 같아 운다",
+          "result": "그날 밤 아빠가 처음으로 둘이서만 놀이터에 데려갔다.",
+          "effects": { "stats": { "happiness": -2, "stress": 3 } }
+        }
+      ]
+    },
+    {
+      "id": "parents_fight",
+      "type": "npc",
+      "title": "안방의 고성",
+      "text": "밤마다 안방 문 너머로 고함이 들린다. 돈 얘기, 할머니 얘기, 그리고 내 이름.",
+      "tone": "drama",
+      "impact": 15,
+      "trigger": { "age": [3, 17], "if": "family.parentsMarried && family.livesWithParents" },
+      "weight": {
+        "base": 0.04,
+        "modifiers": [
+          { "if": "family.marriageQuality < 40", "x": 3 },
+          { "if": "family.marriageQuality > 70", "x": 0.3 },
+          { "if": "family.wealth <= 2", "x": 1.5 },
+          { "if": "world.economy == 'recession' || world.economy == 'crisis'", "x": 1.4 }
+        ]
+      },
+      "limit": { "cooldown": 2 },
+      "effects": { "addFlags": ["parents_conflict"], "do": [{ "type": "parentsMarriage", "delta": -8 }] },
+      "choices": [
+        {
+          "text": "이불을 뒤집어쓰고 귀를 막는다",
+          "result": "잠이 들 때까지 숫자를 셌다.",
+          "effects": { "stats": { "happiness": -5, "stress": 8, "mental": -3 } }
+        },
+        {
+          "text": "방문을 열고 그만하라고 운다",
+          "check": { "stat": "luck", "dc": 50 },
+          "onSuccess": {
+            "text": "두 사람이 동시에 입을 다물었다. 그날 밤 엄마가 나를 안고 잤다.",
+            "effects": { "stats": { "happiness": -1 }, "do": [{ "type": "parentsMarriage", "delta": 5 }] }
+          },
+          "onFail": {
+            "text": "\"넌 들어가 있어!\" 문이 다시 닫혔다.",
+            "effects": { "stats": { "happiness": -6, "stress": 10 } }
+          }
+        },
+        {
+          "text": "일기장에 다 적어 둔다",
+          "if": "age >= 7",
+          "result": "삐뚤빼뚤한 글씨로 한 페이지를 꽉 채웠다.",
+          "effects": { "stats": { "stress": 3, "mental": 2 } }
+        }
+      ]
+    },
+    {
+      "id": "parents_divorce",
+      "type": "npc",
+      "motif": "2025년 이혼 8만 8천 건 (통계청). 미성년 자녀를 둔 이혼이 상당수",
+      "title": "부모님의 이혼",
+      "text": "엄마와 아빠가 식탁에 나란히 앉았다. 둘이 같이 앉은 건 오랜만이다. \"엄마랑 아빠가 따로 살기로 했어.\"",
+      "tone": "tragedy",
+      "impact": 40,
+      "trigger": { "age": [1, 18], "if": "family.parentsMarried && family.motherAlive && family.fatherAlive" },
+      "weight": {
+        "base": 0.006,
+        "modifiers": [
+          { "if": "flags.parents_conflict", "x": 2.5 },
+          { "if": "family.marriageQuality < 30", "x": 2.5 },
+          { "if": "family.marriageQuality > 70", "x": 0.3 }
+        ]
+      },
+      "limit": { "oncePerLife": true },
+      "choices": [
+        {
+          "text": "엄마와 살겠다고 한다",
+          "if": "age >= 7",
+          "result": "아빠는 짐 가방 두 개를 들고 나갔다. 한 달에 두 번 만나기로 했다.",
+          "effects": {
+            "do": [{ "type": "parentsDivorce", "with": "mother" }],
+            "stats": { "happiness": -12, "stress": 15, "mental": -4 }
+          }
+        },
+        {
+          "text": "아빠와 살겠다고 한다",
+          "if": "age >= 7",
+          "result": "엄마가 현관에서 한참을 울었다. 주말마다 엄마 집에 가기로 했다.",
+          "effects": {
+            "do": [{ "type": "parentsDivorce", "with": "father" }],
+            "stats": { "happiness": -12, "stress": 15, "mental": -4 }
+          }
+        },
+        {
+          "text": "아무 말도 하지 못한다",
+          "result": "법원이 정했다. 나는 엄마와 살게 됐다.",
+          "effects": {
+            "do": [{ "type": "parentsDivorce", "with": "mother" }],
+            "stats": { "happiness": -14, "stress": 15, "mental": -5 }
+          }
+        }
+      ]
+    },
+    {
+      "id": "child_illness",
+      "type": "random",
+      "motif": "가와사키병: 5세 미만에 흔하고, 한국은 발생률이 높은 나라에 속한다",
+      "title": "열이 내리지 않는다",
+      "text": "사흘째 열이 39도에서 내려오지 않는다. 입술이 갈라지고 눈이 빨갛다. 동네 소아과에서 큰 병원에 가 보라고 했다. 가와사키병이었다. 면역글로불린을 맞고 열이 내렸지만, 심장 초음파를 몇 년 더 찍어야 한다.",
+      "tone": "drama",
+      "impact": 20,
+      "trigger": { "age": [0, 5] },
+      "weight": {
+        "base": 0.003,
+        "ageCurve": { "0": 1.2, "2": 1, "5": 0.4 },
+        "modifiers": [{ "if": "traits.congenital_heart", "x": 2 }]
+      },
+      "limit": { "oncePerLife": true },
+      "effects": { "stats": { "health": -8, "stress": 5 } }
+    },
+    {
+      "id": "lost_at_park",
+      "type": "random",
+      "title": "놀이공원에서 길을 잃었다",
+      "text": "솜사탕 가게 앞에서 돌아보니 {보호자}이/가 없다. 사람들 다리만 보인다.",
+      "tone": "drama",
+      "impact": 20,
+      "trigger": { "age": [3, 8], "if": "family.type != 'facility'" },
+      "weight": { "base": 0.004 },
+      "limit": { "oncePerLife": true },
+      "choices": [
+        {
+          "text": "그 자리에 서서 기다린다",
+          "check": { "stat": "luck", "dc": 35 },
+          "onSuccess": { "text": "십 분 뒤 {보호자}이/가 땀범벅이 되어 달려왔다.", "effects": { "stats": { "stress": 3 } } },
+          "onFail": {
+            "text": "해가 질 때까지 기다리다 미아보호소로 옮겨졌다. 안내 방송이 세 번 나간 뒤에야 다시 만났다.",
+            "effects": { "stats": { "stress": 8, "happiness": -3 } }
+          }
+        },
+        {
+          "text": "제복 입은 직원에게 말한다",
+          "check": { "stat": "sociability", "dc": 40 },
+          "onSuccess": { "text": "직원이 무전기로 연락했다. 금방 다시 만났다.", "effects": { "stats": { "sociability": 1 } } },
+          "onFail": {
+            "text": "말이 잘 나오지 않아 울기만 했다. 그래도 직원이 알아보고 안내소로 데려갔다.",
+            "effects": { "stats": { "stress": 5 } }
+          }
+        },
+        {
+          "text": "울면서 찾아다닌다",
+          "result": "엉뚱한 출구까지 걸어갔다. 112 신고를 받은 경찰이 나를 찾아냈다. 미리 해 둔 지문 사전등록 덕분이었다.",
+          "effects": { "stats": { "stress": 10, "happiness": -3 } }
+        }
+      ]
+    },
+    {
+      "id": "grandma_care",
+      "type": "random",
+      "title": "할머니 집",
+      "text": "맞벌이하는 부모님 대신 할머니가 나를 맡았다. 할머니 집에는 늘 된장 냄새와 트로트가 흐른다.",
+      "tone": "positive",
+      "impact": 5,
+      "trigger": { "age": [1, 6], "if": "family.type == 'two_parent'" },
+      "weight": { "base": 0.12, "noMode": true, "modifiers": [{ "if": "family.wealth <= 3", "x": 1.3 }] },
+      "limit": { "oncePerLife": true },
+      "choices": [
+        {
+          "text": "할머니 무릎에서 낮잠을 잔다",
+          "result": "할머니가 부채질을 멈추지 않았다.",
+          "effects": { "stats": { "happiness": 3, "health": 1 } }
+        },
+        {
+          "text": "트로트를 따라 부른다",
+          "result": "경로당 할머니들이 박수를 쳤다. 사탕 주머니가 불룩해졌다.",
+          "effects": {
+            "stats": { "sociability": 2, "happiness": 2 },
+            "do": [{ "type": "discoverTalent", "talent": "music" }]
+          }
+        }
+      ],
+      "filler": true
+    }
+  ]
+}

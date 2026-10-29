@@ -1,0 +1,278 @@
+{
+  "stage": "청년 19~29세. 대학·취업, 연애, 코인, 전세사기, 공시",
+  "events": [
+    {
+      "id": "univ_admission",
+      "type": "milestone",
+      "title": "정시 발표",
+      "text": "정시 발표 날. 수능 백분위 {수능백분위}. 휴대폰을 쥔 손에 땀이 찬다.",
+      "tone": "drama",
+      "impact": 15,
+      "order": 1,
+      "trigger": { "age": [19, 41], "if": "edu.csatJustTaken && edu.status != 'university'" },
+      "choices": [
+        {
+          "text": "수시로 붙은 {수시대학}에 등록한다",
+          "if": "edu.earlyAdmitted",
+          "result": "수능 최저를 넘겼다. 합격 증명서를 뽑아 냉장고에 붙였다.",
+          "effects": {
+            "do": [{ "type": "enterUniversity", "early": true }],
+            "removeFlags": ["retake"],
+            "stats": { "happiness": 8 }
+          }
+        },
+        {
+          "text": "{합격대학}에 등록한다",
+          "if": "edu.canEnroll",
+          "result": "합격 문자를 캡처해 가족 단톡방에 올렸다. 첫 학기 등록금 고지서가 날아왔다.",
+          "effects": {
+            "do": [{ "type": "enterUniversity" }],
+            "removeFlags": ["retake"],
+            "stats": { "happiness": 8 }
+          }
+        },
+        {
+          "text": "재수를 한다",
+          "result": "기숙학원 1년. 다시 새벽 6시 기상이다.",
+          "effects": { "addFlags": ["retake"], "stats": { "stress": 12, "happiness": -5 } }
+        },
+        {
+          "text": "대학 대신 취업한다",
+          "result": "구직 앱을 깔았다. 이제 '학업·직업' 탭에서 일자리를 찾을 수 있다.",
+          "effects": { "removeFlags": ["retake"], "stats": { "stress": 4 } }
+        }
+      ]
+    },
+    {
+      "id": "univ_graduation",
+      "type": "milestone",
+      "title": "학위수여식",
+      "text": "학사모를 하늘로 던졌다. 사진을 찍고 나니 실감이 났다. 이제 학생이 아니다.",
+      "tone": "positive",
+      "impact": 10,
+      "trigger": { "if": "edu.graduateNow" },
+      "effects": { "do": [{ "type": "graduate" }], "stats": { "happiness": 5 } },
+      "choices": [
+        {
+          "text": "가족과 짜장면을 먹는다",
+          "result": "탕수육도 시켰다.",
+          "effects": { "do": [{ "type": "npcCloseness", "role": "parents", "delta": 5 }] }
+        },
+        { "text": "바로 자기소개서를 쓴다", "result": "학위수여식 날 저녁에도 노트북을 켰다.", "effects": { "stats": { "stress": 4 } } }
+      ]
+    },
+    {
+      "id": "dating_start",
+      "type": "random",
+      "title": "자꾸 연락하게 되는 사람",
+      "text": "{상대}와/과 연락하는 날이 늘었다. 별 얘기 아닌데 답장이 오면 웃음이 난다.",
+      "tone": "positive",
+      "impact": 10,
+      "trigger": { "age": [19, 65], "if": "!family.hasPartner && !family.married && !legal.inPrison" },
+      "weight": {
+        "base": 0.15,
+        "noMode": true,
+        "ageCurve": { "19": 0.8, "24": 1.2, "32": 1, "40": 0.6, "50": 0.35, "65": 0.2 },
+        "modifiers": [
+          { "if": "stats.looks > 65", "x": 1.3 },
+          { "if": "stats.sociability > 65", "x": 1.3 },
+          { "if": "stats.sociability < 30", "x": 0.6 },
+          { "if": "military.serving", "x": 0.3 }
+        ]
+      },
+      "limit": { "cooldown": 2 },
+      "choices": [
+        {
+          "text": "먼저 고백한다",
+          "check": { "stats": ["sociability", "looks"], "dc": 48 },
+          "onSuccess": {
+            "text": "\"나도 기다렸어.\" 오늘부터 1일.",
+            "effects": { "do": [{ "type": "startPartner" }], "stats": { "happiness": 10 } }
+          },
+          "onFail": { "text": "\"좋은 친구로 지내자.\" 그 뒤로 연락이 뜸해졌다.", "effects": { "stats": { "happiness": -6 } } }
+        },
+        {
+          "text": "상대가 먼저 말하길 기다린다",
+          "check": { "stat": "luck", "dc": 55 },
+          "onSuccess": {
+            "text": "어느 날 밤, 긴 메시지가 왔다. 오늘부터 1일.",
+            "effects": { "do": [{ "type": "startPartner" }], "stats": { "happiness": 8 } }
+          },
+          "onFail": { "text": "기다리는 사이 {상대}에게 애인이 생겼다.", "effects": { "stats": { "happiness": -3 } } }
+        },
+        { "text": "지금은 연애할 때가 아니다", "result": "답장을 늦게 하기 시작했다." }
+      ]
+    },
+    {
+      "id": "coin_fomo",
+      "type": "random",
+      "title": "이번엔 진짜다",
+      "text": "단톡방에 '세 배는 기본'이라는 코인 얘기가 올라온다. 동기는 지난주에 차를 바꿨다.",
+      "tone": "drama",
+      "impact": 12,
+      "trigger": { "age": [20, 65], "if": "money.cash >= 5000000 && !legal.inPrison" },
+      "weight": {
+        "base": 0.07,
+        "modifiers": [
+          { "if": "world.economy == 'boom'", "x": 1.8 },
+          { "if": "personality.openness > 60", "x": 1.3 }
+        ]
+      },
+      "limit": { "max": 2, "cooldown": 6 },
+      "choices": [
+        {
+          "text": "현금 절반을 넣는다",
+          "result": "{결과}",
+          "effects": { "do": [{ "type": "gamble", "stakePct": 0.5, "winChance": 0.35, "winMult": 3 }] }
+        },
+        {
+          "text": "조금만 넣어 본다",
+          "result": "{결과}",
+          "effects": { "do": [{ "type": "gamble", "stakePct": 0.1, "winChance": 0.4, "winMult": 2.5 }] }
+        },
+        {
+          "text": "'리딩방' 초대에 응한다",
+          "result": "VIP방 가입비 300만 원을 냈다. 추천 코인은 상장 직후 휴지 조각이 됐다. 방장은 잠적했다.",
+          "effects": { "money": { "cash": -3000000 }, "stats": { "happiness": -6 } }
+        },
+        { "text": "안 한다", "result": "배가 조금 아팠다. 그래도 잠은 잘 잤다." }
+      ]
+    },
+    {
+      "id": "jeonse_fraud",
+      "type": "random",
+      "motif": "2022~2023년 수도권 빌라 전세사기 사태와 전세사기피해자 특별법 (2023)",
+      "title": "전세 보증금",
+      "text": "계약 만료 한 달 전, 집주인이 연락을 받지 않는다. 등기부등본을 떼어 보니 집이 이미 경매에 넘어가 있다. 같은 건물 열두 세대가 같은 처지다.",
+      "tone": "tragedy",
+      "impact": 35,
+      "trigger": {
+        "age": [23, 45],
+        "if": "!family.livesWithParents && !flags.homeowner && money.cash >= 30000000"
+      },
+      "weight": {
+        "base": 0.0015,
+        "modifiers": [
+          { "if": "region.metro || region.id == 'gyeonggi'", "x": 1.5 },
+          { "if": "world.news.jeonseFraud", "x": 2 }
+        ]
+      },
+      "limit": { "oncePerLife": true },
+      "effects": { "money": { "cashPct": -0.5 }, "addFlags": ["jeonse_victim"] },
+      "choices": [
+        {
+          "text": "전세피해지원센터를 찾아간다",
+          "check": { "stat": "intelligence", "dc": 45 },
+          "onSuccess": {
+            "text": "피해자로 결정됐다. 경매에서 우선매수권을 얻었고, 저리 대출로 일부를 되찾았다.",
+            "effects": { "do": [{ "type": "refundPct", "pct": 0.4 }], "stats": { "stress": -5 } }
+          },
+          "onFail": {
+            "text": "서류가 하나 빠져 몇 달이 걸렸다. 받은 건 보증금의 일부뿐이다.",
+            "effects": { "do": [{ "type": "refundPct", "pct": 0.15 }], "stats": { "stress": 8 } }
+          }
+        },
+        {
+          "text": "다른 세입자들과 대책위를 만든다",
+          "result": "국회 앞 집회에 나갔다. 특별법 개정 소식이 들렸다. 보증금은 아직이다.",
+          "effects": {
+            "stats": { "sociability": 3, "reputation": 2, "stress": 6 },
+            "do": [{ "type": "refundPct", "pct": 0.25 }]
+          }
+        },
+        {
+          "text": "그냥 이사 나간다",
+          "result": "보증금은 포기했다. 다시 월세로 시작한다.",
+          "effects": { "stats": { "happiness": -10, "mental": -5 } }
+        }
+      ]
+    },
+    {
+      "id": "job_rejections",
+      "type": "random",
+      "title": "서류 탈락",
+      "text": "\"귀하의 역량은 뛰어나나 아쉽게도...\" 올해만 서른두 번째 문자다.",
+      "tone": "neutral",
+      "impact": 10,
+      "trigger": { "age": [20, 39], "flags": ["unemployed"] },
+      "weight": { "base": 0.3, "noMode": true, "modifiers": [{ "if": "world.unemployment > 4", "x": 1.5 }] },
+      "limit": { "cooldown": 1 },
+      "choices": [
+        {
+          "text": "눈높이를 낮춘다",
+          "if": "edu.degree != 'none'",
+          "result": "집 근처 중소기업에 붙었다.",
+          "effects": { "do": [{ "type": "getJob", "job": "sme_office" }] }
+        },
+        {
+          "text": "공무원 시험을 준비한다",
+          "if": "!flags.gongsi",
+          "result": "노량진 고시원 1.5평. 하루 열두 시간 인강을 듣는다.",
+          "effects": { "addFlags": ["gongsi"], "stats": { "stress": 10, "happiness": -4 } }
+        },
+        {
+          "text": "1년만 쉰다",
+          "result": "그냥 쉬었다. 통계에 잡히는 '쉬었음 청년'이 됐다.",
+          "effects": { "stats": { "stress": -10, "happiness": 2 } }
+        }
+      ]
+    },
+    {
+      "id": "gongsi_exam",
+      "type": "consequence",
+      "title": "9급 공채 필기",
+      "text": "시험장 교실 창가 자리. 국어, 영어, 한국사, 그리고 전공 두 과목. 1년을 이 100분에 걸었다.",
+      "tone": "drama",
+      "impact": 15,
+      "trigger": { "age": [19, 50], "flags": ["gongsi"], "if": "!legal.inPrison" },
+      "weight": { "base": 0.9, "noMode": true },
+      "limit": { "cooldown": 1 },
+      "choices": [
+        {
+          "text": "답안지를 제출한다",
+          "check": { "stat": "intelligence", "dc": 62 },
+          "onSuccess": {
+            "text": "합격. 발령 대기 석 달 뒤, 주민센터로 첫 출근을 했다.",
+            "effects": {
+              "removeFlags": ["gongsi"],
+              "do": [{ "type": "getJob", "job": "civil_servant" }],
+              "stats": { "happiness": 12, "stress": -10 }
+            }
+          },
+          "onFail": { "text": "커트라인에서 2점 모자랐다.", "effects": { "stats": { "happiness": -8, "stress": 8 } } }
+        },
+        {
+          "text": "시험을 포기하고 취업한다",
+          "result": "고시원 짐을 쌌다. 몇 년이 그렇게 지나갔다.",
+          "effects": { "removeFlags": ["gongsi"], "stats": { "stress": -5 } }
+        }
+      ]
+    },
+    {
+      "id": "apartment_lottery",
+      "type": "random",
+      "motif": "청약 추첨제와 무주택 청년 특별공급",
+      "title": "청약 당첨",
+      "text": "새벽에 문자가 왔다. '청약 당첨을 축하드립니다.' 분양가 {분양가}. 계약금 10%를 한 달 안에 내야 한다.",
+      "tone": "positive",
+      "impact": 25,
+      "trigger": { "age": [25, 55], "if": "!flags.homeowner && money.cash >= 50000000 && money.income > 0" },
+      "weight": {
+        "base": 0.01,
+        "modifiers": [{ "if": "family.married", "x": 1.5 }, { "if": "family.children > 0", "x": 1.5 }]
+      },
+      "limit": { "oncePerLife": true },
+      "choices": [
+        {
+          "text": "계약한다",
+          "result": "대출 서류에 도장을 스무 번 찍었다. 입주는 3년 뒤다.",
+          "effects": {
+            "do": [{ "type": "buyHome", "downPct": 0.3 }],
+            "stats": { "happiness": 10, "stress": 8 }
+          }
+        },
+        { "text": "포기한다", "result": "대출 이자를 계산해 보니 엄두가 나지 않았다.", "effects": { "stats": { "happiness": -3 } } }
+      ]
+    }
+  ]
+}

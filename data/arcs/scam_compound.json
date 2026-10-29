@@ -1,0 +1,211 @@
+{
+  "arc": "해외 범죄단지 (인신매매·감금)",
+  "motif": "캄보디아 송환자 64명, 감금 피해자이자 사기 피의자로 수사 (2025) https://www.fnnews.com/news/202510181234036577 · 납치·감금 신고 330건, 고문 끝 숨진 대학생 사건 https://www.heraldk.com/article/2025102018194429409",
+  "events": [
+    {
+      "id": "overseas_job_offer",
+      "type": "chain_start",
+      "arc": "scam_compound",
+      "motif": "2025 캄보디아 범죄단지 한국인 감금 사건",
+      "title": "월 1,000만 원 보장",
+      "text": "{지인}이 동남아 '고객관리' 일자리를 소개했다. 항공권과 숙소는 회사가 낸다고 한다.",
+      "tone": "drama",
+      "impact": 20,
+      "trigger": {
+        "age": [19, 35],
+        "anyFlags": ["credit_default", "unemployed", "gambling_debt"],
+        "notFlags": ["compound_survivor"],
+        "if": "!military.serving && !legal.inPrison"
+      },
+      "weight": {
+        "base": 0.008,
+        "ageCurve": { "19": 1.2, "25": 1, "35": 0.5 },
+        "modifiers": [
+          { "if": "money.debt > 30000000", "x": 2.5 },
+          { "if": "stats.intelligence > 70", "x": 0.5 },
+          { "if": "world.news.scamCompound", "x": 0.6 }
+        ]
+      },
+      "limit": { "oncePerLife": true },
+      "choices": [
+        { "text": "간다", "next": "compound_arrival" },
+        {
+          "text": "회사 이름을 검색해 본다",
+          "check": { "stat": "intelligence", "dc": 50 },
+          "onSuccess": { "text": "같은 회사 이름이 피해 후기에 나온다. 제안을 거절했다." },
+          "onFail": { "text": "아무것도 나오지 않는다. 출국을 결심했다.", "next": "compound_arrival" }
+        },
+        { "text": "거절한다" }
+      ]
+    },
+    {
+      "id": "compound_arrival",
+      "type": "chain",
+      "arc": "scam_compound",
+      "zoom": "출국 사흘째 · 국경 근처 어느 건물",
+      "title": "여권",
+      "text": "공항에 마중 나온 차는 다섯 시간을 달려 철조망 쳐진 건물 앞에 섰다. 들어가자마자 여권과 휴대폰을 빼앗겼다. 책상마다 컴퓨터와 대본이 놓여 있다. \"빚 갚을 때까지 일한다. 목표 못 채우면 맞는다.\"",
+      "tone": "tragedy",
+      "impact": 50,
+      "effects": { "addFlags": ["in_compound"], "stats": { "happiness": -20, "stress": 25, "mental": -10 } },
+      "choices": [
+        {
+          "text": "시키는 대로 하며 기회를 본다",
+          "result": "하루 14시간 모니터 앞에 앉았다. 실적이 낮은 날엔 옆방에서 비명이 들렸다.",
+          "effects": { "stats": { "morality": -10, "health": -8, "mental": -8 } },
+          "next": "compound_days"
+        },
+        {
+          "text": "몰래 숨긴 공기계로 가족에게 연락한다",
+          "check": { "stat": "intelligence", "dc": 55 },
+          "onSuccess": {
+            "text": "가족이 대사관과 경찰에 신고했다. 위치 정보도 넘어갔다.",
+            "effects": { "addFlags": ["compound_reported"] },
+            "next": "compound_days"
+          },
+          "onFail": {
+            "text": "들켰다. 사흘 동안 독방에 갇혔다. 맞은 자리가 아직도 욱신거린다.",
+            "effects": { "stats": { "health": -15, "mental": -12 } },
+            "next": "compound_days"
+          }
+        },
+        {
+          "text": "탈출을 시도한다",
+          "check": { "stats": ["stamina", "luck"], "dc": 65 },
+          "onSuccess": {
+            "text": "새벽 교대 시간, 담장 아래 배수로로 빠져나왔다. 툭툭 기사가 경찰서까지 태워 줬다.",
+            "next": "compound_return"
+          },
+          "onFail": {
+            "text": "담을 넘다 붙잡혔다. 그날 일은 기억하고 싶지 않다.",
+            "effects": { "stats": { "health": -25, "mental": -15 } },
+            "next": "compound_days"
+          }
+        }
+      ]
+    },
+    {
+      "id": "compound_days",
+      "type": "chain",
+      "arc": "scam_compound",
+      "zoom": "감금 두 달째",
+      "title": "몸값",
+      "text": "관리자가 가족에게 영상통화를 걸게 했다. \"3,000만 원 보내면 풀어 준다.\" 화면 너머 가족의 얼굴이 무너진다.",
+      "tone": "tragedy",
+      "impact": 40,
+      "choices": [
+        {
+          "text": "보내지 말라고 외친다",
+          "result": "통화가 끊기고 매질이 시작됐다. 하지만 그 통화 녹음이 경찰에게 넘어갔다.",
+          "effects": { "stats": { "health": -10, "mental": 4 }, "addFlags": ["compound_reported"] },
+          "next": [
+            { "event": "compound_rescue", "w": 0.6 },
+            { "event": "compound_stay", "w": 0.35 },
+            { "event": "compound_death", "w": 0.05 }
+          ]
+        },
+        {
+          "text": "가족에게 돈을 부탁한다",
+          "result": "가족이 대출을 받아 송금했다. 풀어 준다던 약속은 지켜지지 않았다.",
+          "effects": { "money": { "debt": 30000000 }, "stats": { "happiness": -10 } },
+          "next": [{ "event": "compound_rescue", "w": 0.5 }, { "event": "compound_stay", "w": 0.5 }]
+        },
+        {
+          "text": "조직 안에서 관리자 자리를 노린다",
+          "if": "hidden.morality < 45",
+          "result": "실적 1위. 이제 신입을 감시하는 쪽이 됐다. 문은 여전히 밖에서 잠긴다.",
+          "effects": { "stats": { "morality": -20, "mental": -5 }, "addFlags": ["compound_manager"] },
+          "next": [{ "event": "compound_rescue", "w": 0.4 }, { "event": "compound_stay", "w": 0.6 }]
+        }
+      ]
+    },
+    {
+      "id": "compound_stay",
+      "type": "chain",
+      "arc": "scam_compound",
+      "zoom": "감금 여섯 달째",
+      "title": "단속",
+      "text": "새벽에 총소리가 났다. 현지 경찰과 군이 단지를 급습했다. 관리자들은 이미 사라졌고, 남은 건 우리뿐이다.",
+      "tone": "drama",
+      "impact": 30,
+      "choices": [
+        {
+          "text": "손을 들고 한국인이라고 외친다",
+          "result": "현지 이민국 수용소에서 석 달을 더 기다렸다. 대사관 직원이 찾아왔다.",
+          "effects": { "stats": { "health": -5 } },
+          "next": "compound_return"
+        },
+        {
+          "text": "혼란을 틈타 숨는다",
+          "check": { "stat": "luck", "dc": 60 },
+          "onSuccess": { "text": "국경을 넘는 트럭에 숨어 대사관까지 갔다.", "next": "compound_return" },
+          "onFail": {
+            "text": "다른 조직에 다시 팔려 갔다. 1년이 더 지나서야 풀려났다.",
+            "effects": { "stats": { "health": -15, "mental": -15 } },
+            "next": "compound_return"
+          }
+        }
+      ]
+    },
+    {
+      "id": "compound_rescue",
+      "type": "chain",
+      "arc": "scam_compound",
+      "zoom": "구출 작전 당일",
+      "title": "구출",
+      "text": "한국 경찰청과 현지 경찰의 공조 수사였다. 대사관 차량이 정문 앞에 섰다. 내 이름이 불렸다.",
+      "tone": "recovery",
+      "impact": 20,
+      "effects": { "stats": { "happiness": 10 } },
+      "next": "compound_return"
+    },
+    {
+      "id": "compound_return",
+      "type": "chain",
+      "arc": "scam_compound",
+      "zoom": "인천공항 입국장",
+      "motif": "캄보디아 송환자 64명, 감금 피해자이자 사기 피의자로 수사 (2025) https://www.fnnews.com/news/202510181234036577",
+      "title": "피해자이자 피의자",
+      "text": "입국장 문이 열리자 카메라 플래시가 터졌다. 가족보다 먼저 형사들이 다가왔다. \"범죄단체 가입·활동 혐의로 조사가 필요합니다.\"",
+      "tone": "tragedy",
+      "impact": 35,
+      "effects": { "removeFlags": ["in_compound"], "addFlags": ["compound_survivor"] },
+      "choices": [
+        {
+          "text": "감금과 강요를 입증할 자료를 낸다",
+          "if": "flags.compound_reported",
+          "result": "가족의 신고 기록과 영상통화 녹음이 증거가 됐다. 강요된 범행으로 인정돼 불기소 처분을 받았다.",
+          "effects": { "stats": { "mental": 3 } }
+        },
+        {
+          "text": "수사에 협조하며 조직을 진술한다",
+          "check": { "stat": "mental", "dc": 45 },
+          "onSuccess": { "text": "총책 검거에 도움이 됐다. 기소유예.", "effects": { "stats": { "mental": 2 } } },
+          "onFail": {
+            "text": "진술이 오락가락했다. 결국 기소됐다. {판결}",
+            "effects": { "do": [{ "type": "prosecute", "crime": "compound_fraud" }] }
+          }
+        },
+        {
+          "text": "아무 말도 하지 않는다",
+          "result": "언론은 나를 '사기꾼'이라고 불렀다. 재판이 시작됐다. {판결}",
+          "effects": {
+            "do": [{ "type": "prosecute", "crime": "compound_fraud" }],
+            "stats": { "reputation": -5 }
+          }
+        }
+      ]
+    },
+    {
+      "id": "compound_death",
+      "type": "chain",
+      "arc": "scam_compound",
+      "motif": "납치·감금 신고 330건, 고문 끝 숨진 대학생 사건 (2025) https://www.heraldk.com/article/2025102018194429409",
+      "title": "돌아오지 못했다",
+      "text": "몸값이 오가는 사이, 몸이 먼저 버티지 못했다. 몇 달 뒤 유해가 비행기 화물칸에 실려 고향으로 돌아왔다.",
+      "tone": "tragedy",
+      "impact": 100,
+      "effects": { "death": "해외 범죄단지 감금 중 사망" }
+    }
+  ]
+}
