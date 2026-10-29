@@ -2,11 +2,79 @@
   "schema_version": 1,
   "repository": "250058/LifeSim",
   "current_plan_path": "docs/PLAN.md",
-  "latest_report_path": "docs/reviews/2026-10-29-plan-review.md",
+  "latest_report_path": "docs/reviews/2026-10-29T03-55-12Z.md",
   "handoff_issue_number": 1,
   "initial_full_review_pending": true,
-  "last_completed_review_at": null,
-  "reviewed_refs": {},
+  "last_completed_review_at": "2026-10-29T04:07:34.355697Z",
+  "reviewed_refs": {
+    "ccr-d37c47c4-qxyoxr": {
+      "base_sha": "e91f6f452fb4319c153530a9dd77e554d2918d66",
+      "head_sha": "9a7905569e2c6904f2c2a8581590c857cc6575e0",
+      "review_kind": "scoped_baseline",
+      "report_path": "docs/reviews/2026-10-29T03-55-12Z.md",
+      "completed_at": "2026-10-29T04:07:34.355697Z",
+      "static_files": [
+        "src/engine/game.ts",
+        "src/engine/eventEngine.ts",
+        "src/engine/director.ts",
+        "src/engine/activities.ts",
+        "src/engine/career.ts",
+        "src/engine/effects.ts",
+        "src/engine/health.ts",
+        "src/engine/heir.ts",
+        "src/engine/relations.ts",
+        "src/engine/rng.ts",
+        "src/engine/save.ts",
+        "src/engine/scope.ts",
+        "src/engine/conditions.ts",
+        "src/engine/text.ts",
+        "src/engine/world.ts",
+        "src/engine/summary.ts",
+        "src/engine/character.ts",
+        "src/engine/data.ts",
+        "src/engine/pools.ts",
+        "src/engine/validate.ts",
+        "src/engine/catalog/build.ts",
+        "src/engine/catalog/physiology.ts",
+        "src/engine/catalog/index.ts",
+        "tools/simulator/run.ts",
+        "tests/engine.test.ts"
+      ],
+      "partial_static_scope": [
+        "schema.ts/types.ts 관련 모델",
+        "src/ui 주요 흐름 및 CSS 화면 폭·접근성 설정",
+        "관련 사건 데이터와 생리 현상 생성 원자료"
+      ],
+      "validation": {
+        "build": "passed (includes typecheck)",
+        "tests": {
+          "passed": 22,
+          "failed": 0
+        },
+        "event_validate": {
+          "events": 1514,
+          "errors": 0,
+          "warnings": 0
+        },
+        "reality_sim": {
+          "n": 1000,
+          "seed_prefix": "REVIEW-20261029",
+          "life_expectancy": 83.99,
+          "exit_code": 0
+        },
+        "targeted_reproductions": [
+          "R-001 cap",
+          "R-004 zero probability",
+          "R-006 minor heir",
+          "R-007 pension units",
+          "R-008 abstinent hangover",
+          "R-009 smoking age",
+          "R-010 fine record",
+          "active-card save and duplicate-choice guard"
+        ]
+      }
+    }
+  },
   "observed_refs_at_handoff": {
     "main": "b3261626f03b692f53b4161b7dfdec10f1dcc229",
     "ccr-d37c47c4-qxyoxr": "6c980725139e8dd3f9ccd219a8589df40910cde6"
@@ -23,5 +91,76 @@
     ],
     "validation": "static_read_only"
   },
-  "note": "observed_refs_at_handoff records discovery, not completed code review; replace with actual reviewed ranges only after publishing a report."
+  "note": "A completed scoped review is not a full code/UI/statistical certification. Future reviews should use these completed scopes and unresolved findings, inspect newer commits, and complete the listed initial gaps. Observed refs alone are not reviewed.",
+  "remaining_initial_review_scope": [
+    "실제 모바일 브라우저의 조작·레이아웃·저장소 예외 확인",
+    "모든 사건 문장과 조건 조합의 의미·도달성 검수",
+    "공식 통계 원표 및 버전 변경 저장 이전 검증"
+  ],
+  "open_findings": [
+    {
+      "id": "R-001",
+      "status": "open",
+      "last_checked_sha": "9a7905569e2c6904f2c2a8581590c857cc6575e0",
+      "report_path": "docs/reviews/2026-10-29T03-55-12Z.md"
+    },
+    {
+      "id": "R-002",
+      "status": "open",
+      "last_checked_sha": "9a7905569e2c6904f2c2a8581590c857cc6575e0",
+      "report_path": "docs/reviews/2026-10-29T03-55-12Z.md"
+    },
+    {
+      "id": "R-003",
+      "status": "open",
+      "last_checked_sha": "9a7905569e2c6904f2c2a8581590c857cc6575e0",
+      "report_path": "docs/reviews/2026-10-29T03-55-12Z.md"
+    },
+    {
+      "id": "R-004",
+      "status": "open",
+      "last_checked_sha": "9a7905569e2c6904f2c2a8581590c857cc6575e0",
+      "report_path": "docs/reviews/2026-10-29T03-55-12Z.md"
+    },
+    {
+      "id": "R-005",
+      "status": "partially_resolved",
+      "last_checked_sha": "9a7905569e2c6904f2c2a8581590c857cc6575e0",
+      "report_path": "docs/reviews/2026-10-29T03-55-12Z.md"
+    },
+    {
+      "id": "R-006",
+      "status": "open",
+      "last_checked_sha": "9a7905569e2c6904f2c2a8581590c857cc6575e0",
+      "report_path": "docs/reviews/2026-10-29T03-55-12Z.md"
+    },
+    {
+      "id": "R-007",
+      "status": "open",
+      "last_checked_sha": "9a7905569e2c6904f2c2a8581590c857cc6575e0",
+      "report_path": "docs/reviews/2026-10-29T03-55-12Z.md"
+    },
+    {
+      "id": "R-008",
+      "status": "open",
+      "last_checked_sha": "9a7905569e2c6904f2c2a8581590c857cc6575e0",
+      "report_path": "docs/reviews/2026-10-29T03-55-12Z.md"
+    },
+    {
+      "id": "R-009",
+      "status": "open",
+      "last_checked_sha": "9a7905569e2c6904f2c2a8581590c857cc6575e0",
+      "report_path": "docs/reviews/2026-10-29T03-55-12Z.md"
+    },
+    {
+      "id": "R-010",
+      "status": "open",
+      "last_checked_sha": "9a7905569e2c6904f2c2a8581590c857cc6575e0",
+      "report_path": "docs/reviews/2026-10-29T03-55-12Z.md"
+    }
+  ],
+  "observed_refs_at_review": {
+    "main": "41c4d431b3dc265c9f87ee4d3bae8c57720c4edc",
+    "ccr-d37c47c4-qxyoxr": "9a7905569e2c6904f2c2a8581590c857cc6575e0"
+  }
 }
