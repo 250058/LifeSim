@@ -810,3 +810,104 @@ describe('저장과 재개 (재발)', () => {
     expect(tested).toBe(1);
   });
 });
+
+describe('오랜 사용을 전제한 태그와 장면 (R-008 재검증)', () => {
+  /** 기록을 직접 고친다 (여러 해 사용으로 습관이 생긴 사람을 빨리 만든다) */
+  const writable = (s: GameState, id: SubstanceId) => s.ch.substances![id];
+
+  it('올해 고른 술자리 세 번·담배 두 번으로는 술꾼·흡연자가 아니고, 오랜 음주·흡연 장면이 열리지 않는다', () => {
+    const s = personAt('ONE-YEAR', 60);
+    for (let i = 0; i < 3; i++) expect(doActivity(s, 'drinking')).not.toBeNull();
+    doActivity(s, 'smoke');
+    doActivity(s, 'smoke');
+    expect(readRecord(s.ch, 'alcohol').dependence).toBeLessThan(35);
+    expect(s.ch.flags.heavy_drinker).toBeUndefined();
+    expect(s.ch.flags.smoker).toBeUndefined();
+    // 떨리는 손(알코올 사용 장애), 오래 마신 사람의 비타민 결핍, 오랜 흡연자의 폐암 CT 검진
+    for (const id of ['med_alcohol_use', 'nut_vitb1_drinker', 'nut_folate_drinker', 'med_chk_lung_nodule_national']) {
+      expect(triggerOk(getEvent(id), buildScope(s), s), id).toBe(false);
+    }
+    // 올해의 건강 변화와 올해 장면은 그대로 올해 고른 만큼 읽는다 (과음 −0.8, 매일 흡연 −1.2, 겹침 −0.3)
+    expect(alcoholScope(s).band).toBe(3);
+    expect(substanceHealthDelta(s.ch)).toBeCloseTo(-0.8 - 1.2 - 0.3, 6);
+    // 연말을 지나도 습관이 없으면 태그는 생기지 않는다
+    nextYear(s);
+    expect(s.ch.flags.heavy_drinker).toBeUndefined();
+    expect(s.ch.flags.smoker).toBeUndefined();
+  });
+
+  it('습관이 생긴 사람이 올해 그 빈도로 쓰면 태그가 붙고, 장면이 열린다', () => {
+    const s = personAt('HABIT-TAG', 60);
+    doActivity(s, 'drinking');
+    doActivity(s, 'smoke');
+    Object.assign(writable(s, 'alcohol'), { habit: 1, dependence: 40 });
+    Object.assign(writable(s, 'tobacco'), { habit: 1, dependence: 30 });
+    doActivity(s, 'drinking');
+    doActivity(s, 'smoke');
+    expect(s.ch.flags.heavy_drinker).toBeDefined();
+    expect(s.ch.flags.smoker).toBeDefined();
+    expect(triggerOk(getEvent('med_alcohol_use'), buildScope(s), s)).toBe(true);
+    expect(triggerOk(getEvent('med_chk_lung_nodule_national'), buildScope(s), s)).toBe(true);
+  });
+
+  it('옛 규칙으로 붙은 태그(올해 고른 사용뿐)는 과음 습관으로 옮기지 않고 뗀다', () => {
+    const s = personAt('LEGACY-TAG', 30);
+    for (let i = 0; i < 3; i++) doActivity(s, 'drinking');
+    // 옛 저장: 예전 규칙은 올해 빈도 3이면 술꾼 태그를 붙였다
+    s.ch.flags.heavy_drinker = { since: 30 };
+    expect(alcoholScope(s).habit).toBe(0);
+    expect(alcoholScope(s).dependence).toBeLessThan(35);
+    reconcileSubstanceFlags(s);
+    expect(readRecord(s.ch, 'alcohol').habit).toBe(0);
+    expect(readRecord(s.ch, 'alcohol').dependence).toBeLessThan(35);
+    expect(s.ch.flags.heavy_drinker).toBeUndefined();
+  });
+
+  it('술을 끊은 사람에게 악화 장면이 와도 술자리를 지어내지 않고, 끊는다는 빈 선택지가 없다', () => {
+    const s = personAt('WORSE-QUIT', 45);
+    s.ch.flags.heavy_drinker = { since: 30 };
+    reconcileSubstanceFlags(s);
+    expect(presentCard(s, { eventId: 'med_alcohol_use_worse', ctx: {} })).toBe(true);
+    expect(s.card!.text).not.toContain('술자리');
+    expect(s.card!.choices.map((c) => c.text)).toContain('지혈을 받고 술을 끊는다');
+    s.card = undefined;
+    s.phase = 'action';
+
+    expect(doActivity(s, 'quit_drinking')).not.toBeNull();
+    expect(isQuitting(readRecord(s.ch, 'alcohol'))).toBe(true);
+    expect(presentCard(s, { eventId: 'med_alcohol_use_worse', ctx: {} })).toBe(true);
+    const texts = s.card!.choices.map((c) => c.text);
+    expect(texts).not.toContain('지혈을 받고 술을 끊는다');
+    expect(texts).toContain('지혈을 받고 금주를 이어 간다');
+    const attempts = readRecord(s.ch, 'alcohol').quitAttempts;
+    choose(s, texts.indexOf('지혈을 받고 금주를 이어 간다'));
+    expect(isQuitting(readRecord(s.ch, 'alcohol'))).toBe(true);
+    expect(readRecord(s.ch, 'alcohol').quitAttempts).toBe(attempts);
+  });
+
+  it('마신 적 없는 사람의 옛 금주 중 태그는 불러온 뒤 첫 결산에서 떨어지고, 쓴 적 있는 물질의 태그는 그대로다', () => {
+    const storage = memoryStorage();
+    const s = personAt('OLD-QUIT-TAG', 22);
+    s.ch.flags.quitting_drinking = { since: 20 };
+    saveGame(s, storage);
+    const l = loadGame(storage)!;
+    expect(alcoholScope(l).quitting).toBe(false);
+    nextYear(l);
+    expect(l.ch.flags.quitting_drinking).toBeUndefined();
+
+    // 다른 물질의 기록이 있어도 마찬가지다
+    const t = personAt('OLD-QUIT-TAG-2', 30);
+    doActivity(t, 'smoke');
+    expect(doActivity(t, 'quit_smoking')).not.toBeNull();
+    t.ch.flags.quitting_drinking = { since: 25 };
+    reconcileSubstanceFlags(t);
+    expect(t.ch.flags.quitting_drinking).toBeUndefined();
+    expect(t.ch.flags.quitting_smoking).toBeDefined();
+  });
+
+  it('여럿이 캔맥주를 나누는 장면에 혼자 마시는 술 문장이 붙지 않는다', () => {
+    const group = EVENTS.filter((e) => /^nut_food_can_beer_(camping|mt|beach|park)$/.test(e.id));
+    expect(group.length).toBe(4);
+    for (const e of group) expect(e.text, e.id).not.toContain('혼자');
+  });
+});

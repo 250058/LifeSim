@@ -259,19 +259,59 @@ function flagsFor(r: Readonly<SubstanceRecord>, id: SubstanceId, age: number): s
     if (id === 'alcohol') return [isRecovered(r, age) ? 'sober' : 'quitting_drinking'];
     return ['drug_recovery'];
   }
+  return useFlagsFor(r, id, true);
+}
+
+/**
+ * 사용 태그. 흡연자('매일 피운다')·술꾼('과음이 습관이 됐다') 태그는 오랜 흡연·음주를 전제한 사건
+ * (폐 CT 검진, 알코올 사용 장애의 떨리는 손, 오래 마신 사람의 비타민 결핍…)과 질병 가중치가 읽는다.
+ * 그래서 올해 고른 사용만으로는 붙지 않고, 몸에 밴 습관(의존이 문턱을 넘어 여러 해 이어진 사용)이 있고
+ * 올해 빈도가 태그의 빈도에 이를 때만 붙는다. 예전에는 술자리 활동 세 번(의존 2 남짓)에 바로 술꾼이 됐다.
+ * 올해의 건강 변화와 '빈 병' 같은 올해 장면은 태그가 아니라 기록의 올해 빈도(band)를 읽는다.
+ * needHabit=false는 예전 규칙(올해 빈도만)이다: 옛 저장에 그 규칙으로 붙은 태그를 알아보는 데만 쓴다
+ */
+function useFlagsFor(r: Readonly<SubstanceRecord>, id: SubstanceId, needHabit: boolean): string[] {
+  if (id === 'drug') return isCurrent(r) ? ['drug_use'] : [];
+  if (needHabit && r.habit === 0) return [];
   const band = effectiveBand(r);
   if (id === 'tobacco') return band >= 2 ? [r.product === 'ecig' ? 'vaper' : 'smoker'] : [];
-  if (id === 'alcohol') return band >= 3 ? ['heavy_drinker'] : [];
-  return isCurrent(r) ? ['drug_use'] : [];
+  return band >= 3 ? ['heavy_drinker'] : [];
+}
+
+/**
+ * 예전 규칙(올해 고른 사용만으로 붙던 태그)으로 설명되는 사용 태그. 습관 이력으로 옮기지 않고 기록에 맞춰 뗀다.
+ * 옮기면 한 해 몇 번 고른 사용이 의존 80의 과음 습관으로 부풀었다. 예전에도 이 경우는 옮기지 않았다
+ */
+function legacyFlag(r: Readonly<SubstanceRecord>, id: SubstanceId, flag: string): boolean {
+  return r.ever && !isQuitting(r) && useFlagsFor(r, id, false).includes(flag);
+}
+
+/** 끊는 중·끊어 냄 태그 (사용 태그를 뺀 모형의 태그) */
+const QUIT_STATE_FLAGS: Record<SubstanceId, string[]> = {
+  tobacco: OWN_FLAGS.tobacco.filter((f) => !USE_FLAGS.some(([u]) => u === f)),
+  alcohol: OWN_FLAGS.alcohol.filter((f) => !USE_FLAGS.some(([u]) => u === f)),
+  drug: OWN_FLAGS.drug.filter((f) => !USE_FLAGS.some(([u]) => u === f)),
+};
+
+/**
+ * 써 본 적 없는 물질의 끊는 중·끊어 냄 태그를 뗀다. 옛 저장(R-008 이전)에는 술을 마신 적 없는 사람에게
+ * '금주 중'이 붙어 있었다. 기록은 끊는 중이 아니라고 읽으므로 태그만 어긋나 있었다. 조용히 뗀다 (알림 없음)
+ */
+function dropUnusedQuitFlags(state: GameState): void {
+  for (const id of SUBSTANCE_IDS) {
+    if (readRecord(state.ch, id).ever) continue;
+    for (const f of QUIT_STATE_FLAGS[id]) if (state.ch.flags[f]) removeFlag(state, f, []);
+  }
 }
 
 /**
  * 기록과 태그를 맞춘다. 흡연자·술꾼 태그는 다른 사건과 건강 계산이 읽는다.
- * 써 본 적 없는 물질의 태그(아직 옮기지 않은 미성년자의 옛 태그)는 건드리지 않는다.
+ * 써 본 적 없는 물질의 사용 태그(아직 옮기지 않은 미성년자의 옛 태그)는 건드리지 않는다. 끊는 중 태그는 뗀다.
  * age는 끊은 햇수를 셀 나이다. 연말에는 다음 해 나이로 센다 (substanceYearEnd)
  */
 function syncFlags(state: GameState, changes: Change[], age = state.ch.age): void {
   const ch = state.ch;
+  dropUnusedQuitFlags(state);
   for (const id of SUBSTANCE_IDS) {
     const r = readRecord(ch, id);
     if (!r.ever) continue;
@@ -300,8 +340,9 @@ function tagBits(ch: Character): number {
 function applyTags(ch: Character, read: (id: SubstanceId) => Readonly<SubstanceRecord>, write: (id: SubstanceId) => SubstanceRecord): SubstanceId[] {
   const quit: SubstanceId[] = [];
   for (const [flag, id, band, product] of USE_FLAGS) {
-    const want = flagsFor(read(id), id, ch.age).includes(flag);
-    if (ch.flags[flag] && !want && ch.age >= ADULT_AGE) importRecord(write(id), id, band, ch.age, product);
+    const r = read(id);
+    const want = flagsFor(r, id, ch.age).includes(flag);
+    if (ch.flags[flag] && !want && ch.age >= ADULT_AGE && !legacyFlag(r, id, flag)) importRecord(write(id), id, band, ch.age, product);
     else if (!ch.flags[flag] && want && quitRecord(write(id), ch.age)) quit.push(id);
   }
   for (const [flag, id] of QUIT_FLAGS) {
@@ -314,7 +355,10 @@ function applyTags(ch: Character, read: (id: SubstanceId) => Readonly<SubstanceR
 /** 태그 변화를 기록에 옮기고 태그를 기록에 맞춘다. 물질 행동과 연말 결산이 먼저 부른다 */
 export function reconcileSubstanceFlags(state: GameState): void {
   const ch = state.ch;
-  if (!ch.substances && !USE_FLAGS.some(([flag]) => ch.flags[flag])) return;
+  if (!ch.substances && !USE_FLAGS.some(([flag]) => ch.flags[flag])) {
+    dropUnusedQuitFlags(state);
+    return;
+  }
   const quit = applyTags(ch, (id) => readRecord(ch, id), (id) => recordOf(state, id));
   for (const id of quit) withdrawal(state, readRecord(ch, id), []);
   syncFlags(state, []);
