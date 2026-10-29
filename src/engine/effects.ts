@@ -142,6 +142,12 @@ export function applyEffects(state: GameState, fx: Effects | undefined, ec: Effe
       else r.cash += amount;
       if (amount !== 0) changes.push({ text: `현금 ${signedWon(amount)}`, sign: amount > 0 ? 'good' : 'bad' });
     }
+    if (m.cash2026 !== undefined) {
+      const amount = Math.round((rollRange(m.cash2026, rng) * state.world.economy.priceIndex) / 1000) * 1000;
+      if (amount < 0) payOrBorrow(state, -amount);
+      else r.cash += amount;
+      if (amount !== 0) changes.push({ text: `현금 ${signedWon(amount)}`, sign: amount > 0 ? 'good' : 'bad' });
+    }
     if (m.cashPct !== undefined && r.cash > 0) {
       const amount = Math.round(r.cash * m.cashPct);
       r.cash += amount;

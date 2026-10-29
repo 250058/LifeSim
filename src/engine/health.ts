@@ -4,7 +4,7 @@
 // 맞춘 값 (보정표): 기대수명 남 80.8 / 여 86.6, 80세까지 생존 남 64.4% / 여 82.2%
 // 피팅 결과: 남 a=0.0004 b=8.712e-7 c=0.1394, 여 a=0.0002 b=1.5274e-7 c=0.152
 
-import { WORLD } from './data';
+import { TAG_BY_ID, WORLD } from './data';
 import type { Rng } from './rng';
 import type { Character, Sex } from './types';
 
@@ -113,6 +113,10 @@ export function yearlyHealthDelta(ch: Character, rng: Rng): number {
   if (flags.dementia) d -= 3;
   else if (flags.dementia_mild) d -= 1;
   if (ch.traits.includes('congenital_heart')) d -= 0.5;
+  // 만성 질환 같은 태그는 tags.json(또는 사건 목록)의 healthPerYear만큼 해마다 건강을 바꾼다
+  let chronic = 0;
+  for (const id of Object.keys(flags)) chronic += TAG_BY_ID.get(id)?.healthPerYear ?? 0;
+  d += Math.max(-4, Math.min(2, chronic));
   d += rng.normal(0, 2);
   return d;
 }

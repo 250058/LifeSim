@@ -37,6 +37,7 @@ import regionsJson from '../../data/regions.json';
 import namesJson from '../../data/names.json';
 import worldJson from '../../data/world.json';
 import activitiesJson from '../../data/activities.json';
+import { CATALOG_FILES, CATALOG_TAGS } from './catalog';
 
 interface EventFile {
   events: EventDef[];
@@ -63,12 +64,14 @@ export const EVENT_FILES: Record<string, EventDef[]> = {
   'arcs/scam_compound.json': (scamCompound as unknown as EventFile).events,
   'arcs/politics.json': (politics as unknown as EventFile).events,
   'arcs/war.json': (war as unknown as EventFile).events,
+  // 표로 쓴 생활 사건 (병원·몸·밥상·연애·육아)
+  ...CATALOG_FILES,
 };
 
 export const EVENTS: EventDef[] = Object.values(EVENT_FILES).flat();
 export const EVENT_BY_ID: Map<string, EventDef> = new Map(EVENTS.map((e) => [e.id, e]));
 
-export const TAGS: TagDef[] = (tagsJson as unknown as { tags: TagDef[] }).tags;
+export const TAGS: TagDef[] = [...(tagsJson as unknown as { tags: TagDef[] }).tags, ...CATALOG_TAGS];
 export const TAG_BY_ID: Map<string, TagDef> = new Map(TAGS.map((t) => [t.id, t]));
 
 export const JOBS: JobDef[] = (jobsJson as unknown as { jobs: JobDef[] }).jobs;

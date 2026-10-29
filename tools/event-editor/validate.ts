@@ -9,13 +9,14 @@ const warns = issues.filter((i) => i.level === 'warn');
 
 for (const i of issues) console.log(`${i.level === 'error' ? '✗' : '!'} ${i.where}: ${i.message}`);
 
-const { total, byType } = eventStats();
+const { total, byType, byPool } = eventStats();
 console.log(`\n사건 ${total}개 (${Object.entries(byType).map(([k, v]) => `${k} ${v}`).join(', ')})`);
+console.log(`생활 사건 풀: ${Object.entries(byPool).map(([k, v]) => `${k} ${v}`).join(', ') || '없음'}`);
 console.log('생애 단계별 사건 수:');
 let stageOk = true;
 for (const [stage, n] of Object.entries(eventsPerStage())) {
   if (n < 3) stageOk = false;
-  console.log(`  ${stage.padEnd(4)} ${String(n).padStart(3)}${n < 3 ? '  ← 3개 미만' : ''}`);
+  console.log(`  ${stage.padEnd(4)} ${String(n).padStart(5)}${n < 3 ? '  ← 3개 미만' : ''}`);
 }
 console.log(`\n오류 ${errors.length}개, 경고 ${warns.length}개`);
 if (errors.length > 0 || total < 30 || !stageOk) process.exit(1);

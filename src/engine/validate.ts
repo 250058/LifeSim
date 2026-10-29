@@ -3,12 +3,13 @@
 
 import { referencedPaths } from './conditions';
 import { CRIMES } from './justice';
-import { ACTIVITIES, EVENT_FILES, EVENTS, JOB_BY_ID, TAG_BY_ID } from './data';
+import { ACTIVITIES, EVENT_FILES, EVENTS, JOB_BY_ID, TAG_BY_ID, TAGS } from './data';
 import { STAGES } from './format';
 import { newGame } from './game';
 import { buildScope } from './scope';
 import type { Action, ChoiceDef, Effects, EventDef, NextRef } from './schema';
 import { HIDDEN_KEYS, STATE_KEYS, STAT_KEYS, TALENT_KEYS } from './types';
+import { POOL_IDS } from './pools';
 
 export interface Issue {
   level: 'error' | 'warn';
@@ -20,7 +21,7 @@ const TYPES = new Set(['milestone', 'random', 'chain_start', 'chain', 'consequen
 const DRAWN = new Set(['random', 'chain_start', 'consequence', 'npc', 'world']);
 const ATTRS = new Set<string>([...STAT_KEYS, ...HIDDEN_KEYS, ...STATE_KEYS]);
 /** 엔진 코드가 직접 부르는 사건 (다른 사건이 참조하지 않아도 된다) */
-const SYSTEM_EVENTS = new Set(['npc_death', 'inheritance', 'arrested']);
+const SYSTEM_EVENTS = new Set(['npc_death', 'inheritance', 'arrested', 'rom_pregnancy_scare']);
 /** 경로 첫 부분이 이 중 하나면 동적 키라서 하위 키를 검사하지 않는다 */
 const DYNAMIC_ROOTS = new Set(['flags', 'ctx', 'traits']);
 
@@ -28,7 +29,7 @@ const DYNAMIC_ROOTS = new Set(['flags', 'ctx', 'traits']);
 export const KNOWN_PLACEHOLDERS = new Set([
   // 상태에서 바로 계산
   '이름', '성명', '지역', '고향', '연도', '나이', '보호자', '최저시급', '내신', '대학', '직장', '입영지',
-  '신체등급', '연금', '연인', '배우자', '조부모', '수능백분위', '빚',
+  '신체등급', '연금', '연인', '배우자', '조부모', '수능백분위', '빚', '짝',
   // 카드가 처음 뜰 때 생성
   '지인', '상대', '친구', '부모', '형제', '재능', '재능장면', '암종', '병기', '정당', '잔소리', '자녀', '합격대학', '분양가',
   '과기원', '예대', '체대', '수시목표', '수시대학', '학교', '집값',
@@ -156,6 +157,12 @@ export function validateData(): Issue[] {
     }
   };
 
+  const tagIds = new Set<string>();
+  for (const t of TAGS) {
+    if (tagIds.has(t.id)) err(`태그 ${t.id}`, '태그 id가 겹친다 (tags.json과 사건 목록의 tags를 함께 본다)');
+    tagIds.add(t.id);
+  }
+
   for (const [file, events] of Object.entries(EVENT_FILES)) {
     for (const ev of events) {
       const where = `${file} › ${ev.id}`;
@@ -191,6 +198,9 @@ export function validateData(): Issue[] {
       } else if (ev.weight) {
         warn(where, `${ev.type} 사건의 weight는 쓰이지 않는다`);
       }
+      if (ev.pool && !(POOL_IDS as string[]).includes(ev.pool)) err(where, `없는 풀: ${ev.pool}`);
+      // 성인 전용 사건은 만 19세 미만에게 절대 열리지 않아야 한다
+      if (ev.adult && !(t?.age && t.age[0] >= 19)) err(where, '성인 전용 사건은 trigger.age 최소가 19 이상이어야 한다');
       if (ev.filler && !(ev.type === 'random' || ev.type === 'npc')) err(where, 'filler는 random·npc 사건만 될 수 있다');
       if (ev.filler && (ev.impact ?? 0) > 12) warn(where, '충격량이 12를 넘어 일상 사건으로 쓰이지 않는다');
       checkEffects(where, ev.effects);
@@ -232,10 +242,14 @@ export function eventsPerStage(): Record<string, number> {
   return out;
 }
 
-export function eventStats(): { total: number; byType: Record<string, number> } {
+export function eventStats(): { total: number; byType: Record<string, number>; byPool: Record<string, number> } {
   const byType: Record<string, number> = {};
-  for (const ev of EVENTS) byType[ev.type] = (byType[ev.type] ?? 0) + 1;
-  return { total: EVENTS.length, byType };
+  const byPool: Record<string, number> = {};
+  for (const ev of EVENTS) {
+    byType[ev.type] = (byType[ev.type] ?? 0) + 1;
+    if (ev.pool) byPool[ev.pool] = (byPool[ev.pool] ?? 0) + 1;
+  }
+  return { total: EVENTS.length, byType, byPool };
 }
 
 export type { EventDef };

@@ -154,7 +154,9 @@ export function generateCtx(state: GameState, ev: EventDef, ctx: Record<string, 
         ctx[key] = nagging(state);
         break;
       case '자녀': {
-        const kids = alive(ch, 'child');
+        // 사건이 자녀 나이대를 정했으면 그 나이대에서 고른다
+        const range = ev.trigger?.childAge;
+        const kids = alive(ch, 'child').filter((k) => !range || (state.year - k.birthYear >= range[0] && state.year - k.birthYear <= range[1]));
         if (kids.length > 0) {
           const k = rng.pick(kids);
           ctx[key] = k.name;
@@ -246,6 +248,9 @@ function dynamicValue(state: GameState, key: string): string | undefined {
       return ch.edu.csat ? String(Math.round(ch.edu.csat.percentile)) : '';
     case '연인':
       return partnerOf(ch)?.name;
+    case '짝':
+      // 연인이든 배우자든 지금 곁에 있는 사람
+      return partnerOf(ch)?.name ?? spouseOf(ch)?.name ?? '그 사람';
     case '배우자':
       return spouseOf(ch)?.name;
   }

@@ -20,6 +20,12 @@ export type Range = number | [number, number];
 
 export type EventType = 'milestone' | 'random' | 'chain_start' | 'chain' | 'consequence' | 'npc' | 'world';
 
+/**
+ * 생활 사건 풀. 수천 개의 작은 사건(병원, 몸, 밥상, 연애, 육아)을 하나하나 굴리지 않고
+ * 해마다 풀에서 한 장만 뽑는다. 사건 수가 늘어도 한 해에 나오는 카드 수는 그대로다.
+ */
+export type PoolId = 'medical' | 'physiology' | 'nutrition' | 'romance' | 'parenting';
+
 export interface TriggerDef {
   /** [최소, 최대] 나이 (포함) */
   age?: [number, number];
@@ -32,6 +38,8 @@ export interface TriggerDef {
   /** 하나도 없어야 함 */
   notFlags?: string[];
   modes?: Mode[];
+  /** 이 나이대([최소, 최대])의 자녀가 살아 있어야 한다. {자녀}도 이 나이대에서 고른다 */
+  childAge?: [number, number];
   if?: string;
 }
 
@@ -113,6 +121,8 @@ export interface Effects {
   stats?: Partial<Record<AttrKey, Range>>;
   money?: {
     cash?: Range;
+    /** 2026년 원 기준 금액. 그해 물가를 곱해 적용한다 (병원비·식비처럼 시대와 함께 오르는 돈) */
+    cash2026?: Range;
     /** 현금의 비율 (-0.5 = 절반 잃음) */
     cashPct?: number;
     debt?: Range;
@@ -172,6 +182,12 @@ export interface EventDef {
   impact?: number;
   /** 조용한 해를 채울 때 쓰는 일상 사건 (디렉터가 드라마·막장 모드에서 고른다) */
   filler?: boolean;
+  /** 생활 사건 풀. 있으면 개별로 굴리지 않고 풀 추첨으로만 나온다 */
+  pool?: PoolId;
+  /** 성인 전용 (연애·성). 플레이어가 만 19세 이상일 때만 나온다 */
+  adult?: boolean;
+  /** 같은 묶음(예: 같은 생리 현상의 여러 장면)은 몇 해 안에 다시 뽑히지 않는다 */
+  group?: string;
   trigger?: TriggerDef;
   weight?: WeightDef;
   limit?: LimitDef;
@@ -196,6 +212,8 @@ export interface TagDef {
   priority?: number;
   achievement?: boolean;
   sign?: 'good' | 'bad' | 'info';
+  /** 이 태그가 있으면 해마다 건강이 이만큼 변한다 (만성 질환은 음수) */
+  healthPerYear?: number;
 }
 
 export interface JobDef {

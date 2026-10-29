@@ -301,6 +301,8 @@ export interface ActiveCard {
   zoom?: string;
   tone: Tone;
   arcLabel?: string;
+  /** 생활 사건 풀 (화면 표시용) */
+  pool?: string;
   ctx: Record<string, string>;
   choices: CardChoice[];
   /** 사건이 일어나며 바로 적용된 변화 */

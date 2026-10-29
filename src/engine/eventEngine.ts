@@ -16,6 +16,8 @@ import type { CheckDef, EventDef, NextRef } from './schema';
 import { generateCtx, render } from './text';
 import type { ActiveCard, Change, GameState, LogEntry, PendingCard } from './types';
 import { modeMultiplier } from './world';
+import { POOL_IDS, poolWeights, poolYearChance } from './pools';
+import { alive } from './relations';
 
 /** 확률 바닥값: 현실에서 10만 분의 1인 사건도 언젠가는 일어난다 */
 export const P_FLOOR = 1e-6;
@@ -49,6 +51,11 @@ export function triggerOk(ev: EventDef, scope: ReturnType<typeof buildScope>, st
   const ch = state.ch;
   if (t.age && (ch.age < t.age[0] || ch.age > t.age[1])) return false;
   if (t.sex && ch.sex !== t.sex) return false;
+  if (ev.adult && ch.age < 19) return false;
+  if (t.childAge) {
+    const [lo, hi] = t.childAge;
+    if (!alive(ch, 'child').some((k) => state.year - k.birthYear >= lo && state.year - k.birthYear <= hi)) return false;
+  }
   if (t.stage && !t.stage.includes(stageOf(ch.age))) return false;
   if (t.modes && !t.modes.includes(state.mode)) return false;
   if (t.flags && !t.flags.every((f) => ch.flags[f])) return false;
@@ -118,7 +125,7 @@ export function drawYearEvents(state: GameState): PendingCard[] {
   const fired: { ev: EventDef; P: number }[] = [];
   const missed: { ev: EventDef; P: number }[] = [];
   for (const ev of EVENTS) {
-    if (!DRAWN_TYPES.has(ev.type) || !ev.weight) continue;
+    if (!DRAWN_TYPES.has(ev.type) || !ev.weight || ev.pool) continue;
     if (!limitOk(ev, state) || !triggerOk(ev, scope, state)) continue;
     const { P } = eventProbability(ev, state, scope);
     if (rng.next() < P) fired.push({ ev, P });
@@ -134,7 +141,60 @@ export function drawYearEvents(state: GameState): PendingCard[] {
     const fillers = missed.filter((m) => m.ev.filler && (m.ev.impact ?? 0) <= FILLER_MAX_IMPACT);
     capped.push(...pickWeighted(fillers, min - total, rng));
   }
+  // 생활 사건 풀: 디렉터가 고르고 남은 자리가 있으면 한 장 (난수 스트림을 따로 써서 위 추첨에 영향이 없다)
+  if (capped.length < max) {
+    const pooled = drawPool(state, scope);
+    if (pooled) capped.push({ ev: pooled, P: 0 });
+  }
   return [...uncapped, ...capped].map((f) => ({ eventId: f.ev.id, ctx: {} }));
+}
+
+/** 같은 묶음의 생활 사건이 다시 나오기까지 최소 햇수 */
+const GROUP_COOLDOWN = 6;
+
+/** 풀별 사건 목록 (모듈을 처음 쓸 때 한 번 만든다) */
+let poolIndex: Map<string, EventDef[]> | null = null;
+
+export function poolEvents(pool: string): EventDef[] {
+  if (!poolIndex) {
+    poolIndex = new Map();
+    for (const ev of EVENTS) {
+      if (!ev.pool || !DRAWN_TYPES.has(ev.type) || !ev.weight) continue;
+      const list = poolIndex.get(ev.pool) ?? [];
+      list.push(ev);
+      poolIndex.set(ev.pool, list);
+    }
+  }
+  return poolIndex.get(pool) ?? [];
+}
+
+function drawPool(state: GameState, scope: ReturnType<typeof buildScope>): EventDef | null {
+  const rng = rngFor(state.seed, 'pool', state.ch.age);
+  if (!rng.chance(poolYearChance(state.mode))) return null;
+  const weights = poolWeights(state);
+  const order = rng.shuffle([...POOL_IDS]);
+  // 고른 풀에 맞는 사건이 없으면 다른 풀로
+  for (let tries = 0; tries < POOL_IDS.length; tries++) {
+    const pool = rng.weighted(order, (p) => weights[p]);
+    if (!pool) return null;
+    const candidates: { ev: EventDef; w: number }[] = [];
+    for (const ev of poolEvents(pool)) {
+      if (ev.group) {
+        const last = state.lastAge[`@${ev.group}`];
+        if (last !== undefined && state.ch.age - last < GROUP_COOLDOWN) continue;
+      }
+      if (!limitOk(ev, state) || !triggerOk(ev, scope, state)) continue;
+      const w = ev.weight!;
+      let m = 1;
+      for (const mod of w.modifiers ?? []) if (evaluate(mod.if, scope)) m *= mod.x;
+      const x = w.base * ageFactor(w.ageCurve, state.ch.age) * m;
+      if (x > 0) candidates.push({ ev, w: x });
+    }
+    const picked = rng.weighted(candidates, (c) => c.w);
+    if (picked) return picked.ev;
+    weights[pool] = 0;
+  }
+  return null;
 }
 
 /** 1단계 관문: 조건을 채운 마일스톤은 반드시 일어난다 */
@@ -230,6 +290,7 @@ export function presentCard(state: GameState, pending: PendingCard): boolean {
   applyEffects(state, ev.effects, { ctx, rng, changes: intro });
   state.counts[ev.id] = (state.counts[ev.id] ?? 0) + 1;
   state.lastAge[ev.id] = state.ch.age;
+  if (ev.group) state.lastAge[`@${ev.group}`] = state.ch.age;
   addImpact(state, ev.impact ?? 0);
 
   const after = buildScope(state, ctx);
@@ -250,6 +311,7 @@ export function presentCard(state: GameState, pending: PendingCard): boolean {
     zoom: ev.zoom ? render(ev.zoom, state, ctx) : undefined,
     tone: ev.tone ?? 'neutral',
     arcLabel: ev.arc,
+    pool: ev.pool,
     ctx,
     choices,
     intro,

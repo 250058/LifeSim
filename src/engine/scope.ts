@@ -76,6 +76,7 @@ export function buildScope(state: GameState, ctx: Record<string, string> = {}): 
   const parentAges = [mother, father].filter(Boolean).map((p) => npcAge(p!, year));
   const partner = partnerOf(ch);
   const spouse = spouseOf(ch);
+  const childAges = alive(ch, 'child').map((k) => npcAge(k, year));
   const femaleAge = ch.sex === 'F' ? ch.age : spouse ? npcAge(spouse, year) : 99;
   const job = ch.career.jobId ? JOB_BY_ID.get(ch.career.jobId) : undefined;
   const region = REGION_BY_ID.get(ch.region);
@@ -124,6 +125,11 @@ export function buildScope(state: GameState, ctx: Record<string, string> = {}): 
       marriedYears: spouse && spouse.since !== undefined ? ch.age - spouse.since : 0,
       spouseCloseness: spouse ? spouse.closeness : 0,
       children: alive(ch, 'child').length,
+      partnerAge: partner ? npcAge(partner, year) : spouse ? npcAge(spouse, year) : 0,
+      // 성인 전용 사건: 나와 상대가 모두 만 19세 이상
+      partnerAdult: ch.age >= 19 && Boolean(partner ?? spouse) && npcAge((partner ?? spouse)!, year) >= 19,
+      youngestChildAge: childAges.length ? Math.min(...childAges) : -1,
+      oldestChildAge: childAges.length ? Math.max(...childAges) : -1,
       fertile: Boolean(spouse) && femaleAge <= 44,
       support: familySupport(ch),
       estate: ch.family.estate,
