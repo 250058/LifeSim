@@ -1,13 +1,13 @@
 // 대상 인물 검사 (코덱스 R-011·R-012).
 //  - R-011: 사건이 가리키는 자녀는 문장과 무관하게 카드가 뜰 때 한 명으로 묶이고, 그 아이만 바뀐다.
 //  - R-012: 예약·연속 사건은 묶인 사람이 살아서 조건에 맞을 때만 뜬다. 아니면 다른 사람으로 바꾸지 않고
-//           취소하고 이유를 일기에 남긴다. 부고·추모처럼 고인을 부르는 사건은 그대로 뜬다.
+//           취소하고 이유를 일기에 남긴다 (한 사람에 한 해 한 줄). 부고·추모처럼 고인을 부르는 사건은 그대로 뜬다.
+//  - 옛 저장: 대상 없이 띄운 채 저장된 카드, 이름만 남은 연인·배우자 예약도 같은 규칙을 따른다.
 // 시험용 사건은 EVENTS에 잠깐 넣었다가 테스트가 끝나면 뺀다.
 
 import { afterEach, describe, expect, it } from 'vitest';
 import { EVENT_BY_ID, EVENT_FILES, EVENTS, getEvent } from '../src/engine/data';
 import { presentCard, resetEventIndex } from '../src/engine/eventEngine';
-import { josa } from '../src/engine/format';
 import { choose, endTurn, newGame, proceed } from '../src/engine/game';
 import { loadGame, saveGame, type KeyValueStorage } from '../src/engine/save';
 import type { ChoiceDef, EventDef } from '../src/engine/schema';
@@ -261,10 +261,11 @@ describe('R-012 이어지는 사건은 묶인 사람을 다시 확인한다', ()
     expect(s.year - npc(s, sibling).birthYear).toBeGreaterThanOrEqual(19);
     expect(shown).not.toContain('par_retake_result');
     expect(s.scheduled.some((x) => x.eventId === 'par_retake_result')).toBe(false);
-    const lines = s.log.filter((e) => e.text.includes('두 번째 성적표'));
-    expect(lines).toHaveLength(1);
-    expect(lines[0]).toMatchObject({ kind: 'system', year: 2027, age: 50 });
-    expect(lines[0].text).toBe(`${josa(dead.name, '이/가')} 세상을 떠났다. 예정됐던 일(두 번째 성적표)은 없던 일이 됐다.`);
+    expect(s.log.filter((e) => e.text.includes('두 번째 성적표'))).toHaveLength(0);
+    // 죽음을 새 소식처럼 다시 알리지 않고, 일어났을 장면의 제목도 꺼내지 않는다
+    const gone = s.log.filter((e) => e.kind === 'system' && e.text.includes(dead.name) && e.year === 2027);
+    expect(gone.map((e) => e.text)).toEqual([`떠난 ${dead.name}의 몫으로 남아 있던 일들은 이제 오지 않는다.`]);
+    expect(gone[0]).toMatchObject({ age: 50 });
   });
 
   it('대상이 살아 있으면 형제가 아니라 그 아이에게 한 번만 뜬다 (저장·불러오기 사이)', () => {
@@ -312,7 +313,7 @@ describe('R-012 이어지는 사건은 묶인 사람을 다시 확인한다', ()
     };
     const s = setup(false);
     expect(presentCard(s, { eventId: 'med_p_hip_worse', ctx: { 부모: '엄마', parentId: 'mom' } })).toBe(false);
-    expect(s.log.at(-1)!.text).toBe('엄마가 세상을 떠났다. 예정됐던 일(누워 지낸 겨울)은 없던 일이 됐다.');
+    expect(s.log.at(-1)!.text).toBe('떠난 엄마의 몫으로 남아 있던 일들은 이제 오지 않는다.');
     expect(npc(s, 'dad').health).toBe(60);
 
     // 살아 있으면 그 사람에게 그대로 뜬다
@@ -399,5 +400,121 @@ describe('검증기: 대상 인물 규칙', () => {
     const issues = targetIssues([wide, worse]);
     expect(issues.map((i) => [i.level, i.where])).toEqual([['warn', 'tgt_wide']]);
     expect(issues[0].message).toContain('1~10세');
+  });
+});
+
+describe('검증 뒤 남은 문제: 옛 저장과 취소 일기', () => {
+  it('옛 엔진이 대상 없이 띄운 채 저장한 육아 카드도 고르면 한 아이에게만 간다 (같은 시드면 같은 아이)', () => {
+    const legacy = () => {
+      const s = adult('REVIEW-CHILD-BINDING', 30, 'F');
+      addNpc(s, 'child', 'baby', '김아기', 0);
+      addNpc(s, 'child', 'ten', '김열살', 10);
+      addNpc(s, 'child', 'one', '김한살', 1);
+      expect(presentCard(s, { eventId: 'par_breastfeeding', ctx: {} })).toBe(true);
+      // 고치기 전 엔진이 만든 카드: 문장에 {자녀}가 없어 ctx가 비어 있다
+      s.card!.ctx = {};
+      return reload(s);
+    };
+    const s = legacy();
+    pick(s, '완모');
+    const id = s.card!.ctx.childId;
+    expect(['baby', 'one']).toContain(id);
+    expect(['baby', 'ten', 'one'].map((k) => npc(s, k).closeness)).toEqual(['baby', 'ten', 'one'].map((k) => (k === id ? 54 : 50)));
+    expect(s.card!.result!.changes.map((c) => c.text)).toContain(`${npc(s, id).name} 친밀도 +4`);
+    const again = legacy();
+    pick(again, '완모');
+    expect(again.card!.ctx.childId).toBe(id);
+  });
+
+  it('옛 카드에서 묶을 아이가 없으면 자녀 친밀도는 아무에게도 번지지 않는다', () => {
+    addEvents([kidEvent('tgt_plain', '아이가 식탁에서 오늘 있었던 일을 이야기했다.')]);
+    const s = familyOfFour('LEGACY-NOBODY');
+    expect(presentCard(s, { eventId: 'tgt_plain', ctx: {} })).toBe(true);
+    s.card!.ctx = {};
+    // 나이대(0~12세) 안의 아이가 하나도 없는 옛 카드
+    for (const k of ['k3', 'k7', 'k11']) npc(s, k).birthYear -= 20;
+    pick(s, '안아 준다');
+    for (const k of kidIds) expect(npc(s, k).closeness).toBe(50);
+    expect(s.card!.result!.changes).toEqual([]);
+  });
+
+  /** 사별한 배우자(이준현) 뒤에 재혼한 예순 살 */
+  function remarried(seed: string): GameState {
+    const s = adult(seed, 60);
+    addNpc(s, 'spouse', 'oldS', '이준현', 61, { alive: false, deathYear: 2020, deathCause: '심근경색' });
+    addNpc(s, 'spouse', 'newS', '오새봄', 58, { sex: 'F' });
+    return s;
+  }
+
+  it('배우자 id 없이 이름만 남은 옛 예약은 그 이름이 지금 배우자가 아니면 취소된다', () => {
+    const s = reload(remarried('LEGACY-SPOUSE'));
+    const log = s.log.length;
+    expect(presentCard(s, { eventId: 'med_s_afib_worse', ctx: { 배우자: '이준현' } })).toBe(false);
+    expect(s.card).toBeUndefined();
+    expect(s.log.slice(log).map((e) => e.text)).toEqual(['떠난 이준현의 몫으로 남아 있던 일들은 이제 오지 않는다.']);
+
+    // 지금 배우자의 이름이면 그대로 뜬다
+    const ok = reload(remarried('LEGACY-SPOUSE'));
+    expect(presentCard(ok, { eventId: 'med_s_afib_worse', ctx: { 배우자: '오새봄' } })).toBe(true);
+    expect(ok.card!.text).toContain('오새봄');
+  });
+
+  it('연인 id 없이 이름만 남은 옛 결혼 날짜는 헤어진 사람이면 새 연인에게 옮겨 가지 않는다', () => {
+    const setup = () => {
+      const s = adult('LEGACY-PARTNER', 32);
+      s.ch.flags.rom_engaged = { since: 31 };
+      addNpc(s, 'ex', 'oldP', '이준현', 33);
+      addNpc(s, 'partner', 'newP', '오새봄', 33, { sex: 'F' });
+      return s;
+    };
+    const s = reload(setup());
+    expect(presentCard(s, { eventId: 'rom_wedding_date', ctx: { 연인: '이준현' } })).toBe(false);
+    expect(s.log.at(-1)!.text).toBe('이준현과 헤어졌다. 예정됐던 일(날짜)은 없던 일이 됐다.');
+    // 명단에 없는 이름도 지금 연인이 따로 있으면 취소한다
+    expect(presentCard(s, { eventId: 'rom_wedding_date', ctx: { 연인: '박모름' } })).toBe(false);
+    expect(npc(s, 'newP').closeness).toBe(50);
+
+    // 연인 역할로 예약됐던 사람이 그사이 배우자가 됐으면 같은 사람이다 (연인 역할 사건의 재검사)
+    const wed = setup();
+    npc(wed, 'newP').role = 'spouse';
+    addEvents([
+      {
+        id: 'tgt_partner_later',
+        type: 'chain',
+        title: '기념일',
+        text: '{연인}이/가 꽃을 사 왔다.',
+        tone: 'positive',
+        impact: 2,
+        trigger: { age: [19, 120] },
+        choices: [{ text: '고맙다고 한다', result: '고맙다고 했다.' }],
+      } as EventDef,
+    ]);
+    expect(presentCard(wed, { eventId: 'tgt_partner_later', ctx: { 연인: '오새봄' } })).toBe(true);
+    // 묶을 사람이 없어 대신 쓴 이름('그 사람')은 명단의 누구도 아니므로 예전처럼 뜬다
+    const single = adult('LEGACY-NOONE', 32);
+    expect(presentCard(single, { eventId: 'tgt_partner_later', ctx: { 연인: '그 사람' } })).toBe(true);
+    // 명단에서 빠진 실제 이름은 지금 연인이 없어도 다시 뜨지 않는다
+    expect(presentCard(single, { eventId: 'tgt_partner_later', ctx: { 연인: '박모름' } })).toBe(false);
+    expect(single.log.at(-1)!.text).toBe('박모름과 헤어졌다. 예정됐던 일(기념일)은 없던 일이 됐다.');
+  });
+
+  it('같은 해에 한 사람 때문에 여러 일이 취소돼도 일기는 한 줄이고 죽음을 새 소식처럼 다시 알리지 않는다', () => {
+    const s = adult('TWO-CANCELLED', 50);
+    addNpc(s, 'child', 'gone', '이여덟', 8, { alive: false, deathYear: 2025, deathCause: '사고' });
+    addNpc(s, 'child', 'sib', '이열', 10);
+    addEvents([
+      kidEvent('tgt_call', '{자녀}의 담임 선생님이 전화했다.', { type: 'chain', title: '담임 선생님의 전화' }),
+      kidEvent('tgt_battery', '{자녀}이/가 늦게 건전지를 꺼냈다.', { type: 'chain', title: '늦게 꺼낸 건전지' }),
+    ]);
+    const log = s.log.length;
+    expect(presentCard(s, { eventId: 'tgt_call', ctx: { 자녀: '이여덟', childId: 'gone' } })).toBe(false);
+    expect(presentCard(s, { eventId: 'tgt_battery', ctx: { 자녀: '이여덟', childId: 'gone' } })).toBe(false);
+    const lines = s.log.slice(log).map((e) => e.text);
+    expect(lines).toEqual(['떠난 이여덟의 몫으로 남아 있던 일들은 이제 오지 않는다.']);
+    expect(npc(s, 'sib').closeness).toBe(50);
+    // 다음 해에 또 취소되면 그해에 한 줄
+    s.year += 1;
+    expect(presentCard(s, { eventId: 'tgt_call', ctx: { 자녀: '이여덟', childId: 'gone' } })).toBe(false);
+    expect(s.log.slice(log).filter((e) => e.text.includes('이여덟'))).toHaveLength(2);
   });
 });
