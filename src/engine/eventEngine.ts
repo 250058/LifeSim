@@ -20,7 +20,7 @@ import { STAGES, stageOf } from './format';
 import { rngFor, type Rng } from './rng';
 import { buildScope } from './scope';
 import type { CheckDef, EventDef, NextRef, PoolId } from './schema';
-import { generateCtx, render } from './text';
+import { generateCtx, render, targetProblem, targetsReady } from './text';
 import type { ActiveCard, Change, GameState, LogEntry, PendingCard, Sex } from './types';
 import { modeMultiplier } from './world';
 import { POOL_IDS, poolWeights, poolYearChance } from './pools';
@@ -200,15 +200,26 @@ function staticTriggerOk(ev: EventDef, age: number, sex: Sex): boolean {
   return true;
 }
 
+/**
+ * 자녀 나이 조건. 카드가 이미 자녀를 묶었으면(이어받은 사건) 바로 그 아이가 살아서 그 나이대여야 한다.
+ * 다른 형제가 조건을 채운다고 통과시키지 않는다 (R-012). 아직 안 묶였으면 살아 있는 자녀 누구든 그 나이대면 된다
+ */
+function childAgeOk([lo, hi]: [number, number], scope: Scope, state: GameState, memo?: Memo): boolean {
+  const id = (scope.ctx as Record<string, string> | undefined)?.childId;
+  if (id !== undefined) {
+    const k = state.ch.npcs.find((n) => n.id === id);
+    const age = k ? state.year - k.birthYear : -1;
+    return Boolean(k?.alive && !k.missing) && age >= lo && age <= hi;
+  }
+  return (memo?.kidAges ?? kidAges(state)).some((a) => a >= lo && a <= hi);
+}
+
 /** 그때그때 상태로 정해지는 조건: 자녀 나이, 모드, 태그, 조건식 */
 function stateTriggerOk(ev: EventDef, scope: Scope, state: GameState, memo?: Memo): boolean {
   const t = ev.trigger;
   if (!t) return true;
   const flags = state.ch.flags;
-  if (t.childAge) {
-    const [lo, hi] = t.childAge;
-    if (!(memo?.kidAges ?? kidAges(state)).some((a) => a >= lo && a <= hi)) return false;
-  }
+  if (t.childAge && !childAgeOk(t.childAge, scope, state, memo)) return false;
   if (t.modes && !t.modes.includes(state.mode)) return false;
   if (t.flags && !t.flags.every((f) => flags[f])) return false;
   if (t.anyFlags && !t.anyFlags.some((f) => flags[f])) return false;
@@ -486,6 +497,16 @@ function diaryText(text: string, changes: Change[]): string {
   return changes.length > 0 ? `${text} (${changes.map((c) => c.text).join(', ')})` : text;
 }
 
+/** 대상이 사라져 없던 일이 된 사건: 왜 일어나지 않았는지 일기에 조용한 한 줄 (효과·횟수는 남기지 않는다) */
+function cancelledEntry(state: GameState, ev: EventDef, ctx: Record<string, string>, reason: string): LogEntry {
+  return {
+    year: state.year,
+    age: state.ch.age,
+    kind: 'system',
+    text: `${reason} 예정됐던 일(${render(ev.title, state, ctx)})은 없던 일이 됐다.`,
+  };
+}
+
 /**
  * 대기 사건을 일으킨다. 그사이 조건이 깨졌으면 건너뛴다. 사건 자체의 효과는 이때 적용되고 기록된다.
  * 결정이 필요하면 카드로 올리고 true(플레이어를 기다린다). 결정할 것이 없는 작은 사건은
@@ -494,6 +515,13 @@ function diaryText(text: string, changes: Change[]): string {
 export function presentCard(state: GameState, pending: PendingCard): boolean {
   const ev = getEvent(pending.eventId);
   if (!state.ch.alive) return false;
+  // 물려받은 대상(자녀·부모·형제·친구·연인·배우자)이 그사이 죽었거나 역할·자녀 나이대에서 벗어났으면
+  // 다른 사람으로 바꾸지 않고 취소하고, 이유를 일기에 남긴다 (R-012)
+  const lost = targetProblem(state, ev, pending.ctx);
+  if (lost) {
+    state.log.push(cancelledEntry(state, ev, pending.ctx, lost));
+    return false;
+  }
   const scope = buildScope(state, pending.ctx);
   if (!triggerOk(ev, scope, state) || !limitOk(ev, state)) return false;
 
@@ -501,7 +529,10 @@ export function presentCard(state: GameState, pending: PendingCard): boolean {
   const serial = state.serial;
   const rng = rngFor(state.seed, 'card', serial);
   const ctx: Record<string, string> = { ...pending.ctx };
-  generateCtx(state, ev, ctx, rng);
+  // 대상 인물은 문장이 아니라 사건 정의로 정한다 (R-011). 역할마다 난수 줄기를 따로 쓴다
+  generateCtx(state, ev, ctx, rng, (role) => rngFor(state.seed, 'card', serial, 'target', role));
+  // 묶을 사람이 없는 한 사람 대상 효과는 '그 역할 모두'로 번지지 않게 아예 쓰지 않는다
+  if (!targetsReady(ctx, ev.effects)) return false;
 
   const intro: Change[] = [];
   applyEffects(state, ev.effects, { ctx, rng, changes: intro });
@@ -513,7 +544,7 @@ export function presentCard(state: GameState, pending: PendingCard): boolean {
   const after = buildScope(state, ctx);
   const choices = (ev.choices ?? [])
     .map((c, index) => ({ c, index }))
-    .filter(({ c }) => !c.if || evaluate(c.if, after))
+    .filter(({ c }) => (!c.if || evaluate(c.if, after)) && targetsReady(ctx, c.effects, c.onSuccess?.effects, c.onFail?.effects))
     .map(({ c, index }) => ({
       index,
       text: render(c.text, state, ctx),
