@@ -6,6 +6,10 @@
 // 문장 속 [엄마|아빠]처럼 대괄호로 쓴 부분은 플레이어 성별(여|남)에 맞춰 고른다.
 // 성별을 정하지 않은 장면에 대괄호가 있으면 여자용·남자용 사건 두 개로 나눈다.
 // 선택지의 close·spouse·parents는 자녀·배우자·내 부모와의 친밀도 변화다.
+//
+// 술·담배: 내가 마시는 선택지는 do의 substance 행동으로 substances.ts에 남기고, 같은 장면에 마시지 않는
+// 선택지를 함께 둔다 (마시지 않는 선택지의 결과가 마셨다고 쓰지 않는다). 자녀와 함께 마시는 장면은 자녀가
+// 만 19세 이상인 나이대(childAge)에만 쓴다.
 
 import type { Action, ChoiceDef, Effects, EventDef, TagDef } from '../schema';
 import type { Sex, Tone } from '../types';

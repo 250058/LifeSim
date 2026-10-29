@@ -8,6 +8,10 @@
 // 모든 사건은 성인 전용(adult)이다. 짝이 나오는 사건은 나와 상대가 모두 만 19세 이상일 때만 열린다
 // (family.partnerAdult). 둘만의 시간은 암시로만 쓰고(불을 껐다), 성범죄는 피해 신고와 지원으로만 나온다.
 // 이 규칙은 표를 펼칠 때 검사해서, 어긋나면 바로 오류를 낸다.
+//
+// 술: 장면은 주인공이 이미 마셨다고 쓰지 않는다. 마시는 선택지는 substances.ts에 사용으로 남기고(fx.do),
+// 같은 카드에 마시지 않는 선택지를 함께 둔다. 데이트에서 짝과 함께 마시는 선택지는 family.partnerAdult 아래에만
+// 둔다: 썸 단계의 {상대}는 이름만 있는 사람이라 나이를 확인할 수 없다.
 
 import type { Action, ChoiceDef, Effects, EventDef, NextRef, OutcomeDef, TagDef } from '../schema';
 import type { Sex, Tone } from '../types';
@@ -46,6 +50,11 @@ interface Row {
   /** 데이트 장면: 이 단계에서만 보인다 / 이 단계에서는 빠진다 */
   only?: string[];
   not?: string[];
+  /**
+   * 데이트 장면: 단계별 한마디 뒤(맨 끝)에 붙인다. 나중에 더한 선택지라 앞 선택지의 번호가 그대로다
+   * (진행 중이던 저장 카드의 선택이 다른 선택지로 바뀌지 않는다)
+   */
+  tail?: boolean;
   /**
    * 임신 결과가 걸린 선택지: next 가운데 임신 쪽 사건. 노출 때 엔진이 피임 방법으로 임신 여부를 정해 두었으면
    * (ctx.conceived) 그 결과를 따르고, 없으면 next의 가중치를 쓴다. 펼칠 때 셋으로 나누고 화면에는 하나만 보인다
@@ -209,11 +218,19 @@ function olderBy(gap: number): string {
 /** 여성 쪽 나이 (임신 가능성 판단용) */
 const WOMAN_UNDER = (n: number) => `((sex == 'F' && age <= ${n}) || (sex == 'M' && family.partnerAge <= ${n}))`;
 
+/**
+ * 지금 술을 마시는 사람 (substances.ts: 올해 마셨거나 습관이 남았고, 끊는 중이 아니다).
+ * '술부터 줄인다'처럼 마신다고 전제하는 선택지는 이 조건 아래에만 둔다 (검토 R-008)
+ */
+const DRINKING = '(substance.alcohol.current && !substance.alcohol.quitting)';
+
 const MACROS: Record<string, string> = {
   '@연하5': youngerBy(5),
   '@연상5': olderBy(5),
   '@가임': WOMAN_UNDER(45),
   '@비가임': `!${WOMAN_UNDER(45)}`,
+  '@음주중': DRINKING,
+  '@비음주': `!${DRINKING}`,
 };
 
 function macro(expr: string | undefined): string | undefined {
@@ -241,11 +258,12 @@ function effectsOf(
   if (acts?.includes('marry')) f = addFx(f, { remove: AFTER_MARRY });
   const out: Effects = toEffects(f) ?? {};
   if (pct) out.money = { ...(out.money ?? {}), cashPct: pct };
-  // 행동이 먼저다: 사귀기 시작한 뒤에 친밀도가 붙고, 헤어진 뒤의 친밀도는 아무에게도 가지 않는다
+  // 행동이 먼저다: 사귀기 시작한 뒤에 친밀도가 붙고, 헤어진 뒤의 친밀도는 아무에게도 가지 않는다.
+  // 표의 fx.do(술 마시기·거절 같은 엔진 행동)는 그 뒤에 그대로 붙인다 (친밀도가 있다고 지워지지 않는다)
   const list: Action[] = (acts ?? []).map((type) => ({ type }) as Action);
   if (close) list.push({ type: 'npcCloseness', role: 'partner', delta: close }, { type: 'npcCloseness', role: 'spouse', delta: close });
   if (parents) list.push({ type: 'npcCloseness', role: 'parents', delta: parents });
-  if (list.length) out.do = list;
+  if (list.length) out.do = [...list, ...(out.do ?? [])];
   return Object.keys(out).length ? out : undefined;
 }
 
@@ -364,8 +382,10 @@ export function expandRomance(data: RomanceCatalog): EventDef[] {
         .filter((r) => (!r.only || r.only.includes(ph.id)) && !r.not?.includes(ph.id))
         .map((r) => withWho(r, ph.with, vars));
       const cost: Fx | undefined = place.cost ? { cost: place.cost } : undefined;
-      const choices = rows.map((r) => toChoice(r, { fx: cost, close: ph.close }));
+      const placeChoice = (r: Row) => toChoice(r, { fx: cost, close: ph.close });
+      const choices = rows.filter((r) => !r.tail).map(placeChoice);
       if (place.own !== false) choices.push(toChoice(withWho(ph.choices[k % ph.choices.length], ph.with, vars), { fx: cost }));
+      choices.push(...rows.filter((r) => r.tail).map(placeChoice));
       const open = fill(place.opens?.[ph.id] ?? ph.opens[k % ph.opens.length], vars);
       out.push(
         guard(

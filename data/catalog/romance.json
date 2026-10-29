@@ -1,5 +1,5 @@
 {
-  "about": "연애·사랑·관계. places(데이트 장소) × phases(썸·연애 초기·오래된 연애·신혼·오래된 부부·황혼)로 데이트 장면을 만들고, issues는 관계 문제를 연애 중·결혼 생활별로, anniversaries는 결혼기념일, events는 손으로 쓴 사건(고백·결혼 준비·모텔과 숙소·둘만의 시간·위기와 신고)이다. 모든 사건은 성인 전용이고 짝이 나오면 둘 다 만 19세 이상이어야 한다. 둘만의 시간은 암시로만 쓴다.",
+  "about": "연애·사랑·관계. places(데이트 장소) × phases(썸·연애 초기·오래된 연애·신혼·오래된 부부·황혼)로 데이트 장면을 만들고, issues는 관계 문제를 연애 중·결혼 생활별로, anniversaries는 결혼기념일, events는 손으로 쓴 사건(고백·결혼 준비·모텔과 숙소·둘만의 시간·위기와 신고)이다. 모든 사건은 성인 전용이고 짝이 나오면 둘 다 만 19세 이상이어야 한다. 둘만의 시간은 암시로만 쓴다. 술은 장면이 마셨다고 전제하지 않는다: 마시는 선택지는 fx.do의 substance 행동으로 남기고 같은 카드에 마시지 않는 선택지를 둔다. 데이트에서 짝과 함께 마시는 선택지는 family.partnerAdult 조건 아래에 두고, 나중에 더한 장소 선택지는 tail로 맨 끝에 붙인다.",
   "tags": [
     {
       "id": "rom_heartbroken",
@@ -453,7 +453,7 @@
       "age": [19, 75],
       "cost": 55000,
       "w": 0.5,
-      "scene": "주말 야구장 응원석. 치킨과 맥주를 무릎에 올려놓고 앉았다. 응원단장이 마이크를 잡자 관중석이 들썩였다.",
+      "scene": "주말 야구장 응원석. 치킨 한 마리를 무릎에 올려놓고 앉았다. 응원단장이 마이크를 잡자 관중석이 들썩였다.",
       "choices": [
         {
           "text": "응원가를 목이 쉬도록 따라 부른다",
@@ -469,6 +469,13 @@
           "text": "야구 규칙을 처음부터 설명해 준다",
           "result": "인필드 플라이에서 {with}이/가 포기했다. 대신 치킨을 거의 혼자 다 먹었다.",
           "fx": { "happiness": 2 }
+        },
+        {
+          "text": "맥주 두 잔을 사 와서 건배한다",
+          "if": "family.partnerAdult",
+          "tail": true,
+          "result": "7회에 홈런이 나오자 잔을 부딪쳤다. 반쯤 쏟았지만 둘 다 웃었다.",
+          "fx": { "happiness": 2, "cost": 12000, "do": [{ "type": "substance", "substance": "alcohol", "act": "use", "amount": 0.5 }] }
         }
       ]
     },
@@ -626,23 +633,35 @@
     {
       "id": "pocha",
       "name": "포장마차",
-      "title": "소주 한 병",
+      "title": "천막 아래",
       "phases": ["some", "early", "long", "married", "twilight"],
       "age": [20, 85],
       "cost": 50000,
       "w": 0.5,
-      "scene": "비닐 천막 포장마차. 우동 한 그릇과 닭똥집 한 접시, 소주 한 병을 시켰다. 천막 위로 빗소리가 후두둑 떨어졌다.",
+      "scene": "비닐 천막 포장마차. 우동 한 그릇과 닭똥집 한 접시를 시켰다. 천막 위로 빗소리가 후두둑 떨어졌다.",
       "choices": [
-        { "text": "딱 한 병만 마신다", "result": "기분 좋을 만큼만 마셨다. 돌아가는 길이 즐거웠다.", "fx": { "happiness": 2 } },
+        {
+          "text": "소주 딱 한 병만 시켜 나눠 마신다",
+          "if": "family.partnerAdult",
+          "result": "기분 좋을 만큼만 마셨다. 돌아가는 길이 즐거웠다.",
+          "fx": { "happiness": 2, "do": [{ "type": "substance", "substance": "alcohol", "act": "use", "amount": 0.5 }] }
+        },
         {
           "text": "속 얘기를 꺼낸다",
-          "result": "취기를 빌려 꺼낸 얘기였다. {with}이/가 잔을 내려놓고 끝까지 들어 줬다.",
+          "result": "빗소리를 핑계 삼아 꺼낸 얘기였다. {with}이/가 젓가락을 내려놓고 끝까지 들어 줬다.",
           "fx": { "stress": -3 }
         },
         {
-          "text": "\"한 병 더!\"를 외친다",
+          "text": "\"오늘은 끝까지 간다!\"며 소주를 연달아 시킨다",
+          "if": "family.partnerAdult",
           "result": "다음 날 아침, 둘 다 기억이 군데군데 비어 있었다. 해장국집에서 기억을 맞춰 봤다.",
-          "fx": { "health": -1, "happiness": 2, "cost": 15000 }
+          "fx": { "health": -1, "happiness": 2, "cost": 15000, "do": [{ "type": "substance", "substance": "alcohol", "act": "use", "amount": 1 }] }
+        },
+        {
+          "text": "술 대신 어묵 국물을 한 그릇 더 시킨다",
+          "tail": true,
+          "result": "뜨끈한 국물에 빗소리. 마시지 않아도 이야기는 길어졌다.",
+          "fx": { "happiness": 2, "stress": -2 }
         }
       ]
     },
@@ -687,7 +706,7 @@
         {
           "text": "정상까지 간다",
           "check": ["stamina", 45],
-          "result": "정상석 앞에서 인증 사진을 찍었다. 내려와서 먹은 파전과 막걸리가 꿀맛이었다.",
+          "result": "정상석 앞에서 인증 사진을 찍었다. 내려와서 먹은 파전과 도토리묵이 꿀맛이었다.",
           "fx": { "stamina": 2, "happiness": 3 },
           "fail": "중턱에서 다리가 풀렸다. {with}이/가 '정상은 다음에' 하며 같이 내려와 줬다.",
           "failFx": { "stamina": 1, "happiness": 1 }
@@ -953,7 +972,12 @@
       "w": 0.45,
       "scene": "주말 전통시장. 빈대떡 부치는 냄새가 골목을 채웠다. 상인들이 '맛보고 가요' 하며 이쑤시개에 꽂은 떡을 내밀었다.",
       "choices": [
-        { "text": "빈대떡에 막걸리 한 잔을 한다", "result": "기름 냄새가 옷에 뱄다. 그래도 좋았다.", "fx": { "happiness": 2 } },
+        {
+          "text": "빈대떡에 막걸리 한 잔을 한다",
+          "if": "family.partnerAdult",
+          "result": "기름 냄새가 옷에 뱄다. 그래도 좋았다.",
+          "fx": { "happiness": 2, "do": [{ "type": "substance", "substance": "alcohol", "act": "use", "amount": 0.25 }] }
+        },
         {
           "text": "반찬가게에서 일주일 치 반찬을 산다",
           "result": "사장님이 '두 분 잘 어울리네' 하며 깻잎장아찌를 한 봉지 더 넣어 줬다.",
@@ -1050,8 +1074,9 @@
       "choices": [
         {
           "text": "와인을 한 병 시킨다",
+          "if": "family.partnerAdult",
           "result": "이름도 제대로 못 읽는 와인이었다. 맛은 있었다.",
-          "fx": { "happiness": 3, "cost": 90000 }
+          "fx": { "happiness": 3, "cost": 90000, "do": [{ "type": "substance", "substance": "alcohol", "act": "use", "amount": 0.5 }] }
         },
         { "text": "설명을 다 알아들은 척한다", "result": "나와서 둘이 동시에 물었다. '근데 세 번째 그거 뭐였어?'", "fx": { "happiness": 2 } },
         { "text": "준비한 편지를 건넨다", "result": "몇 줄 안 되는 편지였는데 {with}이/가 두 번 읽었다.", "fx": { "happiness": 3 } }
@@ -1904,23 +1929,23 @@
           "title": "처가",
           "age": [22, 70],
           "w": 0.35,
-          "text": "처가에 갈 때마다 장인어른이 술잔을 채우신다. '사위, 한 잔 더.' 벌써 네 잔째다.",
+          "text": "처가에 갈 때마다 장인어른이 술병부터 꺼내신다. '사위, 한잔 받게.' 오늘도 빈 잔이 내 앞에 놓였다.",
           "choices": [
             {
               "text": "끝까지 받아 마신다",
               "result": "다음 날 아침 기억이 없었다. {배우자} 말로는 장인어른과 어깨동무를 하고 노래를 불렀다고 한다.",
-              "fx": { "health": -1, "happiness": 2 },
+              "fx": { "health": -1, "happiness": 2, "do": [{ "type": "substance", "substance": "alcohol", "act": "use", "amount": 1 }] },
               "close": 2
             },
             {
-              "text": "술은 약하다고 솔직히 말씀드린다",
+              "text": "술은 못 한다고 솔직히 말씀드린다",
               "result": "장인어른이 껄껄 웃으며 식혜를 따라 주셨다. '나도 사실 약해.'",
-              "fx": { "stress": -2 }
+              "fx": { "stress": -2, "do": [{ "type": "substance", "substance": "alcohol", "act": "refuse" }] }
             },
             {
               "text": "{배우자}에게 눈빛으로 구조를 요청한다",
               "result": "{배우자}이/가 '아빠, 이 사람 술 약해' 하며 잔을 가져갔다. 구원이었다.",
-              "fx": { "stress": -1 },
+              "fx": { "stress": -1, "do": [{ "type": "substance", "substance": "alcohol", "act": "refuse" }] },
               "close": 3
             }
           ]
@@ -3266,7 +3291,7 @@
         {
           "text": "친구를 불러 술을 마신다",
           "result": "{친구}이/가 '걔 원래 별로였어'라고 했다. 거짓말인 걸 알아도 고마웠다.",
-          "fx": { "stress": -4, "health": -1, "happiness": 2 }
+          "fx": { "stress": -4, "health": -1, "happiness": 2, "do": [{ "type": "substance", "substance": "alcohol", "act": "use", "amount": 0.5 }] }
         },
         {
           "text": "운동을 시작한다",
@@ -4247,7 +4272,7 @@
         },
         {
           "text": "예단 문제로 양가 사이에서 줄다리기를 한다",
-          "result": "누가 얼마를 하느냐로 한 달을 시달렸다. {연인}와/과 둘이 편의점 앞에서 맥주를 마시며 버텼다.",
+          "result": "누가 얼마를 하느냐로 한 달을 시달렸다. {연인}와/과 둘이 편의점 앞 파라솔에 앉아 서로 하소연하며 버텼다.",
           "fx": { "stress": 7, "cost": 5000000 },
           "close": 2
         }
@@ -4826,8 +4851,9 @@
       "choices": [
         {
           "text": "술과 커피부터 줄인다",
+          "if": "@음주중",
           "result": "둘 다 금주를 선언했다. 회식 자리에서 사이다를 마시는 이유를 설명하느라 바빴다.",
-          "fx": { "health": 2, "stress": 1, "add": ["rom_trying"] },
+          "fx": { "health": 2, "stress": 1, "add": ["rom_trying"], "do": [{ "type": "substance", "substance": "alcohol", "act": "quit" }] },
           "close": 4
         },
         {
@@ -4841,6 +4867,13 @@
           "result": "\"오면 오고, 아니면 말고.\" 마음을 비우니 둘만의 밤이 다시 즐거워졌다.",
           "fx": { "stress": -3, "add": ["rom_trying"] },
           "close": 6
+        },
+        {
+          "text": "커피부터 줄이고 잠을 챙긴다",
+          "if": "@비음주",
+          "result": "커피는 하루 한 잔, 잠은 일곱 시간. {배우자}도 야식을 끊겠다며 따라나섰다.",
+          "fx": { "health": 2, "stress": 1, "add": ["rom_trying"] },
+          "close": 4
         }
       ]
     },
@@ -6018,8 +6051,8 @@
       "choices": [
         {
           "text": "집에서 케이크와 와인을 준비한다",
-          "result": "트리 전구만 켜 둔 방에서 케이크를 나눠 먹었다. 그 밤은 둘만의 시간이었다.",
-          "fx": { "happiness": 4, "cost": 60000 },
+          "result": "트리 전구만 켜 둔 방에서 케이크와 와인을 나눠 먹었다. 그 밤은 둘만의 시간이었다.",
+          "fx": { "happiness": 4, "cost": 60000, "do": [{ "type": "substance", "substance": "alcohol", "act": "use", "amount": 0.5 }] },
           "close": 6
         },
         {
@@ -6033,6 +6066,12 @@
           "result": "무료 급식소에서 배식을 도왔다. 돌아오는 길에 둘 다 말없이 웃었다. 좋은 이브였다.",
           "fx": { "happiness": 3, "morality": 3 },
           "close": 5
+        },
+        {
+          "text": "집에서 케이크와 따뜻한 코코아를 준비한다",
+          "result": "트리 전구만 켜 둔 방에서 케이크를 나눠 먹었다. 코코아 위 마시멜로가 다 녹을 때까지 이야기했다.",
+          "fx": { "happiness": 4, "cost": 45000 },
+          "close": 6
         }
       ]
     },
@@ -6269,7 +6308,7 @@
         {
           "text": "괜히 술을 마신다",
           "result": "{친구}이/가 새벽까지 잔을 채워 줬다. 다음 날 머리가 깨질 것 같았다.",
-          "fx": { "stress": -1, "health": -1 }
+          "fx": { "stress": -1, "health": -1, "do": [{ "type": "substance", "substance": "alcohol", "act": "use", "amount": 1 }] }
         },
         { "text": "나도 다시 시작해 보기로 한다", "result": "미뤄 둔 소개팅 제안에 답장을 보냈다.", "fx": { "happiness": 2 } }
       ]
