@@ -434,9 +434,18 @@ function runAction(state: GameState, a: Action, ec: EffectContext): void {
       if (p) p.health = clamp(p.health + a.delta);
       break;
     }
-    case 'npcCloseness':
-      changeCloseness(ch, a.role, a.delta, a.role === 'sibling' ? ctx.siblingId : undefined);
+    case 'npcCloseness': {
+      // 카드가 정한 사람이 있으면 그 사람만 (형제·자녀·친구·부모)
+      const target =
+        a.role === 'sibling' ? ctx.siblingId : a.role === 'child' ? ctx.childId : a.role === 'friend' ? ctx.friendId : undefined;
+      const changed = changeCloseness(ch, a.role, a.delta, target);
+      if (changed.length === 1 && a.delta !== 0) {
+        changes.push({ text: `${changed[0].name} 친밀도 ${a.delta > 0 ? '+' : '−'}${Math.abs(a.delta)}`, sign: a.delta > 0 ? 'good' : 'bad' });
+      } else if (changed.length > 1 && a.delta !== 0) {
+        changes.push({ text: `${roleLabel(changed[0], ch)} 등 ${changed.length}명 친밀도 ${a.delta > 0 ? '+' : '−'}${Math.abs(a.delta)}`, sign: a.delta > 0 ? 'good' : 'bad' });
+      }
       break;
+    }
     case 'leaveHome':
       ch.family.livesWithParents = false;
       break;

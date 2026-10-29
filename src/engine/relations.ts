@@ -1,6 +1,6 @@
 // NPC와 관계. 부모·형제·친구·연인·배우자·자녀 모두 같은 규칙으로 나이 들고 죽는다.
 
-import { NAMES } from './data';
+import { NAMES, TAG_BY_ID } from './data';
 import { npcDeathProbability, pickCauseByAge } from './health';
 import type { Rng } from './rng';
 import type { Character, GameState, Npc, NpcRole, PendingCard, Sex } from './types';
@@ -159,7 +159,10 @@ export function startPartner(state: GameState, rng: Rng, name?: string): Npc {
 
 export function breakUp(state: GameState): Npc | undefined {
   const p = partnerOf(state.ch);
-  if (p) state.ch.npcs = state.ch.npcs.filter((n) => n.id !== p.id);
+  if (p) {
+    state.ch.npcs = state.ch.npcs.filter((n) => n.id !== p.id);
+    afterRelationshipChange(state.ch, 'breakup');
+  }
   return p;
 }
 
@@ -168,6 +171,7 @@ export function marry(state: GameState): Npc | undefined {
   if (!p) return undefined;
   p.role = 'spouse';
   p.since = state.ch.age;
+  afterRelationshipChange(state.ch, 'marry');
   p.closeness = Math.max(p.closeness, 70);
   state.ch.family.livesWithParents = false;
   return p;
@@ -178,6 +182,7 @@ export function divorce(state: GameState): Npc | undefined {
   if (!s) return undefined;
   s.role = 'ex';
   s.closeness = Math.min(s.closeness, 20);
+  afterRelationshipChange(state.ch, 'divorce');
   // 재산 분할: 순자산의 절반
   const r = state.ch.res;
   r.cash = Math.round(r.cash * 0.5);
@@ -215,13 +220,36 @@ export function parentsDivorce(state: GameState, withParent: 'mother' | 'father'
   ch.flags.parents_divorced = { since: ch.age };
 }
 
-export function changeCloseness(ch: Character, role: NpcRole | 'parents', delta: number, id?: string): void {
+/** 친밀도를 바꾸고, 바뀐 사람들을 돌려준다 (id가 있으면 그 사람만) */
+export function changeCloseness(ch: Character, role: NpcRole | 'parents', delta: number, id?: string): Npc[] {
+  const changed: Npc[] = [];
   for (const n of ch.npcs) {
     if (!n.alive) continue;
     if (id ? n.id === id : role === 'parents' ? n.role === 'mother' || n.role === 'father' : n.role === role) {
       n.closeness = Math.max(0, Math.min(100, n.closeness + delta));
+      changed.push(n);
     }
   }
+  return changed;
+}
+
+/** 관계 태그: 연애 목록의 태그가 있을 때만 붙인다 (기간은 태그 정의를 따른다) */
+function setRelationFlag(ch: Character, id: string, on: boolean): void {
+  const tag = TAG_BY_ID.get(id);
+  if (!tag) return;
+  if (!on) {
+    delete ch.flags[id];
+    return;
+  }
+  ch.flags[id] = tag.duration ? { since: ch.age, until: ch.age + tag.duration } : { since: ch.age };
+}
+
+/** 이별·결혼·이혼이 어디서 일어나든 같은 태그 정리를 한다 */
+function afterRelationshipChange(ch: Character, kind: 'breakup' | 'marry' | 'divorce'): void {
+  setRelationFlag(ch, 'rom_engaged', false);
+  setRelationFlag(ch, 'rom_wedding_talk', false);
+  setRelationFlag(ch, 'rom_cohabiting', false);
+  setRelationFlag(ch, 'rom_heartbroken', kind !== 'marry');
 }
 
 // ── 해마다 ───────────────────────────────────────────────
@@ -280,7 +308,8 @@ export function npcYear(state: GameState, rng: Rng): PendingCard[] {
   if (enrolled && alive(ch, 'friend').length < 2 && rng.chance(0.5)) addFriend(state, rng);
   // 오래 사귀어도 결혼하지 않으면 헤어지기도 한다
   const p = partnerOf(ch);
-  if (p && (p.closeness < 30 || rng.chance(0.12))) breakUp(state);
+  // 약혼한 사이는 쉽게 헤어지지 않는다
+  if (p && (p.closeness < 30 || rng.chance(ch.flags.rom_engaged ? 0.04 : 0.12))) breakUp(state);
   return cards;
 }
 
