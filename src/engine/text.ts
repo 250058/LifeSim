@@ -1,14 +1,15 @@
 // 사건 문장 채우기. {지인}, {부모}, {대학} 같은 자리표시자를 실제 이름과 값으로 바꾸고
 // 바로 뒤의 조사를 받침에 맞게 고친다: '{지인}이/가' → '김민지가', '{지인}이 ' → '박지훈이 '
+// 사건이 가리키는 사람(대상 인물)도 여기서 정한다. 아래 '대상 인물' 참고.
 
 import { admissionName, susiTier } from './career';
 import { REGION_BY_ID, WORLD } from './data';
 import { formatWon, HIGH_TYPE_LABEL, josa, JOSA_PATTERN, SINGLE_TO_PAIR } from './format';
 import { homePrice } from './scope';
-import { alive, guardianLabel, npcAge, partnerOf, randomGiven, randomSurname, roleLabel, spouseOf } from './relations';
-import type { EventDef } from './schema';
+import { alive, guardianLabel, partnerOf, randomGiven, randomSurname, roleLabel, spouseOf } from './relations';
+import type { Effects, EventDef } from './schema';
 import type { Rng } from './rng';
-import type { GameState, Sex, TalentKey } from './types';
+import type { Character, GameState, Npc, Sex, TalentKey } from './types';
 
 const PLACEHOLDER = /\{([^{}]+)\}/g;
 
@@ -21,6 +22,200 @@ export function placeholdersOf(ev: EventDef): string[] {
   const keys = new Set<string>();
   for (const t of texts) for (const m of t.matchAll(PLACEHOLDER)) keys.add(m[1]);
   return [...keys].sort();
+}
+
+/** 사건 하나의 모든 효과: 사건 자체, 선택지, 판정 성공·실패 */
+export function effectsOf(ev: EventDef): Effects[] {
+  const out: Effects[] = ev.effects ? [ev.effects] : [];
+  for (const c of ev.choices ?? []) {
+    for (const fx of [c.effects, c.onSuccess?.effects, c.onFail?.effects]) if (fx) out.push(fx);
+  }
+  return out;
+}
+
+// ── 대상 인물 ────────────────────────────────────────────
+// 사건이 가리키는 사람은 문장이 아니라 사건 정의로 정한다 (R-011).
+//   자녀  trigger.childAge가 있거나, 자녀 친밀도를 바꾸거나, 문장에 {자녀}가 있으면
+//   부모  {부모} 또는 부모 건강(parentHealth)       형제  {형제} 또는 형제 친밀도
+//   친구  {친구} 또는 친구 친밀도                   연인·배우자  {연인}·{배우자} 또는 그 친밀도
+// 카드가 처음 뜰 때 역할마다 딱 한 사람을 ctx에 묶는다 (childId와 {자녀} 이름 등). 문장에 이름이 있든 없든
+// 같은 사람이다. 역할마다 난수 줄기를 따로 써서 문장을 고치거나 다른 역할이 늘어도 뽑히는 사람이 그대로다.
+//
+// 자녀·형제·친구 친밀도는 언제나 묶인 한 사람에게만 적용한다. 묶을 사람이 없으면 그 효과가 있는
+// 선택지는 보이지 않고, 사건 자체의 효과라면 사건이 일어나지 않는다 ('그 역할 모두'로 번지지 않는다).
+// 사건 데이터에서 여러 사람에게 한꺼번에 적용하는 표기는 부모 둘 다를 뜻하는 role 'parents'뿐이다.
+// 모든 자녀·모든 형제를 뜻하는 사건 표기는 아직 없다 (가족 모두에게 적용하는 일은 지금 활동 '가족과 시간',
+// activities.ts special 'family'뿐이다). 사건에 필요해지면 'parents'처럼 복수 역할을 schema·effects에 더하고,
+// 그 전까지 검증기가 모르는 역할(예: 'children')과 한 사람을 고를 규칙이 없는 역할(조부모·전 배우자)을 막는다.
+//
+// 연속·예약 사건은 묶인 사람을 물려받고 다시 고르지 않는다. 뜨기 직전에 그 사람이 살아 있는지, 아직 그
+// 역할인지, 사건의 자녀 나이대에 드는지 다시 본다 (R-012). 어긋나면 다른 사람으로 바꾸지 않고 취소한다.
+// 죽은 사람을 부르는 사건(부고·추모)은 역할 대신 고인(ctx.npcId, {고인})을 쓰므로 이 재검사를 받지 않는다.
+
+export type TargetRole = 'child' | 'parent' | 'sibling' | 'friend' | 'partner' | 'spouse';
+
+/** 역할마다 ctx에 남기는 id 키와 이름 자리표시자 */
+export const TARGET_SLOTS: Record<TargetRole, { id: string; name: string }> = {
+  child: { id: 'childId', name: '자녀' },
+  parent: { id: 'parentId', name: '부모' },
+  sibling: { id: 'siblingId', name: '형제' },
+  friend: { id: 'friendId', name: '친구' },
+  partner: { id: 'partnerId', name: '연인' },
+  spouse: { id: 'spouseId', name: '배우자' },
+};
+
+const TARGET_ORDER: TargetRole[] = ['child', 'parent', 'sibling', 'friend', 'partner', 'spouse'];
+
+/** 이름 자리표시자 → 역할 */
+const PLACEHOLDER_ROLE = new Map<string, TargetRole>(TARGET_ORDER.map((r) => [TARGET_SLOTS[r].name, r]));
+
+/** 친밀도 역할 → 묶을 역할. parents·mother·father는 묶지 않는다 (부모 둘 다, 또는 원래 한 사람) */
+const CLOSENESS_ROLE: Record<string, TargetRole | undefined> = {
+  child: 'child',
+  sibling: 'sibling',
+  friend: 'friend',
+  partner: 'partner',
+  spouse: 'spouse',
+};
+
+/** 여러 명일 수 있는 역할: 묶이지 않은 채 효과가 적용되면 그 역할 전원이 바뀐다 */
+const ONE_OF_MANY = new Set<TargetRole>(['child', 'sibling', 'friend']);
+
+const rolesCache = new WeakMap<EventDef, TargetRole[]>();
+
+/** 사건이 가리키는 사람의 역할들 (자녀 나이 조건·효과·자리표시자로 정해진다) */
+export function targetRolesOf(ev: EventDef): TargetRole[] {
+  const cached = rolesCache.get(ev);
+  if (cached) return cached;
+  const found = new Set<TargetRole>();
+  if (ev.trigger?.childAge) found.add('child');
+  for (const key of placeholdersOf(ev)) {
+    const role = PLACEHOLDER_ROLE.get(key);
+    if (role) found.add(role);
+  }
+  for (const fx of effectsOf(ev)) {
+    for (const a of fx.do ?? []) {
+      if (a.type === 'parentHealth') found.add('parent');
+      const role = a.type === 'npcCloseness' ? CLOSENESS_ROLE[a.role] : undefined;
+      if (role) found.add(role);
+    }
+  }
+  const roles = TARGET_ORDER.filter((r) => found.has(r));
+  rolesCache.set(ev, roles);
+  return roles;
+}
+
+function inRange(age: number, range: [number, number] | undefined): boolean {
+  return !range || (age >= range[0] && age <= range[1]);
+}
+
+/** 이 사건의 대상이 될 수 있는 사람들. 자녀는 사건의 자녀 나이대 안에서 */
+function candidates(state: GameState, ev: EventDef, role: TargetRole): Npc[] {
+  const ch = state.ch;
+  switch (role) {
+    case 'child':
+      return alive(ch, 'child').filter((k) => inRange(state.year - k.birthYear, ev.trigger?.childAge));
+    case 'parent':
+      return alive(ch, 'mother', 'father');
+    case 'sibling':
+      return alive(ch, 'sibling');
+    case 'friend':
+      return alive(ch, 'friend');
+    case 'partner':
+      return alive(ch, 'partner');
+    case 'spouse':
+      return alive(ch, 'spouse');
+  }
+}
+
+function pickTarget(state: GameState, ev: EventDef, role: TargetRole, rngOf: (role: TargetRole) => Rng): Npc | undefined {
+  const list = candidates(state, ev, role);
+  if (list.length === 0) return undefined;
+  // 부모는 나이가 더 많은 쪽 (병환·피싱 사건의 당사자). 연인·배우자는 한 사람뿐이다
+  if (role === 'parent') return list.reduce((a, b) => (a.birthYear <= b.birthYear ? a : b));
+  if (list.length === 1 || role === 'partner' || role === 'spouse') return list[0];
+  return rngOf(role).pick(list);
+}
+
+/** 문장에 들어갈 이름: 부모·형제는 호칭(엄마, 누나), 나머지는 이름 */
+function targetName(npc: Npc, role: TargetRole, ch: Character): string {
+  return role === 'parent' || role === 'sibling' ? roleLabel(npc, ch) : npc.name;
+}
+
+/**
+ * 역할마다 한 사람을 묶는다. 이미 정해졌으면(앞 사건에서 물려받았거나 '조카'처럼 명단 밖 사람으로 정해졌으면)
+ * 다시 고르지 않는다: 이어지는 이야기의 주인공이 다른 사람으로 바뀌지 않는다.
+ */
+export function bindTargets(state: GameState, ev: EventDef, ctx: Record<string, string>, rngOf: (role: TargetRole) => Rng): void {
+  for (const role of targetRolesOf(ev)) {
+    const slot = TARGET_SLOTS[role];
+    if (ctx[slot.id] !== undefined || ctx[slot.name] !== undefined) continue;
+    const npc = pickTarget(state, ev, role, rngOf);
+    if (!npc) continue;
+    ctx[slot.id] = npc.id;
+    ctx[slot.name] = targetName(npc, role, state.ch);
+  }
+}
+
+/**
+ * 한 사람 대상 효과(자녀·형제·친구 친밀도)의 대상이 묶였는가. 묶이지 않은 채 적용하면
+ * 효과가 그 역할 전원에게 번지므로, 아니면 false (그 선택지·사건을 쓰지 않는다).
+ */
+export function targetsReady(ctx: Record<string, string>, ...fxs: (Effects | undefined)[]): boolean {
+  for (const fx of fxs) {
+    let newFriend = false;
+    for (const a of fx?.do ?? []) {
+      // 새 친구를 사귀는 행동은 그 친구를 ctx에 묶는다
+      if (a.type === 'addFriend') newFriend = true;
+      const role = a.type === 'npcCloseness' ? CLOSENESS_ROLE[a.role] : undefined;
+      if (!role || !ONE_OF_MANY.has(role) || ctx[TARGET_SLOTS[role].id] !== undefined) continue;
+      if (role === 'friend' && newFriend) continue;
+      return false;
+    }
+  }
+  return true;
+}
+
+/** 묶인 사람이 아직 그 역할인가. 연인이 그사이 배우자가 됐으면 같은 사람이다 */
+const ROLE_OK: Record<TargetRole, (n: Npc) => boolean> = {
+  child: (n) => n.role === 'child',
+  parent: (n) => n.role === 'mother' || n.role === 'father',
+  sibling: (n) => n.role === 'sibling',
+  friend: (n) => n.role === 'friend',
+  partner: (n) => n.role === 'partner' || n.role === 'spouse',
+  spouse: (n) => n.role === 'spouse',
+};
+
+/** 묶인 사람 한 명이 이 사건의 대상이 될 수 없는 이유 (일기에 남길 한 문장) */
+function lostReason(state: GameState, ev: EventDef, role: TargetRole, npc: Npc | undefined, name: string): string | undefined {
+  // 명단에서 빠진 사람: 헤어진 연인, 연락이 끊긴 친구
+  if (!npc) return role === 'partner' ? `${josa(name, '와/과')} 헤어졌다.` : `${josa(name, '와/과')} 연락이 끊겼다.`;
+  if (!npc.alive) return `${josa(name, '이/가')} 세상을 떠났다.`;
+  if (npc.missing) return `${josa(name, '와/과')} 연락이 닿지 않는다.`;
+  if (!ROLE_OK[role](npc)) return npc.role === 'ex' ? `${josa(name, '와/과')} 헤어졌다.` : `${josa(name, '은/는')} 이제 곁에 없다.`;
+  // 자녀는 사건의 자녀 나이대에 아직 드는가
+  const range = role === 'child' ? ev.trigger?.childAge : undefined;
+  if (!range) return undefined;
+  const age = state.year - npc.birthYear;
+  if (age > range[1]) return `${josa(name, '은/는')} 그새 ${age}살이 됐다.`;
+  if (age < range[0]) return `${josa(name, '은/는')} 아직 ${age}살이다.`;
+  return undefined;
+}
+
+/**
+ * 물려받은 대상이 아직 이 사건의 대상이 될 수 있는지 다시 본다 (R-012). 안 되면 그 이유, 되면 undefined.
+ * 사건이 가리키지 않는 역할의 id는 보지 않는다 (예: 친구가 등장한 진료 뒤 '내 병이 깊어졌다'는 친구와 무관하다).
+ */
+export function targetProblem(state: GameState, ev: EventDef, ctx: Record<string, string>): string | undefined {
+  for (const role of targetRolesOf(ev)) {
+    const slot = TARGET_SLOTS[role];
+    const id = ctx[slot.id];
+    if (id === undefined) continue;
+    const npc = state.ch.npcs.find((n) => n.id === id);
+    const reason = lostReason(state, ev, role, npc, ctx[slot.name] ?? npc?.name ?? '그 사람');
+    if (reason) return reason;
+  }
+  return undefined;
 }
 
 export const TALENT_LABEL: Record<TalentKey, string> = {
@@ -70,9 +265,18 @@ function nagging(state: GameState): string {
 /**
  * 카드가 처음 나올 때 한 번 만드는 값들. 같은 카드 안에서는 같은 사람을 가리켜야 하므로
  * ctx에 저장한다. 이미 있으면 건드리지 않는다 (연속 사건이 같은 지인을 이어받는다).
+ * 대상 인물(자녀·부모·형제·친구·연인·배우자)을 먼저 묶고, 묶을 사람이 없을 때만 아래에서 대신할 이름을 쓴다.
+ * targetRng는 역할마다 따로 쓰는 난수 줄기다 (없으면 카드 난수).
  */
-export function generateCtx(state: GameState, ev: EventDef, ctx: Record<string, string>, rng: Rng): void {
+export function generateCtx(
+  state: GameState,
+  ev: EventDef,
+  ctx: Record<string, string>,
+  rng: Rng,
+  targetRng: (role: TargetRole) => Rng = () => rng,
+): void {
   const ch = state.ch;
+  bindTargets(state, ev, ctx, targetRng);
   for (const key of placeholdersOf(ev)) {
     if (ctx[key] !== undefined) continue;
     switch (key) {
@@ -82,40 +286,16 @@ export function generateCtx(state: GameState, ev: EventDef, ctx: Record<string, 
       case '상대':
         ctx[key] = personName(state, rng, ch.sex === 'M' ? 'F' : 'M', ch.birthYear + rng.int(-3, 3));
         break;
-      case '친구': {
-        const fs = alive(ch, 'friend');
-        if (fs.length > 0) {
-          const f = rng.pick(fs);
-          ctx[key] = f.name;
-          ctx.friendId = f.id;
-        } else {
-          ctx[key] = personName(state, rng, ch.sex, ch.birthYear);
-        }
+      // 대상 인물인데 묶을 사람이 없을 때: 명단에 없는 사람으로 대신한다 (아래 연인·배우자·자녀도 같다)
+      case '친구':
+        ctx[key] = personName(state, rng, ch.sex, ch.birthYear);
         break;
-      }
-      case '부모': {
-        const ps = alive(ch, 'mother', 'father');
-        if (ps.length > 0) {
-          // 나이가 더 많은 쪽 (병환·피싱 사건의 당사자)
-          const p = ps.reduce((a, b) => (npcAge(a, state.year) >= npcAge(b, state.year) ? a : b));
-          ctx[key] = roleLabel(p, ch);
-          ctx.parentId = p.id;
-        } else {
-          ctx[key] = guardianLabel(ch);
-        }
+      case '부모':
+        ctx[key] = guardianLabel(ch);
         break;
-      }
-      case '형제': {
-        const sibs = alive(ch, 'sibling');
-        if (sibs.length > 0) {
-          const s = rng.pick(sibs);
-          ctx[key] = roleLabel(s, ch);
-          ctx.siblingId = s.id;
-        } else {
-          ctx[key] = '사촌';
-        }
+      case '형제':
+        ctx[key] = '사촌';
         break;
-      }
       case '재능':
       case '재능장면': {
         // 둘은 항상 함께 정해진다
@@ -145,27 +325,18 @@ export function generateCtx(state: GameState, ev: EventDef, ctx: Record<string, 
         ctx[key] = state.world.politics.ruling ?? rng.pick(WORLD.parties);
         break;
       case '연인':
-        ctx[key] = partnerOf(ch)?.name ?? '그 사람';
+        ctx[key] = '그 사람';
         break;
       case '배우자':
-        ctx[key] = spouseOf(ch)?.name ?? '배우자';
+        ctx[key] = '배우자';
         break;
       case '잔소리':
         ctx[key] = nagging(state);
         break;
-      case '자녀': {
-        // 사건이 자녀 나이대를 정했으면 그 나이대에서 고른다
-        const range = ev.trigger?.childAge;
-        const kids = alive(ch, 'child').filter((k) => !range || (state.year - k.birthYear >= range[0] && state.year - k.birthYear <= range[1]));
-        if (kids.length > 0) {
-          const k = rng.pick(kids);
-          ctx[key] = k.name;
-          ctx.childId = k.id;
-        } else {
-          ctx[key] = '조카';
-        }
+      case '자녀':
+        // 사건의 자녀 나이대에 맞는 아이가 없을 때
+        ctx[key] = '조카';
         break;
-      }
       case '합격대학':
         ctx[key] = admissionName(state, rng);
         break;

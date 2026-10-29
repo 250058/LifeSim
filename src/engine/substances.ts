@@ -5,8 +5,10 @@
 // 아니라 이 파일의 처리 단계에서도 막는다.
 //
 //   사용 → 의존이 쌓인다 (사람마다 속도가 다르다) → 문턱을 넘으면 고르지 않아도 습관이 이어진다
-//   줄이기·끊기 → 갈망과 금단 → 해마다 재발 판정 → 재발해도 다시 도움을 청할 수 있다
-//   치료·상담 → 의존과 갈망이 빨리 줄고 재발이 준다
+//   줄이기·끊기 → 갈망과 금단 → 의존이 그 문턱 위에 남아 있는 동안만 해마다 재발 판정 → 재발해도 다시 도움을 청할 수 있다
+//     (한두 번 써 보고 끊은 사람은 고르지 않으면 다시 쓰지 않는다. 그 뒤의 재발은 권유·갈망 사건에서 직접 고른다)
+//   치료·상담 → 의존과 갈망이 빨리 줄고 재발이 준다. 치료 중에 다시 썼다면 도움을 다시 청해 처음부터 다시 하거나,
+//     다시 끊지 않은 채 그해가 끝나면 치료가 흐지부지된다 (쓰는 채로 '치료 중'에 갇히지 않는다)
 //
 // 불법 약물은 실제 이름 없이 하나로 추상화한다. 구하는 법·용량 같은 내용은 다루지 않는다.
 // 수치는 출처를 적은 것 말고는 게임 보정값(추정)이다.
@@ -266,13 +268,14 @@ function flagsFor(r: Readonly<SubstanceRecord>, id: SubstanceId, age: number): s
 /**
  * 기록과 태그를 맞춘다. 흡연자·술꾼 태그는 다른 사건과 건강 계산이 읽는다.
  * 써 본 적 없는 물질의 태그(아직 옮기지 않은 미성년자의 옛 태그)는 건드리지 않는다.
+ * age는 끊은 햇수를 셀 나이다. 연말에는 다음 해 나이로 센다 (substanceYearEnd)
  */
-function syncFlags(state: GameState, changes: Change[]): void {
+function syncFlags(state: GameState, changes: Change[], age = state.ch.age): void {
   const ch = state.ch;
   for (const id of SUBSTANCE_IDS) {
     const r = readRecord(ch, id);
     if (!r.ever) continue;
-    const want = flagsFor(r, id, ch.age);
+    const want = flagsFor(r, id, age);
     for (const f of OWN_FLAGS[id]) {
       if (want.includes(f)) addFlag(state, f, changes);
       else removeFlag(state, f, changes);
@@ -280,31 +283,60 @@ function syncFlags(state: GameState, changes: Change[]): void {
   }
 }
 
+/** 사용 태그와 끊는 중 태그가 붙어 있는지 비트로 (조건식 캐시가 태그 변화를 알아채는 데 쓴다) */
+const WATCHED_FLAGS: string[] = [...USE_FLAGS.map(([flag]) => flag), ...QUIT_FLAGS.map(([flag]) => flag)];
+
+function tagBits(ch: Character): number {
+  let bits = 0;
+  for (let i = 0; i < WATCHED_FLAGS.length; i++) if (ch.flags[WATCHED_FLAGS[i]]) bits |= 1 << i;
+  return bits;
+}
+
 /**
- * 다른 사건 데이터가 흡연자·술꾼 같은 태그를 직접 붙이거나 뗀 경우(옛 사건·옛 저장)를 기록에 옮긴다.
+ * 다른 사건 데이터가 흡연자·술꾼·금주 중 같은 태그를 직접 붙이거나 뗀 경우(옛 사건·옛 저장)를 기록에 옮긴다.
  * 붙은 사용 태그는 성인에게만 사용으로 옮긴다. 미성년자에게 붙은 옛 태그는 성인이 될 때까지 그대로 둔다.
+ * read는 지금 기록, write는 바꿀 기록을 준다. 기록만 바꾸고 끊기를 시작한 물질을 돌려준다 (금단은 부르는 쪽이 준다)
  */
+function applyTags(ch: Character, read: (id: SubstanceId) => Readonly<SubstanceRecord>, write: (id: SubstanceId) => SubstanceRecord): SubstanceId[] {
+  const quit: SubstanceId[] = [];
+  for (const [flag, id, band, product] of USE_FLAGS) {
+    const want = flagsFor(read(id), id, ch.age).includes(flag);
+    if (ch.flags[flag] && !want && ch.age >= ADULT_AGE) importRecord(write(id), id, band, ch.age, product);
+    else if (!ch.flags[flag] && want && quitRecord(write(id), ch.age)) quit.push(id);
+  }
+  for (const [flag, id] of QUIT_FLAGS) {
+    const r = read(id);
+    if (ch.flags[flag] && r.ever && !isQuitting(r) && quitRecord(write(id), ch.age)) quit.push(id);
+  }
+  return quit;
+}
+
+/** 태그 변화를 기록에 옮기고 태그를 기록에 맞춘다. 물질 행동과 연말 결산이 먼저 부른다 */
 export function reconcileSubstanceFlags(state: GameState): void {
   const ch = state.ch;
   if (!ch.substances && !USE_FLAGS.some(([flag]) => ch.flags[flag])) return;
-  for (const [flag, id, band, product] of USE_FLAGS) {
-    const want = flagsFor(readRecord(ch, id), id, ch.age).includes(flag);
-    if (ch.flags[flag] && !want && ch.age >= ADULT_AGE) importUse(state, id, band, product);
-    else if (!ch.flags[flag] && want) startQuit(state, id, []);
-  }
-  for (const [flag, id] of QUIT_FLAGS) {
-    const r = readRecord(ch, id);
-    if (ch.flags[flag] && r.ever && !isQuitting(r)) startQuit(state, id, []);
-  }
+  const quit = applyTags(ch, (id) => readRecord(ch, id), (id) => recordOf(state, id));
+  for (const id of quit) withdrawal(state, readRecord(ch, id), []);
   syncFlags(state, []);
 }
 
-/** 사건이 붙인 사용 태그를 기록으로 옮긴다. 처음 쓴 나이처럼 모르는 값은 비워 둔다 */
-function importUse(state: GameState, id: SubstanceId, band: UseBand, product?: 'cigarette' | 'ecig'): void {
-  const r = recordOf(state, id);
+/**
+ * 읽기용 기록: 다른 사건이 태그를 붙이거나 뗐는데 아직 기록에 옮기지 않았으면(다음 물질 행동이나 연말에 옮긴다)
+ * 옮긴 뒤의 모습으로 읽는다. 상태는 바꾸지 않는다. 예: 심장 재활 사건에서 담배를 끊기로 하면 그 자리부터
+ * 흡연 관련 사건·메뉴·건강 계산이 끊은 사람으로 본다 (예전에는 그해 연말까지 흡연자로 읽혔다)
+ */
+function viewRecords(ch: Character): Record<SubstanceId, Readonly<SubstanceRecord>> {
+  const views: Partial<Record<SubstanceId, SubstanceRecord>> = {};
+  const read = (id: SubstanceId) => views[id] ?? readRecord(ch, id);
+  applyTags(ch, read, (id) => (views[id] ??= { ...readRecord(ch, id) }));
+  return { alcohol: read('alcohol'), tobacco: read('tobacco'), drug: read('drug') };
+}
+
+/** 사건이 붙인 사용 태그를 기록으로 옮긴다 (기록만). 처음 쓴 나이처럼 모르는 값은 비워 둔다 */
+function importRecord(r: SubstanceRecord, id: SubstanceId, band: UseBand, age: number, product?: 'cigarette' | 'ecig'): void {
   r.ever = true;
   r.uses += 1;
-  r.lastAge = state.ch.age;
+  r.lastAge = age;
   delete r.abstinentSince;
   r.habit = Math.max(r.habit, band) as UseBand;
   r.dependence = Math.max(r.dependence, RULES[id].bands[Math.max(1, band) - 1] + 5);
@@ -407,15 +439,19 @@ function refuse(state: GameState, id: SubstanceId): void {
   if (r.offers < r.refusals) r.offers = r.refusals;
 }
 
-/** 줄이기: 의존이 깊을수록 어렵고 성실할수록 지킨다 */
+/**
+ * 줄이기: 의존이 깊을수록 어렵고 성실할수록 지킨다. 지키면 몸에 밴 습관이 한 단계 줄고(있다면)
+ * 다음 해 습관이 그보다 늘지 않는다. 올해 쓴 것이 모두 직접 고른 사용이라 습관이 0이어도 약속은 남는다
+ * (빈 병 앞에서 '줄이겠다'고 한 약속이 아무 상태도 남기지 않던 문제). 지키지 못하면 아무것도 바뀌지 않는다
+ */
 function cutDown(state: GameState, id: SubstanceId, rng: Rng, changes: Change[]): string | undefined {
   const ch = state.ch;
   const r = recordOf(state, id);
-  if (r.habit === 0 || isQuitting(r)) return undefined;
-  r.cutDownAge = ch.age;
+  if (isQuitting(r) || effectiveBand(r) === 0) return undefined;
   const p = 0.75 - r.dependence / 150 + (ch.personality.conscientiousness - 50) / 200;
   if (!rng.chance(Math.max(0.15, Math.min(0.9, p)))) return CUT_TEXT[id][1];
-  r.habit = (r.habit - 1) as UseBand;
+  r.cutDownAge = ch.age;
+  if (r.habit > 0) r.habit = (r.habit - 1) as UseBand;
   r.craving = clamp100(r.craving + r.dependence * 0.2);
   syncFlags(state, changes);
   return CUT_TEXT[id][0];
@@ -424,34 +460,51 @@ function cutDown(state: GameState, id: SubstanceId, rng: Rng, changes: Change[])
 /** 끊기 시작. 의존이 깊으면 금단이 온다 */
 function startQuit(state: GameState, id: SubstanceId, changes: Change[]): void {
   const r = recordOf(state, id);
-  if (!r.ever || isQuitting(r)) return;
-  r.abstinentSince = state.ch.age;
+  if (quitRecord(r, state.ch.age)) withdrawal(state, r, changes);
+}
+
+/** 끊기 시작 (기록만). 써 본 적 없거나 이미 끊는 중이면 아무것도 바꾸지 않고 false */
+function quitRecord(r: SubstanceRecord, age: number): boolean {
+  if (!r.ever || isQuitting(r)) return false;
+  r.abstinentSince = age;
   r.quitAttempts += 1;
   r.habit = 0;
   delete r.cutDownAge;
   r.craving = clamp100(Math.max(r.craving, r.dependence * 0.9));
-  if (r.dependence >= 25) {
-    changes.push({ text: '금단 증상', sign: 'bad' });
-    changeAttr(state, 'stress', Math.round(r.dependence * 0.12), changes);
-    changeAttr(state, 'happiness', -Math.round(r.dependence * 0.04), changes);
-  }
+  return true;
 }
 
-/** 치료·상담을 시작한다. 쓰고 있었다면 끊기도 함께 시작한다 */
+/** 금단: 의존이 깊을수록 스트레스가 오르고 기분이 가라앉는다 */
+function withdrawal(state: GameState, r: Readonly<SubstanceRecord>, changes: Change[]): void {
+  if (r.dependence < 25) return;
+  changes.push({ text: '금단 증상', sign: 'bad' });
+  changeAttr(state, 'stress', Math.round(r.dependence * 0.12), changes);
+  changeAttr(state, 'happiness', -Math.round(r.dependence * 0.04), changes);
+}
+
+/**
+ * 치료·상담을 시작한다. 쓰고 있었다면 끊기도 함께 시작한다.
+ * 치료 중에 다시 썼다가 도움을 다시 청하면(재발 카드·적발·응급실·메뉴) 끊기와 치료 기간을 처음부터 다시 시작한다.
+ * 예전에는 이미 치료 중이면 아무 일도 없어서 '다시 도움을 요청한다'를 골라도 계속 쓰는 상태로 남았다
+ */
 function treat(state: GameState, id: SubstanceId, changes: Change[]): void {
   const r = recordOf(state, id);
-  if (r.treatment === 'active') return;
+  if (!r.ever) return;
+  const again = r.treatment === 'active';
+  if (again && isQuitting(r)) return;
   r.treatment = 'active';
   r.treatmentSince = state.ch.age;
   r.treatmentStarts += 1;
   startQuit(state, id, changes);
   r.craving = clamp100(r.craving * 0.6);
-  changes.push({ text: `${TREAT_LABEL[id]} 시작`, sign: 'good' });
+  changes.push({ text: `${TREAT_LABEL[id]} ${again ? '다시 시작' : '시작'}`, sign: 'good' });
 }
 
+/** 치료 과정을 마쳤다. 그사이 다시 쓰고 있었다면 마치면서 끊기를 다시 시작한다 (쓰는 채로 '마침'이 남지 않는다) */
 function completeTreatment(state: GameState, id: SubstanceId, changes: Change[]): void {
   const r = recordOf(state, id);
   if (r.treatment !== 'active') return;
+  startQuit(state, id, changes);
   r.treatment = 'completed';
   r.dependence = clamp100(r.dependence * 0.6);
   r.craving = clamp100(r.craving * 0.5);
@@ -578,9 +631,10 @@ export function substanceYearEnd(state: GameState): PendingCard[] {
     if (id === 'drug' && r.habit > 0 && rng.chance(drugDetection(r) * 0.6)) pending.push(arrestCard());
     updateDependence(state, r, id, band);
     progressTreatment(state, r, id);
+    lapseTreatment(state, r, id);
     const before = r.habit;
     r.habit = isQuitting(r) ? 0 : r.cutDownAge === ch.age ? (Math.min(dependenceBand(r, id), r.habit) as UseBand) : dependenceBand(r, id);
-    if (isQuitting(r) && !prison && rng.chance(relapseChance(state, r))) {
+    if (isQuitting(r) && !prison && relapseRisk(r, id) && rng.chance(relapseChance(state, r))) {
       relapse(state, r, id);
       pending.push({ eventId: 'sub_relapse', ctx: { substance: id, 물질: RULES[id].label } });
     } else if (before === 0 && r.habit > 0) {
@@ -593,7 +647,9 @@ export function substanceYearEnd(state: GameState): PendingCard[] {
     payOrBorrow(state, total);
     state.log.push({ year: state.year, age: ch.age, kind: 'year', text: `${spent.join(', ')}.` });
   }
-  syncFlags(state, quiet);
+  // 연말 태그는 다음 해의 상태다: 습관은 다음 해 값이고 끊은 햇수도 다음 해 나이로 센다.
+  // 지금 나이로 세면 '금연 유지'·'금주 유지'가 한 해 늦게 붙었다
+  syncFlags(state, quiet, ch.age + 1);
   return pending;
 }
 
@@ -653,6 +709,26 @@ function progressTreatment(state: GameState, r: SubstanceRecord, id: SubstanceId
 }
 
 /**
+ * 치료 중에 다시 썼고 그해가 끝날 때까지 다시 끊지도, 도움을 다시 청하지도 않았다: 치료가 흐지부지된다.
+ * 다음 해에는 메뉴에서 다시 등록할 수 있다. 연말 재발(아래)은 끊고 있던 사람만 겪으므로 여기에 걸리지 않고,
+ * 다음 해 재발 카드에서 다시 도움 요청·혼자 끊기·그냥 두기를 고른다
+ */
+function lapseTreatment(state: GameState, r: SubstanceRecord, id: SubstanceId): void {
+  if (r.treatment !== 'active' || isQuitting(r)) return;
+  r.treatment = 'none';
+  state.log.push({ year: state.year, age: state.ch.age, kind: 'event', title: TREAT_LABEL[id], text: '다시 손을 댄 뒤로 발길을 끊었다. 연락처는 아직 휴대폰에 있다.', tone: 'drama', impact: 4 });
+}
+
+/**
+ * 고르지 않았는데 다시 쓰게 되는 재발은 의존이 습관 문턱(고르지 않아도 습관이 이어지는 값) 위에 남아 있을 때만 판정한다.
+ * 예전에는 한 번 마셔 보고 금주를 고른 사람도 의존 1 남짓으로 해마다 재발을 굴려, 200명 중 155명이 고르지 않은
+ * 음주와 재발 카드를 겪었다. 문턱 아래의 재발은 권유·갈망 사건에서 직접 고른다
+ */
+function relapseRisk(r: Readonly<SubstanceRecord>, id: SubstanceId): boolean {
+  return r.dependence >= RULES[id].bands[0];
+}
+
+/**
  * 끊은 사람의 다음 1년 재발 확률. 갈망·스트레스가 키우고, 치료(가까운 곳일수록)·주변 지원·
  * 앞선 시도의 경험·성실성이 줄인다 (모두 추정 보정)
  */
@@ -682,16 +758,21 @@ function relapse(state: GameState, r: SubstanceRecord, id: SubstanceId): void {
 
 // ── 다른 모듈이 읽는 값 ──────────────────────────────────
 
-/** 연말 건강 변화 (health.ts). 아직 기록에 옮기지 않은 옛 태그도 같은 빈도로 본다 */
+/**
+ * 연말 건강 변화 (health.ts). 다른 사건이 바꾼 태그는 옮긴 뒤의 기록으로 읽는다: 올해 사건에서 끊기로 했으면
+ * 습관 몫은 빠지고 그해 직접 고른 사용만 남는다. 기록에 옮기지 않는 미성년자의 옛 태그는 태그의 빈도로 본다
+ */
 export function substanceHealthDelta(ch: Character): number {
   let d = 0;
   const bands = {} as Record<SubstanceId, UseBand>;
+  const view = viewRecords(ch);
   for (const id of SUBSTANCE_IDS) {
-    const r = readRecord(ch, id);
+    const r = view[id];
     let band = effectiveBand(r);
-    for (const [flag, fid, b] of USE_FLAGS) if (fid === id && ch.flags[flag]) band = Math.max(band, b) as UseBand;
+    // 성인의 태그는 위 읽기용 기록에 이미 들어 있다 (태그만 남은 채 끊는 중이면 태그로 다시 올리지 않는다)
+    if (ch.age < ADULT_AGE) for (const [flag, fid, b] of USE_FLAGS) if (fid === id && ch.flags[flag]) band = Math.max(band, b) as UseBand;
     bands[id] = band;
-    const ecig = id === 'tobacco' && r.product === 'ecig' && !ch.flags.smoker;
+    const ecig = id === 'tobacco' && r.product === 'ecig';
     d += RULES[id].health[band] * (ecig ? ECIG_HEALTH : 1);
   }
   // 술과 담배를 함께 자주 하면 위험이 겹친다 (구강·식도암 등, 추정 보정)
@@ -733,24 +814,34 @@ function blankScope(adult: boolean): Readonly<Record<string, unknown>> {
 }
 const BLANK_SCOPE = { minor: blankScope(false), adult: blankScope(true) };
 
-/** 조건식 값은 해마다 수십 번 읽히므로 기록·나이가 그대로면 지난번 값을 쓴다 (상태에는 남지 않는다) */
-const scopeCache = new WeakMap<object, { revision: number; age: number; value: Readonly<Record<string, unknown>> }>();
+interface ScopeCacheEntry {
+  revision: number;
+  age: number;
+  /** 사용·끊는 중 태그 (다른 사건이 태그만 바꿔도 다시 계산한다) */
+  bits: number;
+  subs: Character['substances'];
+  value: Readonly<Record<string, unknown>>;
+}
 
-/** 조건식 값 (scope.ts의 substance.*). 기록이 없어도 모든 값이 있다 */
+/** 조건식 값은 해마다 수십 번 읽히므로 기록·나이·태그가 그대로면 지난번 값을 쓴다 (상태에는 남지 않는다) */
+const scopeCache = new WeakMap<Character, ScopeCacheEntry>();
+
+/** 조건식 값 (scope.ts의 substance.*). 기록이 없어도 모든 값이 있다. 아직 옮기지 않은 태그 변화도 반영한다 */
 export function substanceScope(state: GameState): Readonly<Record<string, unknown>> {
   const ch = state.ch;
-  const subs = ch.substances;
-  if (!subs) return ch.age >= ADULT_AGE ? BLANK_SCOPE.adult : BLANK_SCOPE.minor;
-  const hit = scopeCache.get(subs);
-  if (hit && hit.revision === revision && hit.age === ch.age) return hit.value;
+  const bits = tagBits(ch);
+  if (!ch.substances && bits === 0) return ch.age >= ADULT_AGE ? BLANK_SCOPE.adult : BLANK_SCOPE.minor;
+  const hit = scopeCache.get(ch);
+  if (hit && hit.revision === revision && hit.age === ch.age && hit.bits === bits && hit.subs === ch.substances) return hit.value;
+  const v = viewRecords(ch);
   const value = Object.freeze({
     adult: ch.age >= ADULT_AGE,
-    alcohol: recordScope(subs.alcohol, ch.age),
-    tobacco: recordScope(subs.tobacco, ch.age),
-    drug: recordScope(subs.drug, ch.age),
-    inTreatment: SUBSTANCE_IDS.some((id) => subs[id].treatment === 'active'),
-    dependence: Math.round(Math.max(subs.alcohol.dependence, subs.tobacco.dependence, subs.drug.dependence)),
+    alcohol: recordScope(v.alcohol, ch.age),
+    tobacco: recordScope(v.tobacco, ch.age),
+    drug: recordScope(v.drug, ch.age),
+    inTreatment: SUBSTANCE_IDS.some((id) => v[id].treatment === 'active'),
+    dependence: Math.round(Math.max(v.alcohol.dependence, v.tobacco.dependence, v.drug.dependence)),
   });
-  scopeCache.set(subs, { revision, age: ch.age, value });
+  scopeCache.set(ch, { revision, age: ch.age, bits, subs: ch.substances, value });
   return value;
 }

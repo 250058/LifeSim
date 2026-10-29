@@ -1,14 +1,16 @@
 // 자녀로 이어하기(heir.ts)의 경계 검사: 나이·혼인 시점·가족 관계·돈의 단위
 // (검토 R-006: 미성년 배우자와 미래의 혼인, R-007: 평균 소득·연금의 물가 중복)
+// 혼인신고를 미루고 낳은 아이의 친부모(인물 ID 연결)와 고치기 전 저장 바로잡기도 여기서 본다
 
 import { describe, expect, it, vi } from 'vitest';
 import { retire } from '../src/engine/career';
+import { presentCard } from '../src/engine/eventEngine';
 import { choose, endTurn, newGame, proceed } from '../src/engine/game';
 import { continueAsChild, heirOptions, inheritanceTax } from '../src/engine/heir';
-import { haveChild, makeNpc } from '../src/engine/relations';
+import { breakUp, divorce, haveChild, makeNpc, marry, startPartner } from '../src/engine/relations';
 import { Rng, rngFor } from '../src/engine/rng';
 import { loadGame, saveGame, type KeyValueStorage } from '../src/engine/save';
-import { annualIncome, buildScope } from '../src/engine/scope';
+import { annualIncome, buildScope, netWorth } from '../src/engine/scope';
 import { simulateLife } from '../src/engine/sim';
 import type { GameState, Npc, Sex } from '../src/engine/types';
 
@@ -466,5 +468,307 @@ describe('자녀로 이어하기: 돈의 단위 (R-007)', () => {
       expect(Math.abs(r.estate - results[0].estate)).toBeLessThanOrEqual(1);
       expect(r.wealth).toBe(results[0].wealth);
     }
+  });
+});
+
+/** 나이를 옮긴다 (그해와 세계의 해도 함께) */
+function at(s: GameState, age: number): void {
+  s.ch.age = age;
+  s.year = s.ch.birthYear + age;
+  s.world.year = s.year;
+}
+
+/** 혼인·출산을 게임 안의 함수로 차례대로 겪을 부모 */
+function playedLife(seed: string, sex: Sex): GameState {
+  const p = newGame({ seed, mode: 'reality', birthYear: 2026 });
+  p.ch.sex = sex;
+  p.ch.npcs = [];
+  p.world.economy.priceIndex = 1;
+  return p;
+}
+
+/** 실제 사건 '두 줄'에서 '결혼은 미루고 둘이 함께 키우기로 한다'를 고른다. 태어난 아이를 돌려준다 */
+function unmarriedBirth(p: GameState): Npc {
+  p.phase = 'action';
+  expect(presentCard(p, { eventId: 'rom_pregnancy_positive', ctx: {} })).toBe(true);
+  const index = p.card!.choices.findIndex((c) => c.text.includes('결혼은 미루고'));
+  expect(index).toBeGreaterThanOrEqual(0);
+  const before = new Set(p.ch.npcs.map((n) => n.id));
+  choose(p, index);
+  // 카드를 닫는다 (이어지는 사건은 이 검사와 상관없다)
+  p.card = undefined;
+  p.phase = 'action';
+  const born = p.ch.npcs.filter((n) => n.role === 'child' && !before.has(n.id));
+  expect(born.length).toBe(1);
+  return born[0];
+}
+
+/** 살아 있는 엄마·아빠의 인물 ID */
+const livingParents = (s: GameState) => s.ch.npcs.filter((n) => (n.role === 'mother' || n.role === 'father') && n.alive).map((n) => n.id);
+const STEP_PARENT = /새(아버지|어머니)/;
+
+describe('자녀로 이어하기: 함께 낳은 친부모를 인물 ID로 잇는다 (혼인신고를 미룬 출산)', () => {
+  it('아이가 태어날 때 다른 친부모를 남긴다: 배우자, 없으면 연인, 둘 다 없으면 null', () => {
+    const p = playedLife('HEIR-LINK', 'F');
+    at(p, 27);
+    const partner = startPartner(p, rngFor('HEIR-LINK', 'partner'));
+    at(p, 28);
+    expect(unmarriedBirth(p).otherParentId).toBe(partner.id);
+    at(p, 30);
+    marry(p);
+    at(p, 32);
+    expect(haveChild(p, rngFor('HEIR-LINK', 'second')).otherParentId).toBe(partner.id);
+    const alone = playedLife('HEIR-LINK-ALONE', 'F');
+    at(alone, 30);
+    expect(haveChild(alone, rngFor('HEIR-LINK-ALONE', 'kid')).otherParentId).toBeNull();
+  });
+
+  it('혼인신고 없이 낳고 그 연인과 나중에 결혼했다: 그 배우자가 친부모이자 보호자이고 계부모가 아니다', () => {
+    const p = playedLife('HEIR-UNWED-MARRY', 'F');
+    at(p, 27);
+    const partner = startPartner(p, rngFor('HEIR-UNWED-MARRY', 'partner'));
+    at(p, 28);
+    const kid = unmarriedBirth(p);
+    at(p, 30);
+    expect(marry(p)?.id).toBe(partner.id);
+    // 혼인 나이(30)가 아이가 태어난 나이(28)보다 늦다. 혼인 시점으로만 짐작하면 친아버지가 계부모로 빠진다
+    expect(partner.since).toBe(30);
+    at(p, 38);
+    p.ch.res.cash = 1_000_000_000;
+    die(p);
+    const next = continueAsChild(p, kid.id)!;
+    expectConsistentHeir(next, p, kid);
+    expect(byId(next, partner.id)?.role).toBe('father');
+    expect(livingParents(next)).toEqual([partner.id]);
+    expect(next.ch.family.type).toBe('single_parent');
+    expect(next.ch.family.livesWithParents).toBe(true);
+    // 고인의 배우자로서 받은 몫은 언젠가 이 아이에게 온다
+    expect(next.ch.family.estate).toBeGreaterThan(0);
+    expect(next.log[0].text).toContain(`아빠 ${partner.name}`);
+    expect(next.log[0].text).not.toMatch(STEP_PARENT);
+  });
+
+  it('앞선 결혼에서 이혼한 뒤 혼인신고 없이 낳았다: 전 배우자가 아니라 함께 낳은 연인이 친부모다 (나중에 결혼했든 아니든)', () => {
+    for (const marriedLater of [true, false]) {
+      const seed = `HEIR-UNWED-EX-${marriedLater}`;
+      const p = playedLife(seed, 'F');
+      at(p, 22);
+      const ex = startPartner(p, rngFor(seed, 'ex'));
+      marry(p);
+      at(p, 25);
+      divorce(p);
+      at(p, 27);
+      const partner = startPartner(p, rngFor(seed, 'partner'));
+      at(p, 28);
+      const kid = unmarriedBirth(p);
+      if (marriedLater) {
+        at(p, 30);
+        marry(p);
+      }
+      at(p, 38);
+      die(p);
+      const next = continueAsChild(p, kid.id)!;
+      expectConsistentHeir(next, p, kid);
+      expect(byId(next, partner.id)?.role, seed).toBe('father');
+      expect(byId(next, ex.id), seed).toBeUndefined();
+      expect(livingParents(next), seed).toEqual([partner.id]);
+      expect(next.ch.family.type, seed).toBe('single_parent');
+      expect(next.log[0].text, seed).toContain(`아빠 ${partner.name}`);
+      expect(next.log[0].text, seed).not.toMatch(STEP_PARENT);
+    }
+  });
+
+  it('결혼하지 않은 연인으로 남은 채 부모가 죽었다: 그 연인이 친부모이자 보호자이고, 법정상속인은 아니다', () => {
+    const p = playedLife('HEIR-UNWED-PARTNER', 'M');
+    at(p, 27);
+    const partner = startPartner(p, rngFor('HEIR-UNWED-PARTNER', 'partner'));
+    at(p, 28);
+    const kid = unmarriedBirth(p);
+    at(p, 38);
+    p.ch.res.cash = 2_000_000_000;
+    die(p);
+    const gross = netWorth(p);
+    const next = continueAsChild(p, kid.id)!;
+    expectConsistentHeir(next, p, kid);
+    const mother = byId(next, partner.id)!;
+    expect(mother.role).toBe('mother');
+    expect(mother.alive).toBe(true);
+    expect(mother.since).toBeUndefined();
+    expect(next.ch.family.type).toBe('single_parent');
+    expect(next.log[0].text).toContain(`엄마 ${partner.name}`);
+    expect(next.log[0].text).not.toMatch(STEP_PARENT);
+    // 혼인신고를 하지 않은 연인은 상속받지 않는다: 하나뿐인 자녀가 일괄공제 뒤 전부 받고, 나중에 올 몫도 없다
+    expect(next.ch.res.cash).toBe(gross - inheritanceTax(gross - 500_000_000, 1));
+    expect(next.ch.family.estate).toBe(0);
+  });
+
+  it('함께 낳은 연인과 헤어지고 다른 사람과 결혼했다: 새 배우자는 계부모이고, 기록에 없는 친부모를 짐작해 세우지 않는다', () => {
+    const seed = 'HEIR-UNWED-SPLIT';
+    const p = playedLife(seed, 'F');
+    at(p, 22);
+    const ex = startPartner(p, rngFor(seed, 'ex'));
+    marry(p);
+    at(p, 25);
+    divorce(p);
+    at(p, 27);
+    const partner = startPartner(p, rngFor(seed, 'partner'));
+    at(p, 28);
+    const kid = unmarriedBirth(p);
+    expect(breakUp(p)?.id).toBe(partner.id);
+    at(p, 31);
+    const step = startPartner(p, rngFor(seed, 'step'));
+    marry(p);
+    at(p, 38);
+    die(p);
+    const next = continueAsChild(p, kid.id)!;
+    expectConsistentHeir(next, p, kid);
+    // 혼인 시점으로 짐작했다면 아이보다 먼저 혼인한 전 배우자를 아빠로 세웠을 것이다
+    expect(byId(next, ex.id)).toBeUndefined();
+    expect(byId(next, step.id)).toBeUndefined();
+    expect(livingParents(next)).toEqual([]);
+    expect(next.ch.family.type).toBe('facility');
+    expect(next.log[0].text).toContain(`새아버지 ${step.name}`);
+  });
+
+  it('ID가 없는 옛 기록: 혼인 중이 아닐 때 태어난 아이는 그 뒤 첫 혼인 상대를 친부모로 짐작한다', () => {
+    // 28세에 낳고 30세에 혼인 (옛 저장의 미혼 출산): 지금의 배우자를 새어머니로 빼지 않는다
+    const a = lifeFixture('HEIR-LEGACY-UNWED', { sex: 'M', age: 38, marriages: [{ since: 30, role: 'spouse' }], kidsBornAt: [28] });
+    expect(a.kids[0].otherParentId).toBeUndefined();
+    const na = continueAsChild(a.p, a.kids[0].id)!;
+    expectConsistentHeir(na, a.p, a.kids[0]);
+    expect(livingParents(na)).toEqual([a.spouses[0].id]);
+    expect(na.ch.family.type).toBe('single_parent');
+    expect(na.log[0].text).not.toMatch(STEP_PARENT);
+
+    // 그 사람과 이혼하고 재혼했다: 첫 혼인 상대(전 배우자)가 친부모이고 지금의 배우자는 새어머니다
+    const b = lifeFixture('HEIR-LEGACY-UNWED-RE', { sex: 'M', age: 45, marriages: [{ since: 30, role: 'ex' }, { since: 40, role: 'spouse' }], kidsBornAt: [28] });
+    const nb = continueAsChild(b.p, b.kids[0].id)!;
+    expectConsistentHeir(nb, b.p, b.kids[0]);
+    expect(livingParents(nb)).toEqual([b.spouses[0].id]);
+    expect(byId(nb, b.spouses[1].id)).toBeUndefined();
+    expect(nb.log[0].text).toContain(`새어머니 ${b.spouses[1].name}`);
+
+    // 사별한 뒤에 낳았다: 먼저 떠난 배우자가 아니라 그 뒤의 혼인 상대다
+    const c = lifeFixture('HEIR-LEGACY-WIDOW', { sex: 'M', age: 45, marriages: [{ since: 24, role: 'spouse', diedAt: 26 }, { since: 32, role: 'spouse' }], kidsBornAt: [28] });
+    const nc = continueAsChild(c.p, c.kids[0].id)!;
+    expectConsistentHeir(nc, c.p, c.kids[0]);
+    expect(livingParents(nc)).toEqual([c.spouses[1].id]);
+    expect(byId(nc, c.spouses[0].id)).toBeUndefined();
+    expect(nc.log[0].text).not.toMatch(STEP_PARENT);
+  });
+});
+
+describe('자녀로 이어하기: 고치기 전 저장 바로잡기 (R-006)', () => {
+  /** 고치기 전의 이어하기(9a79055)가 붙이던 배우자: 미성년에게도 붙였고, 혼인 나이를 지금보다 뒤로 잡기도 했다 */
+  const oldSpouse = (s: GameState, birthOffset: number, since: number): Npc => ({
+    id: 'n9001',
+    name: '정이안',
+    sex: s.ch.sex === 'M' ? 'F' : 'M',
+    birthYear: s.ch.birthYear + birthOffset,
+    role: 'spouse',
+    alive: true,
+    closeness: 65,
+    health: 85,
+    since,
+  });
+  const reload = (s: GameState): GameState => {
+    const storage = memoryStorage();
+    expect(saveGame(s, storage)).toBe(true);
+    return loadGame(storage)!;
+  };
+
+  it('검토 재현: 미성년 후계자의 배우자·전 배우자·자녀를 지우고 사별 표시와 사는 집을 되돌린다 (나머지는 그대로)', () => {
+    // 10세 후계자, 친아버지(전 배우자)가 키운다
+    const { p, kids } = lifeFixture('HEIR-OLD-MINOR', { sex: 'F', age: 45, marriages: [{ since: 25, role: 'ex' }], kidsBornAt: [35] });
+    const heir = continueAsChild(p, kids[0].id)!;
+    expect(heir.ch.family.type).toBe('single_parent');
+    // 9세 배우자(혼인 나이 21세)가 붙고 따로 산다고 적힌 판
+    const married = structuredClone(heir);
+    married.ch.npcs.push(oldSpouse(married, 1, 21));
+    married.ch.family.livesWithParents = false;
+    expect(familyScope(married).married).toBe(true);
+    // 그 배우자가 세상을 떠났고(사별 표시) 전 배우자·아이 기록까지 있는 판
+    const widowed = structuredClone(married);
+    Object.assign(widowed.ch.npcs.find((n) => n.id === 'n9001')!, { alive: false, deathYear: widowed.year });
+    widowed.ch.flags.widowed = { since: widowed.ch.age };
+    widowed.ch.npcs.push(
+      { ...oldSpouse(widowed, -2, 22), id: 'n9002', role: 'ex' },
+      { id: 'n9003', name: '정하나', sex: 'F', birthYear: widowed.year, role: 'child', alive: true, closeness: 80, health: 88 },
+    );
+    for (const old of [married, widowed]) {
+      const repaired = reload(old);
+      expect(repaired).toEqual(heir);
+      expectConsistentHeir(repaired, p, kids[0]);
+      // 다시 불러도 같다
+      expect(reload(repaired)).toEqual(heir);
+    }
+  });
+
+  it('성년 후계자: 혼인 나이를 둘 다 성년이 된 때부터 지금 사이로 옮기고, 그런 때가 없으면 혼인 기록을 지운다', () => {
+    // 상대 생년은 후계자 생년 기준, 나이는 모두 후계자의 나이. fixed가 null이면 지운다
+    const cases: { age: number; offset: number; since: number; diedAt?: number; fixed: number | null }[] = [
+      { age: 20, offset: 1, since: 21, fixed: 20 }, // 미래의 혼인 → 둘 다 성년인 올해
+      { age: 25, offset: -2, since: 15, fixed: 19 }, // 미성년 혼인 → 성년이 된 해
+      { age: 26, offset: 3, since: 20, fixed: 22 }, // 상대가 미성년일 때 → 상대가 성년이 된 해
+      { age: 30, offset: -1, since: 27, fixed: 27 }, // 가능한 기록은 그대로
+      { age: 20, offset: 3, since: 22, fixed: null }, // 상대가 아직 17세
+      { age: 25, offset: 2, since: 21, diedAt: 18, fixed: null }, // 상대가 16세에 세상을 떠났다 (사별 표시도 지운다)
+    ];
+    for (const c of cases) {
+      const label = JSON.stringify(c);
+      const { p, child } = fixture(`HEIR-OLD-ADULT-${c.age}`, c.age);
+      const heir = continueAsChild(p, child.id)!;
+      heir.ch.npcs = heir.ch.npcs.filter((n) => n.role !== 'spouse' && n.role !== 'child');
+      const spouse = oldSpouse(heir, c.offset, c.since);
+      if (c.diedAt !== undefined) {
+        Object.assign(spouse, { alive: false, deathYear: heir.ch.birthYear + c.diedAt });
+        heir.ch.flags.widowed = { since: c.diedAt };
+      }
+      heir.ch.npcs.push(spouse);
+      const repaired = reload(heir);
+      if (c.fixed === null) {
+        expect(byId(repaired, spouse.id), label).toBeUndefined();
+        expect(repaired.ch.flags.widowed, label).toBeUndefined();
+      } else {
+        expect(byId(repaired, spouse.id)?.since, label).toBe(c.fixed);
+        expect(familyScope(repaired).marriedYears, label).toBe(c.age - c.fixed);
+      }
+      expect(reload(repaired), label).toEqual(repaired);
+    }
+  });
+
+  it('고친 이어하기가 만든 저장은 혼인한 후계자까지 그대로 불러온다', () => {
+    let married = 0;
+    for (const age of [0, 10, 18, 19, 20, 25, 27, 40, 65]) {
+      for (let i = 0; i < 20; i++) {
+        const { p, child } = fixture(`HEIR-OLD-OK-${age}-${i}`, age);
+        const heir = continueAsChild(p, child.id)!;
+        if (familyScope(heir).married) married++;
+        expect(reload(heir), `${age}세 ${i}`).toEqual(heir);
+      }
+    }
+    expect(married).toBeGreaterThan(0);
+  });
+
+  it('검토 재현: 옛 저장에서 혼인 나이보다 먼저 태어난 아이도 그 배우자를 친부모로 이어받는다 (계부모로 빼지 않는다)', () => {
+    // 고치기 전 코드로 10세 후계자에게 1살 아래 배우자(혼인 나이 21세)가 붙었고, 그대로 25세까지 살며 20세에 아이를 낳았다
+    const { p, child } = fixture('REVIEW-HEIR-6', 10);
+    const heir = continueAsChild(p, child.id)!;
+    const spouse = oldSpouse(heir, 1, 21);
+    heir.ch.npcs.push(spouse);
+    at(heir, 20);
+    const kid = haveChild(heir, rngFor('REVIEW-HEIR-6', 'gen3'));
+    delete kid.otherParentId; // 그때 태어난 아이에게는 친부모 ID가 없다
+    at(heir, 25);
+    const loaded = reload(heir);
+    // 둘 다 성년인 때(20~25세)의 혼인 나이라 가능한 기록이다: 그대로 둔다
+    expect(byId(loaded, spouse.id)?.since).toBe(21);
+    die(loaded);
+    const gen3 = continueAsChild(loaded, kid.id)!;
+    expectConsistentHeir(gen3, loaded, byId(loaded, kid.id)!);
+    expect(byId(gen3, spouse.id)?.role).toBe(spouse.sex === 'M' ? 'father' : 'mother');
+    expect(livingParents(gen3)).toEqual([spouse.id]);
+    expect(gen3.ch.family.type).toBe('single_parent');
+    expect(gen3.log[0].text).not.toMatch(STEP_PARENT);
   });
 });

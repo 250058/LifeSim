@@ -477,7 +477,17 @@
       "visible": true,
       "sign": "bad",
       "healthPerYear": -0.5,
-      "duration": 1
+      "duration": 1,
+      "stopped": "med_tb_stopped",
+      "treatment": "결핵 치료"
+    },
+    {
+      "id": "med_tb_stopped",
+      "name": "결핵 치료 중단",
+      "desc": "약을 끝까지 먹지 않았다. 남은 균이 약에 버티는 힘을 키울 수 있다",
+      "visible": true,
+      "sign": "bad",
+      "duration": 2
     },
     {
       "id": "med_eating",
@@ -4593,12 +4603,12 @@
           {
             "text": "여섯 달 동안 약을 빠짐없이 먹는다",
             "result": "약을 먹으면 소변이 주황색이었다. 2주 뒤부터는 남에게 옮기지 않는다고 했다. 반년 뒤 완치 판정을 받았다.",
-            "fx": { "health": 2, "stress": 2, "add": ["med_tb"] }
+            "fx": { "health": 2, "stress": 2, "treat": [{ "tag": "med_tb", "act": "start" }] }
           },
           {
             "text": "좋아지자 약을 끊는다",
             "result": "두 달 만에 끊었다. 의사가 내성이 생길 수 있다며 언성을 높였다.",
-            "fx": { "stress": 2, "add": ["med_tb"] },
+            "fx": { "stress": 2, "treat": [{ "tag": "med_tb", "act": "stop" }] },
             "worse": 1
           }
         ]
@@ -4610,12 +4620,12 @@
           {
             "text": "격리 입원해 새 약을 먹는다",
             "result": "한 달 동안 격리 병동에서 창밖만 봤다.",
-            "fx": { "health": -4, "stress": 6, "add": ["med_tb"] }
+            "fx": { "health": -4, "stress": 6, "treat": [{ "tag": "med_tb", "act": "resume" }] }
           },
           {
             "text": "보건소 복약 관리를 받는다",
             "result": "보건소 직원이 매일 영상 통화로 약 먹는 걸 확인했다.",
-            "fx": { "health": -3, "stress": 4, "add": ["med_tb"] }
+            "fx": { "health": -3, "stress": 4, "treat": [{ "tag": "med_tb", "act": "resume" }] }
           }
         ]
       }
@@ -10147,7 +10157,7 @@
             {
               "text": "교실에 나간다",
               "result": "또래들과 저염 김치를 담갔다. 혈압 재는 날이 기다려졌다.",
-              "fx": { "health": 2, "sociability": 1, "remove": ["med_htn"], "add": ["med_htn_ok"] }
+              "fx": { "health": 2, "happiness": 1, "remove": ["med_htn"], "add": ["med_htn_ok"] }
             },
             { "text": "귀찮아서 안 간다", "result": "안내 문자는 계속 왔다.", "fx": { "health": -1 } }
           ]
@@ -10228,7 +10238,7 @@
             {
               "text": "어차피 늦었다며 내려놓는다",
               "result": "측정기 배터리가 다 됐다. 갈지 않았다.",
-              "fx": { "health": -2, "remove": ["med_dm_ok"], "add": ["med_dm"] }
+              "fx": { "health": -3, "remove": ["med_dm_ok"], "add": ["med_dm"] }
             }
           ]
         }
@@ -10301,7 +10311,7 @@
             {
               "text": "끊은 채로 지낸다",
               "result": "수치는 그대로 높았다.",
-              "fx": { "health": -1, "remove": ["med_lipid_ok"], "add": ["med_lipid"] }
+              "fx": { "health": -2, "remove": ["med_lipid_ok"], "add": ["med_lipid"] }
             }
           ]
         }
@@ -10504,7 +10514,7 @@
             {
               "text": "그냥 지낸다",
               "result": "수치가 다시 엉망이 됐다.",
-              "fx": { "health": -1, "remove": ["med_thyroid_ok"], "add": ["med_thyroid"] }
+              "fx": { "health": -2, "remove": ["med_thyroid_ok"], "add": ["med_thyroid"] }
             }
           ]
         }
@@ -10627,7 +10637,7 @@
             {
               "text": "집에서 산소를 쓰며 버틴다",
               "result": "회복이 더뎠다.",
-              "fx": { "health": -4, "stress": 3, "remove": ["med_copd_ok"], "add": ["med_copd"] }
+              "fx": { "health": -4, "stamina": -2, "stress": 3, "remove": ["med_copd_ok"], "add": ["med_copd"] }
             }
           ]
         }
@@ -11523,7 +11533,7 @@
             {
               "text": "여행 땐 괜찮겠지 한다",
               "result": "쓰는 날보다 안 쓰는 날이 많아졌다.",
-              "fx": { "health": -1, "remove": ["med_apnea_ok"], "add": ["med_apnea"] }
+              "fx": { "health": -2, "remove": ["med_apnea_ok"], "add": ["med_apnea"] }
             }
           ]
         }

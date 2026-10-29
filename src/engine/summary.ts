@@ -3,17 +3,17 @@
 
 import { JOB_BY_ID, REGION_BY_ID, TAG_BY_ID } from './data';
 import { DEGREE_LABEL } from './career';
-import { servedPrison } from './records';
+import { sentencedToImprisonment, servedPrison } from './records';
 import { alive, spouseOf } from './relations';
 import { netWorth } from './scope';
 import type { GameState, LifeSummary, LogEntry } from './types';
 
+/** '버텼다'로 맺는 고난 태그. 전과는 태그 대신 처분 기록으로 본다 (벌금만 있으면 고난으로 치지 않는다) */
 const HARDSHIP = [
   'bullying_victim',
   'bullying_overcome',
   'hazing_victim',
   'compound_survivor',
-  'criminal_record',
   'credit_default',
   'cancer_survivor',
   'phishing_victim',
@@ -41,7 +41,8 @@ export function epitaph(state: GameState): string {
 
   const kids = alive(ch, 'child').length + ch.npcs.filter((n) => n.role === 'child' && !n.alive).length;
   const everMarried = ch.npcs.some((n) => n.role === 'spouse' || n.role === 'ex');
-  const hardship = HARDSHIP.some((h) => ch.flags[h]);
+  // 징역형(집행유예·실형)을 받은 인생만 고난으로 친다
+  const hardship = HARDSHIP.some((h) => ch.flags[h]) || sentencedToImprisonment(ch);
 
   if (unique.length > 0) {
     const verb = hardship ? '버텼다' : everMarried && kids > 0 ? '사랑했다' : ch.stats.happiness >= 65 ? '웃었다' : '살아냈다';

@@ -132,15 +132,36 @@
       "visible": true,
       "sign": "good",
       "duration": 3,
-      "healthPerYear": 0.3
+      "healthPerYear": 0.3,
+      "stopped": "nut_ed_recovery_stopped",
+      "treatment": "섭식장애 치료"
+    },
+    {
+      "id": "nut_ed_recovery_stopped",
+      "name": "섭식장애 치료 중단",
+      "desc": "치료를 그만둔 뒤의 시기. 흔들리면 언제든 다시 도움을 청할 수 있다",
+      "visible": true,
+      "sign": "info",
+      "duration": 3
     },
     {
       "id": "nut_glp1",
       "name": "비만 치료 주사",
-      "desc": "주 1회 주사를 맞는다. 끊으면 체중이 돌아오기 쉽다",
+      "desc": "주 1회 주사를 맞는다. 끊으면 체중이 돌아오기 쉽다. 이어 맞으려면 해마다 재진에서 정한다",
       "visible": true,
       "sign": "info",
-      "duration": 1
+      "duration": 1,
+      "healthPerYear": 0.2,
+      "stopped": "nut_glp1_stopped",
+      "ongoing": true
+    },
+    {
+      "id": "nut_glp1_stopped",
+      "name": "비만 치료 주사 중단",
+      "desc": "주사를 그만둔 뒤의 시기. 식욕과 체중이 돌아오기 쉽다",
+      "visible": true,
+      "sign": "info",
+      "duration": 2
     },
     {
       "id": "nut_cook",
@@ -300,6 +321,7 @@
       "if": "family.partnerAdult && !legal.inPrison && !military.serving",
       "lead": "{짝}와/과 마주 앉은 저녁. 메뉴판을 한참 넘기다가 둘이 동시에 <F>을/를 가리켰다.",
       "drink": "{짝}와/과 나란히 앉은 창가 자리. 잔 두 개에 <F>이/가 채워졌다.",
+      "alcohol": "{짝}와/과 나란히 앉은 창가 자리. {짝}이/가 메뉴판의 <F>을/를 가리키며 '한잔할래?' 하고 물었다.",
       "pay": 2,
       "fx": { "happiness": 1 },
       "w": 0.8
@@ -379,9 +401,9 @@
       "name": "해장",
       "tags": ["haejang"],
       "age": [20, 80],
-      "if": "!military.serving && !legal.inPrison",
-      "lead": "어젯밤 술자리의 대가. 머리가 지끈거리고 속이 뒤집혔다. 떠오르는 건 <F>뿐이었다.",
-      "drink": "어젯밤 술자리의 대가. 입안이 사막처럼 말랐다. 냉장고에서 <F>을/를 꺼냈다.",
+      "if": "substance.alcohol.usedThisYear && !military.serving && !legal.inPrison",
+      "lead": "어젯밤 마신 술의 대가. 머리가 지끈거리고 속이 뒤집혔다. 떠오르는 건 <F>뿐이었다.",
+      "drink": "어젯밤 마신 술의 대가. 입안이 사막처럼 말랐다. 냉장고에서 <F>을/를 꺼냈다.",
       "w": 0.6,
       "modifiers": [{ "if": "flags.heavy_drinker", "x": 2 }],
       "exit": { "text": "물만 몇 컵 마시고 다시 눕는다", "result": "오후 두 시가 돼서야 사람 꼴이 됐다.", "fx": { "stress": 1 } }
@@ -394,6 +416,7 @@
       "if": "!military.serving && !legal.inPrison",
       "lead": "캠핑장의 저녁. 장작이 타닥타닥 타고, 화로 위에 <F>이/가 올라갔다.",
       "drink": "캠핑장의 밤. 장작불 옆에서 <F>을/를 땄다.",
+      "alcohol": "캠핑장의 밤. 장작불 옆에서 일행이 <F>을/를 따며 '한 잔 받아' 하고 내 컵을 찾았다.",
       "pay": 0.6,
       "w": 0.5
     },
@@ -405,6 +428,7 @@
       "if": "!military.serving && !legal.inPrison",
       "lead": "여행 둘째 날. 숙소 사장님이 꼭 먹어 보라던 <F> 맛집 앞에 줄이 길게 늘어서 있었다.",
       "drink": "여행 둘째 날 밤. 바닷가 포장마차에서 <F>을/를 시켰다.",
+      "alcohol": "여행 둘째 날 밤. 바닷가 포장마차에 자리를 잡자 일행이 <F>부터 주문하고 내 잔도 놓았다.",
       "pay": 1.3,
       "w": 0.6
     },
@@ -425,6 +449,7 @@
       "age": [13, 90],
       "if": "!military.serving && !legal.inPrison",
       "lead": "창밖으로 장대비가 쏟아졌다. 빗소리를 듣고 있자니 <F>이/가 간절해졌다.",
+      "alcohol": "창밖으로 장대비가 쏟아졌다. 친구가 '비 오는 날엔 파전이지' 하며 단골 전집으로 불러냈다. 상 위에는 벌써 <F>이/가 놓여 있었다.",
       "w": 0.7
     },
     {
@@ -435,6 +460,7 @@
       "if": "!military.serving && !legal.inPrison",
       "lead": "땀으로 흠뻑 젖은 운동복. 샤워를 마치고 나오자 허기가 확 밀려왔다. 눈앞에 <F>.",
       "drink": "운동을 마치고 나오는데 목이 바짝 탔다. 눈에 들어온 건 <F>.",
+      "alcohol": "운동을 마치고 나오는데 동호회 사람들이 '<F> 한 잔씩 하고 가자'며 호프집으로 앞장섰다.",
       "w": 0.7
     },
     {
@@ -525,6 +551,7 @@
       "age": [15, 65],
       "if": "!military.serving && !legal.inPrison",
       "lead": "해 질 녘 강변 공원. 돗자리에 앉으니 강바람이 선선했다. 봉지 안에는 <F>.",
+      "alcohol": "해 질 녘 강변 공원. 돗자리에 둘러앉자 친구가 편의점 봉지에서 <F>을/를 꺼내 하나씩 돌렸다.",
       "w": 0.5
     },
     {
@@ -703,6 +730,7 @@
       "age": [19, 70],
       "if": "!military.serving && !legal.inPrison",
       "lead": "해수욕장 파라솔 아래. 바닷물에 젖은 채로 <F>을/를 받아 들었다.",
+      "alcohol": "해수욕장 파라솔 아래. 일행이 아이스박스에서 <F>을/를 꺼내 내 쪽으로 내밀었다.",
       "pay": 1.2,
       "w": 0.4
     },
@@ -713,6 +741,7 @@
       "age": [10, 85],
       "if": "!military.serving && !legal.inPrison",
       "lead": "지역 축제 먹거리 장터. 천막마다 연기가 피어올랐다. 줄 끝에서 받아 든 건 <F>.",
+      "alcohol": "지역 축제 먹거리 장터. 천막 아래 합석한 어르신이 <F>을/를 들고 '젊은 사람도 한 잔 해' 하며 잔을 내밀었다.",
       "w": 0.5
     },
     {
@@ -794,6 +823,10 @@
       "w": 0.4
     }
   ],
+  "alcoholDecline": {
+    "text": "오늘은 술 대신 물을 마신다",
+    "result": "\"오늘은 안 마실게요.\" 물잔을 들고도 자리는 충분히 즐거웠다."
+  },
   "foods": [
     {
       "id": "kimchi_stew",
@@ -3522,6 +3555,7 @@
       "drink": true,
       "tags": ["haejang", "store"],
       "age": [20, 100],
+      "if": "substance.alcohol.usedThisYear",
       "lines": [
         "2025년부터는 사람을 대상으로 한 시험으로 효과를 입증한 제품만 '숙취해소'라는 표현을 쓸 수 있다. 그래도 효과는 크지 않고, 한 병에 5,000원이 넘는다.",
         "숙취해소 음료의 효과는 제품마다 다르고 크지 않다. 마신 술의 양을 이기는 음료는 없다."
@@ -3535,6 +3569,7 @@
       "id": "soju",
       "name": "소주",
       "drink": true,
+      "alcohol": true,
       "tags": [
         "hoesik",
         "mt",
@@ -3558,20 +3593,22 @@
         {
           "text": "잔이 비는 대로 채워 마신다",
           "result": "기억이 군데군데 끊겼다. 아침에 머리가 깨질 듯 아팠다.",
-          "fx": { "happiness": 1, "stress": -2, "health": -2, "cost": 6000 }
+          "fx": { "happiness": 1, "stress": -2, "health": -2, "cost": 6000 },
+          "use": 0.5
         },
         {
           "text": "한두 잔만 마시고 물을 번갈아 마신다",
           "result": "덜 취했다. 기분 좋게 딱 거기까지였다.",
-          "fx": { "happiness": 1, "cost": 6000 }
+          "fx": { "happiness": 1, "cost": 6000 },
+          "use": 0.25
         },
         {
           "text": "오늘은 마시지 않기로 한다",
           "check": ["mental", 50],
           "result": "잔을 내려놓았다. 다음 날 아침이 멀쩡했다.",
           "fx": { "health": 1 },
-          "fail": "'딱 한 잔만'이 다섯 잔이 됐다.",
-          "failFx": { "health": -1, "stress": 1, "cost": 6000 }
+          "fail": "'딱 한 잔만' 하는 마음이 몇 번이나 올라왔다. 끝내 마시지는 않았지만 진이 빠졌다.",
+          "failFx": { "stress": 1 }
         }
       ]
     },
@@ -3579,6 +3616,7 @@
       "id": "beer",
       "name": "생맥주",
       "drink": true,
+      "alcohol": true,
       "tags": ["hoesik", "ballpark", "travel", "date", "workout"],
       "age": [19, 100],
       "modifiers": [{ "if": "flags.heavy_drinker", "x": 2 }],
@@ -3590,9 +3628,15 @@
         {
           "text": "500cc 세 잔을 비운다",
           "result": "배가 출렁거렸다. 화장실을 몇 번이나 들락거렸다.",
-          "fx": { "happiness": 2, "stress": -2, "health": -1, "cost": 15000 }
+          "fx": { "happiness": 2, "stress": -2, "health": -1, "cost": 15000 },
+          "use": 0.5
         },
-        { "text": "한 잔만 천천히 마신다", "result": "시원한 첫 모금이 제일 맛있었다.", "fx": { "happiness": 2, "cost": 5000 } },
+        {
+          "text": "한 잔만 천천히 마신다",
+          "result": "시원한 첫 모금이 제일 맛있었다.",
+          "fx": { "happiness": 2, "cost": 5000 },
+          "use": 0.25
+        },
         { "text": "무알코올 맥주로 바꾼다", "result": "맛은 비슷했다. 다음 날이 멀쩡했다.", "fx": { "happiness": 1, "cost": 4000 } }
       ]
     },
@@ -3600,6 +3644,7 @@
       "id": "makgeolli",
       "name": "막걸리",
       "drink": true,
+      "alcohol": true,
       "tags": ["rainy", "hiking", "travel", "senior", "festival", "family_trip", "rainy_kid"],
       "age": [19, 100],
       "modifiers": [{ "if": "flags.heavy_drinker", "x": 2 }],
@@ -3611,15 +3656,27 @@
         {
           "text": "사발로 두 병을 비운다",
           "result": "얼굴이 벌겋게 달아올랐다. 다리가 풀렸다.",
-          "fx": { "happiness": 2, "stress": -2, "health": -2, "cost": 10000 }
+          "fx": { "happiness": 2, "stress": -2, "health": -2, "cost": 10000 },
+          "use": 0.5
         },
-        { "text": "한 사발만 마신다", "result": "구수하고 시원했다. 딱 기분 좋을 만큼이었다.", "fx": { "happiness": 2, "cost": 5000 } }
-      ]
+        {
+          "text": "한 사발만 마신다",
+          "result": "구수하고 시원했다. 딱 기분 좋을 만큼이었다.",
+          "fx": { "happiness": 2, "cost": 5000 },
+          "use": 0.25
+        }
+      ],
+      "decline": {
+        "text": "잔은 사양하고 시원한 물을 마신다",
+        "result": "\"술은 괜찮아요.\" 물 한 병을 들고도 이야기는 똑같이 즐거웠다.",
+        "fx": { "happiness": 1 }
+      }
     },
     {
       "id": "wine",
       "name": "레드와인",
       "drink": true,
+      "alcohol": true,
       "tags": ["date", "buffet"],
       "age": [19, 100],
       "lines": [
@@ -3630,15 +3687,27 @@
         {
           "text": "한 병을 다 비운다",
           "result": "얼굴이 발그레해졌다. 대화가 길어졌다.",
-          "fx": { "happiness": 3, "health": -1, "cost": 25000 }
+          "fx": { "happiness": 3, "health": -1, "cost": 25000 },
+          "use": 0.5
         },
-        { "text": "한 잔만 천천히 음미한다", "result": "향이 좋았다. 정신도 말짱했다.", "fx": { "happiness": 2, "cost": 12000 } }
-      ]
+        {
+          "text": "한 잔만 천천히 음미한다",
+          "result": "향이 좋았다. 정신도 말짱했다.",
+          "fx": { "happiness": 2, "cost": 12000 },
+          "use": 0.25
+        }
+      ],
+      "decline": {
+        "text": "와인 대신 탄산수 잔을 든다",
+        "result": "탄산수로 건배했다. 잔 부딪는 소리는 똑같이 경쾌했다.",
+        "fx": { "happiness": 1, "cost": 3000 }
+      }
     },
     {
       "id": "somaek",
       "name": "소맥",
       "drink": true,
+      "alcohol": true,
       "tags": ["hoesik", "mt"],
       "age": [19, 100],
       "modifiers": [{ "if": "flags.heavy_drinker", "x": 2 }],
@@ -3650,15 +3719,22 @@
         {
           "text": "회오리를 돌려 원샷한다",
           "result": "박수가 쏟아졌다. 그다음부터 기억이 흐릿하다.",
-          "fx": { "sociability": 1, "happiness": 1, "health": -2 }
+          "fx": { "sociability": 1, "happiness": 1, "health": -2 },
+          "use": 0.5
         },
-        { "text": "맥주만 따라 달라고 한다", "result": "도수가 낮아서 끝까지 버텼다.", "fx": { "happiness": 1 } }
-      ]
+        { "text": "맥주만 따라 달라고 한다", "result": "도수가 낮아서 끝까지 버텼다.", "fx": { "happiness": 1 }, "use": 0.25 }
+      ],
+      "decline": {
+        "text": "술 대신 사이다를 따라 달라고 한다",
+        "result": "사이다 잔으로 건배했다. 박수는 똑같이 받았다.",
+        "fx": { "sociability": 1 }
+      }
     },
     {
       "id": "highball",
       "name": "하이볼",
       "drink": true,
+      "alcohol": true,
       "tags": ["date", "yasik"],
       "age": [19, 100],
       "lines": [
@@ -3669,15 +3745,27 @@
         {
           "text": "세 잔째까지 마신다",
           "result": "레몬 향 뒤로 취기가 천천히 올라왔다.",
-          "fx": { "happiness": 2, "health": -1, "cost": 27000 }
+          "fx": { "happiness": 2, "health": -1, "cost": 27000 },
+          "use": 0.5
         },
-        { "text": "한 잔 마시고 탄산수로 바꾼다", "result": "청량함은 그대로였다.", "fx": { "happiness": 1, "cost": 9000 } }
-      ]
+        {
+          "text": "한 잔 마시고 탄산수로 바꾼다",
+          "result": "청량함은 그대로였다.",
+          "fx": { "happiness": 1, "cost": 9000 },
+          "use": 0.25
+        }
+      ],
+      "decline": {
+        "text": "처음부터 레몬 탄산수로 한다",
+        "result": "얼음에 레몬 한 조각. 술 없이도 청량함은 그대로였다.",
+        "fx": { "happiness": 1 }
+      }
     },
     {
       "id": "cheongju",
       "name": "음복 청주",
       "drink": true,
+      "alcohol": true,
       "tags": ["holiday", "holihost"],
       "age": [19, 100],
       "lines": [
@@ -3685,8 +3773,13 @@
         "음복 한 잔이 두 잔, 세 잔이 되기 쉽다. 명절 귀성길 운전을 앞두고는 한 잔도 위험하다."
       ],
       "choices": [
-        { "text": "따라 주는 대로 받는다", "result": "볼이 발그레해졌다. 낮잠이 쏟아졌다.", "fx": { "happiness": 1, "health": -1 } },
-        { "text": "입술만 축이고 내려놓는다", "result": "예의는 차렸다." },
+        {
+          "text": "따라 주는 대로 받는다",
+          "result": "볼이 발그레해졌다. 낮잠이 쏟아졌다.",
+          "fx": { "happiness": 1, "health": -1 },
+          "use": 0.5
+        },
+        { "text": "잔만 받아 두고 마시지는 않는다", "result": "예의는 차렸다." },
         { "text": "운전해야 한다며 정중히 사양한다", "result": "다들 고개를 끄덕였다. 그게 맞다고.", "fx": { "reputation": 1 } }
       ]
     },
@@ -3694,6 +3787,7 @@
       "id": "can_beer",
       "name": "캔맥주",
       "drink": true,
+      "alcohol": true,
       "tags": ["yasik", "camping", "park", "mt", "beach"],
       "age": [19, 100],
       "modifiers": [{ "if": "flags.heavy_drinker", "x": 2 }],
@@ -3705,9 +3799,15 @@
         {
           "text": "네 캔을 연달아 비운다",
           "result": "어느새 소파에서 잠들어 있었다. 아침에 배가 더부룩했다.",
-          "fx": { "happiness": 2, "stress": -2, "health": -1, "cost": 10000 }
+          "fx": { "happiness": 2, "stress": -2, "health": -1, "cost": 10000 },
+          "use": 0.5
         },
-        { "text": "한 캔만 천천히 마신다", "result": "차가운 첫 모금이 제일 맛있었다.", "fx": { "happiness": 2, "cost": 2500 } },
+        {
+          "text": "한 캔만 천천히 마신다",
+          "result": "차가운 첫 모금이 제일 맛있었다.",
+          "fx": { "happiness": 2, "cost": 2500 },
+          "use": 0.25
+        },
         { "text": "무알코올 맥주로 바꾼다", "result": "맛은 비슷했다. 다음 날이 멀쩡했다.", "fx": { "happiness": 1, "cost": 2500 } }
       ]
     },
@@ -4273,9 +4373,15 @@
           "zoom": "건강검진 결과지",
           "text": "결과지에 중성지방 230mg/dL. 기준(150 미만)을 훌쩍 넘었다. 의사는 고기 기름보다 술과 단 것, 흰쌀밥부터 줄이라고 했다. 남는 당과 알코올은 간에서 중성지방이 된다.",
           "choices": [
-            { "text": "술과 단 음료부터 줄인다", "result": "석 달 뒤 수치가 140으로 내려왔다.", "fx": { "health": 2 } },
-            { "text": "고기만 줄이고 술은 그대로 마신다", "result": "수치는 별로 움직이지 않았다." },
-            { "text": "오메가3 캡슐로 해결하려 한다", "result": "의사는 식습관이 먼저라고 했다. 캡슐값만 나갔다.", "fx": { "cost": 40000 } }
+            { "text": "단 음료와 흰쌀밥부터 줄인다", "result": "석 달 뒤 수치가 140으로 내려왔다.", "fx": { "health": 2 } },
+            { "text": "고기 기름만 걷어 내고 나머지는 그대로 둔다", "result": "수치는 별로 움직이지 않았다." },
+            { "text": "오메가3 캡슐로 해결하려 한다", "result": "의사는 식습관이 먼저라고 했다. 캡슐값만 나갔다.", "fx": { "cost": 40000 } },
+            {
+              "text": "술자리부터 줄이기로 한다",
+              "if": "substance.alcohol.current",
+              "result": "술자리는 한 달에 두 번까지로 정했다. 지켜질지는 석 달 뒤 검사가 말해 줄 것이다.",
+              "fx": { "health": 1, "do": [{ "type": "substance", "substance": "alcohol", "act": "cutDown" }] }
+            }
           ]
         },
         {
@@ -4469,7 +4575,11 @@
           "zoom": "영양제 코너",
           "text": "담배를 피우는 사람이 고용량 베타카로틴 보충제를 먹었더니 폐암이 오히려 늘었다는 대규모 연구가 있다. 손에 든 '눈 건강' 상자 성분표에 베타카로틴이 적혀 있었다.",
           "choices": [
-            { "text": "영양제 대신 보건소 금연클리닉에 등록한다", "result": "상담사와 금연 날짜를 정했다.", "fx": { "health": 2 } },
+            {
+              "text": "영양제 대신 보건소 금연클리닉에 등록한다",
+              "result": "상담사와 금연 날짜를 정했다.",
+              "fx": { "health": 2, "do": [{ "type": "substance", "substance": "tobacco", "act": "treat" }] }
+            },
             { "text": "상관없다며 산다", "result": "성분표를 다시 보지 않았다.", "fx": { "health": -1, "cost": 30000 } }
           ]
         },
@@ -4940,7 +5050,7 @@
           "text": "아내와 아이를 갖기로 했다. 정자가 만들어지는 데 석 달 가까이 걸린다. 의사는 술과 담배를 줄이고 엽산과 아연이 든 음식을 챙기라고 했다.",
           "choices": [
             {
-              "text": "술자리를 줄이고 같이 식단을 바꾼다",
+              "text": "의사 말대로 같이 식단부터 바꾼다",
               "result": "{배우자}이/가 웃으며 손을 잡았다.",
               "fx": { "health": 1, "happiness": 1 }
             },
@@ -5330,7 +5440,7 @@
           "choices": [
             { "text": "바나나와 토마토, 물을 챙겨 먹는다", "result": "점심때쯤 붓기가 빠졌다.", "fx": { "health": 1, "cost": 5000 } },
             { "text": "붓기 빼는 즙을 사 마신다", "result": "결국 붓기를 뺀 건 시간이었다.", "fx": { "cost": 30000 } },
-            { "text": "또 짠 국물로 해장한다", "result": "붓기가 이틀을 갔다.", "fx": { "health": -1, "add": ["nut_salty"] } }
+            { "text": "또 짠 국물로 아침을 때운다", "result": "붓기가 이틀을 갔다.", "fx": { "health": -1, "add": ["nut_salty"] } }
           ]
         },
         {
@@ -5799,9 +5909,13 @@
             },
             {
               "text": "시원한 맥주로 대신한다",
-              "if": "age >= 19",
+              "if": "substance.adult",
               "result": "알코올은 오히려 소변으로 물을 더 빼냈다. 머리가 지끈거렸다.",
-              "fx": { "health": -1, "happiness": 1 }
+              "fx": {
+                "health": -1,
+                "happiness": 1,
+                "do": [{ "type": "substance", "substance": "alcohol", "act": "use", "amount": 0.25 }]
+              }
             }
           ]
         }
@@ -5877,14 +5991,25 @@
           "modifiers": [{ "if": "flags.nut_uric_high", "x": 2 }],
           "choices": [
             {
-              "text": "맥주와 내장류, 단 음료를 끊고 치료를 받는다",
-              "result": "약을 먹고 술을 끊으니 발작이 멎었다.",
+              "text": "내장류와 단 음료를 끊고 치료를 받는다",
+              "result": "약을 먹고 식단을 바꾸니 발작이 멎었다.",
               "fx": { "health": 2, "cost": 30000, "remove": ["nut_uric_high"] }
             },
             {
-              "text": "진통제만 먹고 치맥은 계속한다",
+              "text": "진통제만 먹고 먹던 대로 지낸다",
               "result": "석 달 뒤 또 발작이 왔다.",
               "fx": { "health": -2, "add": ["nut_uric_high"] }
+            },
+            {
+              "text": "술부터 끊고 치료를 받는다",
+              "if": "substance.alcohol.current",
+              "result": "맥주잔 대신 물병을 들었다. 약을 먹고 술을 끊으니 발작이 멎었다.",
+              "fx": {
+                "health": 2,
+                "cost": 30000,
+                "remove": ["nut_uric_high"],
+                "do": [{ "type": "substance", "substance": "alcohol", "act": "quit" }]
+              }
             }
           ]
         },
@@ -5909,8 +6034,8 @@
           "age": [40, 80],
           "flags": ["nut_uric_high"],
           "title": "재발",
-          "zoom": "술자리 다음 날",
-          "text": "술자리에서 맥주와 곱창을 먹은 다음 날, 발목이 퉁퉁 부어올랐다. 통풍은 식습관을 그대로 두면 잦아지고 관절이 점점 망가진다.",
+          "zoom": "모임 다음 날",
+          "text": "모임에서 곱창과 내장 요리를 잔뜩 먹은 다음 날, 발목이 퉁퉁 부어올랐다. 통풍은 식습관을 그대로 두면 잦아지고 관절이 점점 망가진다.",
           "choices": [
             {
               "text": "의사 말대로 꾸준히 약을 먹는다",
@@ -6043,9 +6168,9 @@
           "age": [20, 50],
           "title": "오늘 먹은 것",
           "zoom": "식단 기록 앱",
-          "text": "식단 기록 앱에 하루 먹은 걸 적어 봤다. 라테 한 잔, 샌드위치, 저녁 삼겹살에 소주, 야식 라면. 합계 3,400kcal. 하루 권장량보다 1,000kcal 넘게 많았다.",
+          "text": "식단 기록 앱에 하루 먹은 걸 적어 봤다. 바닐라 라테 한 잔, 샌드위치, 저녁 삼겹살에 콜라, 야식 라면. 합계 3,400kcal. 하루 권장량보다 1,000kcal 넘게 많았다.",
           "choices": [
-            { "text": "마시는 열량부터 줄인다", "result": "라테와 술만 줄여도 하루 600kcal가 빠졌다.", "fx": { "health": 1 } },
+            { "text": "마시는 열량부터 줄인다", "result": "라테와 콜라만 줄여도 하루 600kcal가 빠졌다.", "fx": { "health": 1 } },
             { "text": "오늘만 그런 거라며 넘긴다", "result": "다음 날도 비슷했다." },
             { "text": "숫자에 너무 매달리지 않기로 한다", "result": "기록은 일주일에 한 번만 하기로 했다.", "fx": { "stress": -1 } }
           ]
@@ -6446,7 +6571,7 @@
       "choices": [
         {
           "text": "사기로 한다",
-          "result": "술자리 전에 한 알씩 챙겨 먹었다. 술은 그대로였다.",
+          "result": "아침마다 한 알씩 챙겨 먹었다. 생활은 그대로였다.",
           "fx": { "cost": 30000, "add": ["nut_pill_collector"] }
         },
         {
@@ -6455,7 +6580,12 @@
           "fx": { "health": 1, "cost": 20000 },
           "fixed": true
         },
-        { "text": "술부터 줄인다", "result": "한 달에 술자리를 절반으로 줄였다.", "fx": { "health": 2, "happiness": -1 } }
+        {
+          "text": "술부터 줄인다",
+          "if": "substance.alcohol.current",
+          "result": "한 달에 술자리를 절반으로 줄였다.",
+          "fx": { "health": 2, "happiness": -1 }
+        }
       ]
     },
     {
@@ -6877,7 +7007,7 @@
             "fx": {
               "health": 1,
               "cost": 1200000,
-              "add": ["nut_glp1"],
+              "treat": [{ "tag": "nut_glp1", "act": "start" }],
               "later": [{ "event": "nut_follow_glp1_year", "inYears": 1 }]
             }
           },
@@ -7869,10 +7999,14 @@
         "if": "edu.status == 'university'",
         "title": "신입생의 식단",
         "zoom": "첫 학기",
-        "text": "신입생 첫 학기. 학식, 술자리, 편의점이 식사의 전부였다. 대학 첫해에 몇 킬로그램씩 찌는 일은 흔하다.",
+        "text": "신입생 첫 학기. 학식, 편의점, 밤늦은 배달이 식사의 전부였다. 술자리 약속도 일주일에 두세 번씩 잡혔다. 대학 첫해에 몇 킬로그램씩 찌는 일은 흔하다.",
         "choices": [
           { "text": "학식이라도 제때 먹는다", "result": "1,000원 아침밥까지 챙겼다.", "fx": { "health": 1 } },
-          { "text": "술자리마다 간다", "result": "친구는 늘었다. 체중도 늘었다.", "fx": { "health": -1, "sociability": 1 } },
+          {
+            "text": "술자리마다 따라가 마신다",
+            "result": "친구는 늘었다. 체중도 늘었다.",
+            "fx": { "health": -1, "sociability": 1, "do": [{ "type": "substance", "substance": "alcohol", "act": "use", "amount": 1 }] }
+          },
           {
             "text": "간단한 요리를 배워 본다",
             "result": "달걀볶음밥과 된장찌개를 마스터했다.",
@@ -7883,21 +8017,29 @@
       {
         "id": "first_drink",
         "age": [19, 20],
-        "if": "!military.serving && !legal.inPrison",
+        "if": "!substance.alcohol.ever && !military.serving && !legal.inPrison",
         "title": "첫 술",
-        "zoom": "신입생 환영회",
-        "text": "처음 마셔 보는 소주. 술을 마시면 얼굴이 금방 빨개지는 건 알코올을 분해하는 효소가 약하다는 뜻이다. 한국인 셋 중 한 명꼴로 이 효소가 약하다.",
+        "zoom": "첫 술자리",
+        "text": "스무 살 무렵의 첫 술자리. 누군가 내 앞에 소주잔을 놓았다. 술을 마시면 얼굴이 금방 빨개지는 건 알코올을 분해하는 효소가 약하다는 뜻이다. 한국인 셋 중 한 명꼴로 이 효소가 약하다.",
         "choices": [
-          { "text": "두 잔에서 멈춘다", "result": "분위기는 다 즐겼다. 다음 날도 멀쩡했다.", "fx": { "happiness": 1 } },
           {
-            "text": "선배들이 주는 대로 받는다",
+            "text": "두 잔에서 멈춘다",
+            "result": "분위기는 다 즐겼다. 다음 날도 멀쩡했다.",
+            "fx": { "happiness": 1, "do": [{ "type": "substance", "substance": "alcohol", "act": "use", "amount": 0.25 }] }
+          },
+          {
+            "text": "주는 대로 받는다",
             "check": ["health", 50],
             "result": "다음 날 머리가 깨질 듯했다.",
-            "fx": { "health": -1, "sociability": 1 },
-            "fail": "화장실에서 정신을 잃었다. 동기가 119를 불렀다.",
-            "failFx": { "health": -3 }
+            "fx": { "health": -1, "sociability": 1, "do": [{ "type": "substance", "substance": "alcohol", "act": "use", "amount": 0.5 }] },
+            "fail": "화장실에서 정신을 잃었다. 같이 간 친구가 119를 불렀다.",
+            "failFx": { "health": -3, "do": [{ "type": "substance", "substance": "alcohol", "act": "use", "amount": 0.5 }] }
           },
-          { "text": "못 마신다고 말하고 음료를 마신다", "result": "의외로 아무도 강요하지 않았다.", "fx": { "stress": -1 } }
+          {
+            "text": "못 마신다고 말하고 음료를 마신다",
+            "result": "의외로 아무도 강요하지 않았다.",
+            "fx": { "stress": -1, "do": [{ "type": "substance", "substance": "alcohol", "act": "refuse" }] }
+          }
         ]
       },
       {
@@ -8104,13 +8246,13 @@
           {
             "text": "믿을 만한 어른이나 상담 선생님에게 털어놓는다",
             "result": "말하고 나니 울음이 터졌다. 그날 처음으로 전문 상담을 예약했다.",
-            "fx": { "stress": -2, "mental": 3, "add": ["nut_ed_recovery"], "remove": ["nut_dieting"] }
+            "fx": { "stress": -2, "mental": 3, "treat": [{ "tag": "nut_ed_recovery", "act": "start" }], "remove": ["nut_dieting"] }
           },
           {
             "text": "청소년상담 1388에 문자를 보낸다",
             "if": "age <= 24",
             "result": "상담 선생님이 천천히 이야기를 들어 주었다. 가까운 상담센터와 병원도 함께 찾아 주었다.",
-            "fx": { "stress": -2, "mental": 2, "add": ["nut_ed_recovery"], "remove": ["nut_dieting"] }
+            "fx": { "stress": -2, "mental": 2, "treat": [{ "tag": "nut_ed_recovery", "act": "start" }], "remove": ["nut_dieting"] }
           },
           {
             "text": "괜찮다고 웃어넘긴다",
@@ -8138,7 +8280,7 @@
               "mental": 3,
               "cost": 50000,
               "remove": ["nut_ed"],
-              "add": ["nut_ed_recovery"]
+              "treat": [{ "tag": "nut_ed_recovery", "act": "start" }]
             }
           },
           {
@@ -8163,7 +8305,7 @@
           {
             "text": "정신건강의학과에서 상담을 받는다",
             "result": "폭식장애라는 이름을 처음 들었다. 굶지 않고 규칙적으로 먹는 것부터 다시 시작했다.",
-            "fx": { "stress": -2, "mental": 3, "cost": 50000, "add": ["nut_ed_recovery"] }
+            "fx": { "stress": -2, "mental": 3, "cost": 50000, "treat": [{ "tag": "nut_ed_recovery", "act": "start" }] }
           },
           {
             "text": "가까운 사람에게 털어놓는다",
@@ -8196,7 +8338,7 @@
               "mental": 3,
               "cost": 100000,
               "remove": ["nut_ed"],
-              "add": ["nut_ed_recovery"]
+              "treat": [{ "tag": "nut_ed_recovery", "act": "start" }]
             }
           },
           {
@@ -8222,6 +8364,14 @@
             "text": "힘든 마음을 상담 시간에 꺼내 놓는다",
             "result": "나쁜 날도 회복의 일부라는 말을 들었다.",
             "fx": { "stress": -2, "mental": 1 }
+          },
+          {
+            "text": "이제 혼자 할 수 있다며 치료를 그만둔다",
+            "check": ["mental", 60],
+            "result": "상담 없이도 끼니를 지켜 나갔다. 힘든 날에는 식사 계획표를 다시 꺼냈다.",
+            "fx": { "treat": [{ "tag": "nut_ed_recovery", "act": "stop" }] },
+            "fail": "몇 달 뒤 다시 끼니를 거르기 시작했다.",
+            "failFx": { "health": -1, "add": ["nut_ed"], "treat": [{ "tag": "nut_ed_recovery", "act": "stop" }] }
           }
         ]
       },
@@ -8237,15 +8387,15 @@
           {
             "text": "치료진에게 연락한다",
             "result": "다음 날로 예약이 잡혔다. 한 번 흔들렸다고 처음으로 돌아가는 건 아니었다.",
-            "fx": { "stress": -1, "mental": 2 }
+            "fx": { "stress": -1, "mental": 2, "treat": [{ "tag": "nut_ed_recovery", "act": "continue" }] }
           },
           {
             "text": "혼자 버텨 본다",
             "check": ["mental", 55],
             "result": "힘든 한 주를 넘겼다. 조금 단단해진 기분이었다.",
             "fx": { "mental": 1 },
-            "fail": "다시 굶기 시작했다.",
-            "failFx": { "health": -2, "add": ["nut_ed"] }
+            "fail": "다시 굶기 시작했다. 상담 예약도 하나둘 미뤘다.",
+            "failFx": { "health": -2, "add": ["nut_ed"], "treat": [{ "tag": "nut_ed_recovery", "act": "stop" }] }
           }
         ]
       },
@@ -8703,19 +8853,29 @@
         "if": "!family.married && !military.serving && !legal.inPrison",
         "title": "혼술",
         "zoom": "금요일 밤",
-        "text": "금요일 밤, 편의점 맥주 네 캔과 과자 한 봉지. 혼자 마시는 술은 멈추는 사람이 없어서 양이 늘기 쉽다. 국민 암 예방 수칙은 하루 한두 잔의 술도 피하라고 권한다.",
+        "text": "금요일 밤 편의점. 맥주 '네 캔 만 원' 문구 앞에서 걸음이 멈췄다. 혼자 마시는 술은 멈추는 사람이 없어서 양이 늘기 쉽다. 국민 암 예방 수칙은 하루 한두 잔의 술도 피하라고 권한다.",
         "choices": [
           {
-            "text": "두 캔만 마시고 남긴다",
+            "text": "네 캔을 사서 두 캔만 마시고 남긴다",
             "result": "남은 두 캔은 다음 주까지 냉장고에 있었다.",
-            "fx": { "happiness": 1, "cost": 6000 }
+            "fx": { "happiness": 1, "cost": 10000, "do": [{ "type": "substance", "substance": "alcohol", "act": "use", "amount": 0.25 }] }
           },
           {
-            "text": "네 캔을 다 비운다",
+            "text": "네 캔을 사서 다 비운다",
             "result": "어느새 소파에서 잠들었다.",
-            "fx": { "happiness": 1, "stress": -1, "health": -1, "cost": 12000 }
+            "fx": {
+              "happiness": 1,
+              "stress": -1,
+              "health": -1,
+              "cost": 10000,
+              "do": [{ "type": "substance", "substance": "alcohol", "act": "use", "amount": 0.5 }]
+            }
           },
-          { "text": "탄산수로 바꾼다", "result": "톡 쏘는 맛만으로도 기분은 났다.", "fx": { "health": 1, "cost": 3000 } }
+          {
+            "text": "탄산수를 고른다",
+            "result": "톡 쏘는 맛만으로도 기분은 났다.",
+            "fx": { "health": 1, "cost": 3000, "do": [{ "type": "substance", "substance": "alcohol", "act": "refuse" }] }
+          }
         ]
       }
     ]
@@ -8724,6 +8884,8 @@
     {
       "id": "glp1_year",
       "age": [25, 75],
+      "if": "!legal.inPrison",
+      "flags": ["nut_glp1"],
       "title": "주사 1년",
       "zoom": "비만 클리닉 재진",
       "text": "비만 치료 주사를 맞은 지 1년. 체중은 12kg 줄었다. 그런데 한 달 수십만 원의 비용이 계속 부담이었다. 연구에서는 주사를 끊은 사람 상당수가 1년 안에 빠졌던 체중의 3분의 2를 되찾았다.",
@@ -8731,20 +8893,115 @@
         {
           "text": "계속 맞는다",
           "result": "체중은 유지됐다. 통장은 가벼워졌다.",
-          "fx": { "health": 1, "cost": 4000000, "add": ["nut_glp1"] }
+          "fx": {
+            "health": 1,
+            "cost": 4000000,
+            "treat": [{ "tag": "nut_glp1", "act": "continue" }],
+            "later": [{ "event": "nut_follow_glp1_keep", "inYears": 1 }]
+          }
         },
         {
           "text": "끊고 식단과 운동으로 버틴다",
           "check": ["mental", 55],
           "result": "체중이 조금 돌아왔지만 절반 넘게 지켰다.",
-          "fx": { "health": 1 },
+          "fx": {
+            "health": 1,
+            "treat": [{ "tag": "nut_glp1", "act": "stop" }],
+            "later": [{ "event": "nut_follow_glp1_after", "inYears": 1 }]
+          },
           "fail": "1년 만에 거의 다 돌아왔다.",
-          "failFx": { "happiness": -2 }
+          "failFx": {
+            "happiness": -2,
+            "treat": [{ "tag": "nut_glp1", "act": "stop" }],
+            "later": [{ "event": "nut_follow_glp1_after", "inYears": 1 }]
+          }
         },
         {
           "text": "의사와 상의해 천천히 줄여 간다",
-          "result": "근력 운동과 단백질 식단을 함께 시작했다.",
-          "fx": { "health": 1, "stamina": 1, "cost": 1000000 }
+          "result": "근력 운동과 단백질 식단을 함께 시작했다. 주사는 올해 안에 끊기로 했다.",
+          "fx": {
+            "health": 1,
+            "stamina": 1,
+            "cost": 1000000,
+            "treat": [{ "tag": "nut_glp1", "act": "reduce" }],
+            "later": [{ "event": "nut_follow_glp1_after", "inYears": 1 }]
+          }
+        }
+      ]
+    },
+    {
+      "id": "glp1_keep",
+      "age": [25, 85],
+      "if": "!legal.inPrison",
+      "flags": ["nut_glp1"],
+      "title": "주사 또 1년",
+      "zoom": "비만 클리닉 재진",
+      "text": "비만 치료 주사를 이어 맞은 지 또 1년이 지났다. 체중은 버티고 있었다. 한 달 수십만 원도 여전히 빠져나갔다. 이어 갈지, 줄일지, 끊을지 올해도 정해야 했다.",
+      "choices": [
+        {
+          "text": "1년 더 맞는다",
+          "result": "재진 날짜를 내년으로 잡았다.",
+          "fx": {
+            "cost": 4000000,
+            "treat": [{ "tag": "nut_glp1", "act": "continue" }],
+            "later": [{ "event": "nut_follow_glp1_keep", "inYears": 1 }]
+          }
+        },
+        {
+          "text": "끊고 식단과 운동으로 버틴다",
+          "check": ["mental", 55],
+          "result": "식욕이 돌아왔지만 식단 일기로 버텼다.",
+          "fx": {
+            "stress": -1,
+            "treat": [{ "tag": "nut_glp1", "act": "stop" }],
+            "later": [{ "event": "nut_follow_glp1_after", "inYears": 1 }]
+          },
+          "fail": "몇 달 만에 체중이 다시 오르기 시작했다.",
+          "failFx": {
+            "happiness": -2,
+            "treat": [{ "tag": "nut_glp1", "act": "stop" }],
+            "later": [{ "event": "nut_follow_glp1_after", "inYears": 1 }]
+          }
+        },
+        {
+          "text": "의사와 상의해 천천히 줄여 간다",
+          "result": "의사와 계획을 세워 올해 안에 끊기로 했다.",
+          "fx": {
+            "cost": 1000000,
+            "treat": [{ "tag": "nut_glp1", "act": "reduce" }],
+            "later": [{ "event": "nut_follow_glp1_after", "inYears": 1 }]
+          }
+        }
+      ]
+    },
+    {
+      "id": "glp1_after",
+      "age": [25, 85],
+      "if": "!legal.inPrison",
+      "flags": ["nut_glp1_stopped"],
+      "title": "주사를 끊고 1년",
+      "zoom": "체중계 위",
+      "text": "비만 치료 주사를 끊은 지 1년. 식욕이 돌아오면서 체중계 숫자도 조금씩 올라왔다. 끊은 뒤 체중이 다시 느는 건 흔한 일이고, 의지가 약해서만은 아니다.",
+      "choices": [
+        {
+          "text": "다시 처방받는다",
+          "if": "money.cash > 1200000",
+          "result": "같은 클리닉에서 다시 시작했다. 이번에는 해마다 재진에서 이어 갈지 정하기로 했다.",
+          "fx": {
+            "cost": 1200000,
+            "treat": [{ "tag": "nut_glp1", "act": "resume" }],
+            "later": [{ "event": "nut_follow_glp1_keep", "inYears": 1 }]
+          }
+        },
+        {
+          "text": "식단과 운동을 이어 간다",
+          "result": "빠르지는 않았다. 그래도 더 늘지는 않았다.",
+          "fx": { "stress": 1 }
+        },
+        {
+          "text": "몸무게보다 혈압과 혈당 숫자를 본다",
+          "result": "검진 수치는 나쁘지 않았다. 체중계는 욕실 구석으로 밀어 두었다.",
+          "fx": { "stress": -1 }
         }
       ]
     }

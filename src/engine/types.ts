@@ -90,6 +90,11 @@ export interface Npc {
   since?: number;
   /** 전쟁 통에 헤어져 생사를 모른다 */
   missing?: boolean;
+  /**
+   * 자녀 기록: 이 아이를 함께 낳은 사람(그때의 배우자, 없으면 연인)의 인물 ID. null이면 그런 사람이 없었다.
+   * 이 기록을 남기기 전의 저장에 있던 아이에게는 없다 (자녀로 이어할 때 혼인 시점으로 짐작한다)
+   */
+  otherParentId?: string | null;
 }
 
 export type FamilyType = 'two_parent' | 'single_parent' | 'grandparents' | 'facility';

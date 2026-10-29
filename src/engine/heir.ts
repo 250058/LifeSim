@@ -5,7 +5,8 @@
 //
 // 돈의 단위는 career.ts와 같다. 연봉(salary)·현금·상속분은 그해 명목액, 평균 연봉(avgSalary)·연금(pension)·
 // family.estate는 2026년 원 기준액이고 쓸 때 물가지수를 한 번 곱한다.
-// 이 규칙을 지키기 전에 이어 한 저장은 그때의 물가지수가 남아 있지 않아 바로잡을 근거가 없으므로 그대로 둔다.
+// 이 규칙을 지키기 전에 이어 한 저장은 그때의 물가지수가 남아 있지 않아 바로잡을 근거가 없으므로 그대로 둔다 (R-007).
+// 나이·혼인 시점 규칙(R-006) 전에 이어 한 저장의 불가능한 가족 기록은 불러올 때 save.ts가 바로잡는다.
 
 import { timePointsFor } from './activities';
 import { jobSalary, meetsJob, takeJob, computePension } from './career';
@@ -26,6 +27,7 @@ import {
   type FamilyType,
   type GameState,
   type Npc,
+  type NpcRole,
   type PersonalityKey,
   type Sex,
   type TalentKey,
@@ -107,22 +109,38 @@ function divideEstate(prev: GameState): Estate {
   };
 }
 
+/** 아이의 다른 친부모가 부모의 기록에 남는 자리: 배우자, 이혼한 전 배우자, 아직 결혼하지 않은 연인 */
+const OTHER_PARENT_ROLES: NpcRole[] = ['spouse', 'ex', 'partner'];
+
 /**
- * 이 아이가 태어날 때 부모와 혼인 중이던 사람 (아이의 다른 친부모).
- * 아이는 혼인 중에만 태어나고(임신 사건의 조건) 혼인은 겹치지 않으므로, 아이가 태어난 나이까지 시작된
- * 혼인 가운데 가장 늦은 것이다. 배우자·전 배우자의 since는 혼인한 때 부모의 나이다. 기록이 없으면 모른다.
+ * 이 아이를 함께 낳은 다른 친부모 (세상을 떠났거나 생사 불명일 수 있다).
+ * 아이가 태어날 때 남긴 인물 ID(otherParentId)를 먼저 쓴다. 그 사람은 그때의 배우자나 연인이었고(혼인신고를 미루고
+ * 낳기도 한다), 지금은 배우자·전 배우자·연인 가운데 하나다. null(함께 낳은 사람이 없었다)이거나 헤어진 연인처럼
+ * 기록에서 사라졌으면 모른다. 이때 혼인 시점으로 짐작하면 다른 사람을 부모로 세우게 되므로 짐작하지 않는다.
  */
 function birthPartner(parent: Character, child: Npc): Npc | undefined {
+  const id = child.otherParentId;
+  if (id === undefined) return guessBirthPartner(parent, child);
+  return parent.npcs.find((n) => n.id === id && OTHER_PARENT_ROLES.includes(n.role));
+}
+
+/**
+ * ID를 남기기 전에 태어난 아이(옛 저장): 혼인 시점으로 짐작한다. 배우자·전 배우자의 since는 혼인한 때 부모의
+ * 나이이고, 혼인은 겹치지 않는다.
+ * 1. 아이가 태어난 나이까지 시작된 혼인 가운데 가장 늦은 것이 그때의 혼인이다. 다만 상대가 아이가 태어나기 전해보다
+ *    먼저 세상을 떠났다면 사별한 뒤에 낳은 아이다.
+ * 2. 혼인 중에 태어나지 않았다면 혼인신고를 미루고 낳은 아이다. 연인은 한 번에 한 명이고 결혼은 그 연인과만 하므로,
+ *    그 친부모와 나중에 혼인했다면 태어난 뒤 첫 혼인 상대다 (대개 지금의 배우자). 그런 혼인이 없으면 모른다.
+ */
+function guessBirthPartner(parent: Character, child: Npc): Npc | undefined {
   const bornAt = child.birthYear - parent.birthYear;
-  let found: Npc | undefined;
-  for (const n of parent.npcs) {
-    if (n.role !== 'spouse' && n.role !== 'ex') continue;
-    if (n.since === undefined || n.since > bornAt) continue;
-    if (!found || n.since >= found.since!) found = n;
-  }
-  // 아이가 태어나기 전해보다 먼저 세상을 떠났다면 기록이 어긋난 것이므로 모르는 것으로 둔다
-  if (found && !found.alive && found.deathYear !== undefined && found.deathYear < child.birthYear - 1) return undefined;
-  return found;
+  const marriages = parent.npcs
+    .filter((n) => (n.role === 'spouse' || n.role === 'ex') && n.since !== undefined)
+    .sort((a, b) => a.since! - b.since!);
+  const during = marriages.filter((n) => n.since! <= bornAt).pop();
+  const widowedBefore = during !== undefined && !during.alive && during.deathYear !== undefined && during.deathYear < child.birthYear - 1;
+  if (during && !widowedBefore) return during;
+  return marriages.find((n) => n.since! > bornAt);
 }
 
 /** 부모 쪽에서 이어받는 가족 */
@@ -292,8 +310,9 @@ export function continueAsChild(prev: GameState, childId: string): GameState | n
   if (kin.other) {
     ch.npcs.push({ ...kin.other, role: kin.other.sex === 'M' ? 'father' : 'mother', since: undefined, closeness: clamp(kin.other.role === 'ex' ? 40 : 70) });
   }
+  // 형제자매의 다른 친부모 ID는 고인의 자녀 기록이므로 옮기지 않는다
   for (const sib of parent.npcs.filter((n) => n.role === 'child' && n.id !== child.id)) {
-    ch.npcs.push({ ...sib, role: 'sibling', closeness: clamp(rng.normal(60, 15)) });
+    ch.npcs.push({ ...sib, role: 'sibling', otherParentId: undefined, closeness: clamp(rng.normal(60, 15)) });
   }
   for (const g of kin.grandparents) ch.npcs.push({ ...g, role: 'grandparent', closeness: clamp(rng.normal(65, 12)) });
 
@@ -484,6 +503,7 @@ function fillOwnFamily(state: GameState, rng: Rng): void {
       surname: fatherSurname,
       closeness: clamp(rng.normal(75, 10)),
       health: clamp(healthTarget(state.year - born)),
+      otherParentId: spouse.id,
     });
     // 한집에 같은 이름이 둘이면 이름을 다시 짓는다
     for (let t = 0; t < 5 && taken(kid.name); t++) kid.name = fatherSurname + randomGiven(rng, kSex, kid.birthYear);

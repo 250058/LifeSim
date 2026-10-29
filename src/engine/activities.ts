@@ -2,16 +2,17 @@
 // 생애 단계마다 포인트가 다르다. 고3과 직장인은 적고, 대학생과 은퇴자는 많다.
 
 import { evaluate } from './conditions';
+import { CONCEIVED_CTX, CONTRA_CTX, contraceptionMethod, drawScare, fecundity, pregnancyRisk } from './contraception';
 import { ACTIVITIES, ACTIVITY_BY_ID, EVENT_BY_ID } from './data';
 import { addFlag, applyEffects, removeFlag } from './effects';
 import { formatWon, josa, signedWon } from './format';
 import { addFriend, alive, changeCloseness, npcAge, partnerOf, spouseOf, startPartner } from './relations';
-import { rngFor } from './rng';
+import { rngFor, type Rng } from './rng';
 import { buildScope, inPrison } from './scope';
 import type { ActivityDef } from './schema';
 import { ADULT_AGE, substanceActivity } from './substances';
 import { TALENT_LABEL } from './text';
-import type { Change, GameState, Npc } from './types';
+import type { Change, GameState, Npc, PendingCard } from './types';
 import { sidePoints, workTimePoints } from './work';
 
 function npcAgeOf(state: GameState, npc: Npc | undefined): number {
@@ -71,6 +72,40 @@ export interface ActivityResult {
   changes: Change[];
   /** 활동 결과로 체포 같은 카드가 생기면 true */
   queuedCard: boolean;
+}
+
+// ── 모텔 데이트·해피타임의 노출 ──────────────────────────
+// 활동 한 번(1포인트)을 그해 짝과 보낸 시간이 조금 더 늘어난 노출로 본다. 아래 확률은 기록된 피임이 없고 여성이
+// 30세 이하일 때의 게임 보정값이다. 여기에 여성 나이의 가임력과 피임·딩크·임신 준비의 배수를 곱하며,
+// 그 배수들은 contraception.ts 한곳에서 정한다 (검토 R-013). 출산 보정은 pregnancy 사건(adult.json)과 함께 맞췄다.
+
+/** 부부: 활동 한 번이 임신 카드로 이어질 확률 (피임 기록 없음, 30세 이하) */
+export const MARRIED_PREGNANCY_CHANCE = 0.06;
+/** 연인: 활동 한 번 뒤 '늦어지는 날짜' 카드가 걸릴 확률 (피임 기록 없음, 30세 이하) */
+export const DATING_SCARE_CHANCE = 0.03;
+/** 셋째까지: 그 뒤로는 활동 경로로 임신 카드를 걸지 않는다 */
+const ACTIVITY_MAX_KIDS = 3;
+
+/**
+ * 활동 한 번의 노출이 거는 카드. 부부는 임신 카드, 연인은 임신 걱정 카드.
+ * 걱정 카드에는 노출 때의 방법(ctx.contra)과 그때 정한 임신 여부(ctx.conceived)를 남긴다.
+ */
+function intimacyCard(state: GameState, rng: Rng): PendingCard | undefined {
+  const ch = state.ch;
+  const spouse = spouseOf(ch);
+  const mate = spouse ?? partnerOf(ch);
+  const femaleAge = ch.sex === 'F' ? ch.age : npcAgeOf(state, mate);
+  if (femaleAge > 44) return undefined;
+  const fertility = fecundity(femaleAge);
+  if (spouse) {
+    if (alive(ch, 'child').length >= ACTIVITY_MAX_KIDS) return undefined;
+    const p = MARRIED_PREGNANCY_CHANCE * fertility * pregnancyRisk(state, spouse);
+    return rng.chance(p) ? { eventId: 'pregnancy', ctx: {} } : undefined;
+  }
+  const method = contraceptionMethod(state, mate);
+  const draw = drawScare(rng.next(), DATING_SCARE_CHANCE, method, fertility);
+  if (draw === 'none' || !EVENT_BY_ID.has('rom_pregnancy_scare')) return undefined;
+  return { eventId: 'rom_pregnancy_scare', ctx: { [CONTRA_CTX]: method, [CONCEIVED_CTX]: draw === 'pregnant' ? 'yes' : 'no' } };
 }
 
 export function performActivity(state: GameState, id: string): ActivityResult | null {
@@ -209,16 +244,10 @@ export function performActivity(state: GameState, id: string): ActivityResult | 
       // 성인 커플만 (couple: 상대도 성인). 묘사는 하지 않고 관계만 가까워진다
       const married = Boolean(spouseOf(ch));
       changeCloseness(ch, married ? 'spouse' : 'partner', def.special === 'motel' ? 8 : 6);
-      const kids = alive(ch, 'child').length;
-      const femaleAge = ch.sex === 'F' ? ch.age : npcAgeOf(state, married ? spouseOf(ch) : partnerOf(ch));
-      if (femaleAge <= 44) {
-        if (married && kids < 3 && rng.chance(0.06)) {
-          state.queue.push({ eventId: 'pregnancy', ctx: {} });
-          queuedCard = true;
-        } else if (!married && rng.chance(0.03) && EVENT_BY_ID.has('rom_pregnancy_scare')) {
-          state.queue.push({ eventId: 'rom_pregnancy_scare', ctx: {} });
-          queuedCard = true;
-        }
+      const card = intimacyCard(state, rng);
+      if (card) {
+        state.queue.push(card);
+        queuedCard = true;
       }
       break;
     }

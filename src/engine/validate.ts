@@ -8,6 +8,7 @@ import { STAGES } from './format';
 import { newGame } from './game';
 import { buildScope } from './scope';
 import type { Action, ChoiceDef, Effects, EventDef, NextRef } from './schema';
+import { effectsOf, targetRolesOf } from './text';
 import { HIDDEN_KEYS, STATE_KEYS, STAT_KEYS, SUBSTANCE_ACTS, SUBSTANCE_IDS, TALENT_KEYS } from './types';
 import { POOL_IDS } from './pools';
 
@@ -75,6 +76,140 @@ const ACTION_TYPES = new Set([
 
 const HIGH_TYPES = new Set(['general', 'foreign', 'autonomous', 'gifted', 'science', 'arts', 'sports', 'vocational', 'meister', 'alternative']);
 
+/**
+ * 친밀도를 바꿀 수 있는 역할 (text.ts '대상 인물'과 짝). child·sibling·friend는 카드에 묶인 한 사람,
+ * partner·spouse·mother·father는 원래 한 사람, parents는 부모 둘 다를 뜻하는 유일한 복수 표기다.
+ * 조부모·전 배우자는 여러 명일 수 있는데 한 사람을 고를 규칙이 없어 '모두'로 번지므로 쓸 수 없다.
+ * 모든 자녀를 뜻하는 표기('children' 등)는 아직 없다.
+ */
+const CLOSENESS_ROLES = new Set(['child', 'sibling', 'friend', 'partner', 'spouse', 'mother', 'father', 'parents']);
+
+/** 사람을 새로 만드는 행동 → 그 역할. 대상은 카드가 뜰 때 이미 있는 사람 중에서 묶이므로 같은 사건의 대상이 될 수 없다 */
+const CREATES: Partial<Record<Action['type'], 'child' | 'sibling'>> = { haveChild: 'child', addSibling: 'sibling' };
+
+/** 나이 범위의 끝 (자녀 나이대를 정하지 않은 사건) */
+const MAX_AGE = 120;
+
+function nextIds(next: NextRef | undefined): string[] {
+  if (!next) return [];
+  return typeof next === 'string' ? [next] : next.map((n) => n.event);
+}
+
+/** 이어지는 사건 하나: next는 0년, later는 n년 뒤 */
+interface Link {
+  from: EventDef;
+  to: EventDef;
+  years: number;
+}
+
+function linksOf(events: EventDef[]): Link[] {
+  const byId = new Map(events.map((e) => [e.id, e]));
+  const out: Link[] = [];
+  const add = (from: EventDef, id: string, years: number) => {
+    const to = byId.get(id);
+    if (to) out.push({ from, to, years });
+  };
+  for (const ev of events) {
+    for (const id of nextIds(ev.next)) add(ev, id, 0);
+    for (const c of ev.choices ?? []) {
+      for (const n of [c.next, c.onSuccess?.next, c.onFail?.next]) for (const id of nextIds(n)) add(ev, id, 0);
+    }
+    for (const fx of effectsOf(ev)) for (const l of fx.later ?? []) add(ev, l.event, l.inYears);
+  }
+  return out;
+}
+
+const targetsChild = (ev: EventDef) => targetRolesOf(ev).includes('child');
+
+/**
+ * 사건마다 '묶인 자녀가 그 사건에 올 때 가질 수 있는 나이' [최소, 최대].
+ * 자녀를 스스로 묶는 사건(추첨·관문으로 바로 뜨거나, 자녀를 넘기지 않는 앞 사건에서 오는 연속 사건)은
+ * 자기 자녀 나이대에서 시작하고, 이어지는 사건으로 지연 햇수만큼 더해 퍼진다.
+ */
+function childReach(events: EventDef[], links: Link[]): Map<EventDef, [number, number]> {
+  // 묶인 자녀를 넘겨줄 수 있는 사건: 자녀를 대상으로 하거나, 그런 사건에서 이어진다 (ctx를 그대로 물려준다)
+  const carries = new Set(events.filter(targetsChild));
+  for (let grew = true; grew; ) {
+    grew = false;
+    for (const l of links) {
+      if (carries.has(l.from) && !carries.has(l.to)) {
+        carries.add(l.to);
+        grew = true;
+      }
+    }
+  }
+  const preds = new Map<EventDef, EventDef[]>();
+  for (const l of links) preds.set(l.to, [...(preds.get(l.to) ?? []), l.from]);
+  const reach = new Map<EventDef, [number, number]>();
+  for (const ev of events) {
+    if (!targetsChild(ev)) continue;
+    const ps = preds.get(ev) ?? [];
+    if (ev.type !== 'chain' || ps.length === 0 || ps.some((p) => !carries.has(p))) reach.set(ev, ev.trigger?.childAge ?? [0, MAX_AGE]);
+  }
+  for (let round = 0; round < MAX_AGE * 2; round++) {
+    let changed = false;
+    for (const l of links) {
+      const r = reach.get(l.from);
+      if (!r) continue;
+      let lo = Math.min(MAX_AGE, r[0] + l.years);
+      let hi = Math.min(MAX_AGE, r[1] + l.years);
+      // 나이대가 맞지 않는 아이는 그 사건에서 취소되므로 더 퍼지지 않는다
+      const range = l.to.trigger?.childAge;
+      if (range) [lo, hi] = [Math.max(lo, range[0]), Math.min(hi, range[1])];
+      if (lo > hi) continue;
+      const cur = reach.get(l.to);
+      const next: [number, number] = cur ? [Math.min(cur[0], lo), Math.max(cur[1], hi)] : [lo, hi];
+      if (!cur || next[0] !== cur[0] || next[1] !== cur[1]) {
+        reach.set(l.to, next);
+        changed = true;
+      }
+    }
+    if (!changed) break;
+  }
+  return reach;
+}
+
+/**
+ * 대상 인물 규칙 (R-011·R-012, text.ts '대상 인물'과 짝):
+ *  - 아이·동생을 새로 만드는 사건은 그 역할을 대상으로 삼을 수 없다. 대상은 카드가 뜰 때 이미 있는 사람 중에서
+ *    묶이므로 갓난아이가 아니라 형·누나를 가리키게 된다 (오류).
+ *  - 자녀를 물려받는 연속·예약 사건은 물려받은 아이의 나이가 그 사건의 자녀 나이대에 들어야 한다.
+ *    벗어나는 아이에게는 뜨기 직전 재검사에서 언제나 취소된다 (경고).
+ */
+export function targetIssues(events: EventDef[], whereOf: (ev: EventDef) => string = (ev) => ev.id): Issue[] {
+  const issues: Issue[] = [];
+  for (const ev of events) {
+    const roles = targetRolesOf(ev);
+    for (const fx of effectsOf(ev)) {
+      for (const a of fx.do ?? []) {
+        const made = CREATES[a.type];
+        if (made && roles.includes(made)) {
+          issues.push({ level: 'error', where: whereOf(ev), message: `${a.type}로 새로 생기는 사람은 이 사건의 대상(${made})이 될 수 없다: 대상은 카드가 뜰 때 이미 있는 사람 중에서 묶인다` });
+        }
+      }
+    }
+  }
+  const links = linksOf(events);
+  const reach = childReach(events, links);
+  const seen = new Set<string>();
+  for (const l of links) {
+    const r = reach.get(l.from);
+    const range = l.to.trigger?.childAge;
+    if (!r || !range) continue;
+    const lo = r[0] + l.years;
+    const hi = r[1] + l.years;
+    const key = `${l.from.id}>${l.to.id}>${l.years}`;
+    if ((lo >= range[0] && hi <= range[1]) || seen.has(key)) continue;
+    seen.add(key);
+    issues.push({
+      level: 'warn',
+      where: whereOf(l.from),
+      message: `${l.to.id}에 물려주는 자녀는 ${lo}~${Math.min(hi, MAX_AGE)}세인데 그 사건의 자녀 나이대는 ${range[0]}~${range[1]}세다 (벗어난 아이에게는 취소된다)`,
+    });
+  }
+  return issues;
+}
+
 function sampleScope(): Record<string, unknown> {
   const state = newGame({ seed: 'VALIDATE', mode: 'drama', birthYear: 2026 });
   return buildScope(state) as Record<string, unknown>;
@@ -137,6 +272,9 @@ export function validateData(): Issue[] {
     if (a.type === 'prosecute' && a.crime !== 'ctx' && !CRIMES[a.crime]) err(where, `없는 범죄: ${a.crime}`);
     if (a.type === 'discoverTalent' && a.talent && !(TALENT_KEYS as readonly string[]).includes(a.talent)) {
       err(where, `없는 재능: ${a.talent}`);
+    }
+    if (a.type === 'npcCloseness' && !CLOSENESS_ROLES.has(a.role)) {
+      err(where, `친밀도 역할 ${a.role}: 한 사람을 고를 규칙이 없다 (자녀·형제·친구는 카드에 묶인 한 명, 부모 둘 다는 parents. 모든 자녀를 뜻하는 표기는 아직 없다)`);
     }
     if (a.type === 'substance') {
       if (!(SUBSTANCE_ACTS as readonly string[]).includes(a.act)) err(where, `없는 물질 행동: ${a.act}`);
@@ -262,6 +400,11 @@ export function validateData(): Issue[] {
       warn(`${ev.id}`, '어느 사건도 이 연속 사건으로 이어지지 않는다');
     }
   }
+
+  // 대상 인물: 새로 생기는 사람을 대상으로 삼는 사건, 물려받은 자녀의 나이가 맞지 않는 연속·예약 사건
+  const fileOf = new Map<string, string>();
+  for (const [file, events] of Object.entries(EVENT_FILES)) for (const ev of events) fileOf.set(ev.id, file);
+  issues.push(...targetIssues(EVENTS, (ev) => `${fileOf.get(ev.id) ?? '?'} › ${ev.id}`));
 
   for (const a of ACTIVITIES) {
     const where = `activities.json › ${a.id}`;

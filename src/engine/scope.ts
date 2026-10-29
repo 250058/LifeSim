@@ -4,6 +4,7 @@
 import { JOB_BY_ID, REGION_BY_ID } from './data';
 import { familySupport, alive, npcAge, partnerOf, spouseOf } from './relations';
 import { ELITE_HIGH, stageOf } from './format';
+import { electionBarred, publicSectorBarred } from './records';
 import { substanceScope } from './substances';
 import { layoffExposed, orgRetirement, workScope } from './work';
 import { isPresidentialYear } from './world';
@@ -186,6 +187,9 @@ export function buildScope(state: GameState, ctx: Record<string, string> = {}): 
       inPrison: inPrison(state),
       onProbation: legal.probationUntil !== undefined && ch.age < legal.probationUntil,
       releaseNow: legal.prisonUntil !== undefined && ch.age === legal.prisonUntil,
+      // 처분 기록에서 계산한 자격 결격 (records.ts). 전과자 태그는 벌금도 붙으므로 조건에 쓰지 않는다
+      publicBarred: publicSectorBarred(ch),
+      electionBarred: electionBarred(ch),
     },
     world: {
       economy: state.world.economy.phase,
