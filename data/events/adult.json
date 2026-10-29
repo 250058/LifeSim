@@ -18,7 +18,7 @@
           { "if": "family.partnerYears < 2", "x": 0.5 },
           { "if": "money.cash < 20000000", "x": 0.7 },
           { "if": "job.employed", "x": 1.3 },
-          { "if": "sex == 'M' && age < 31", "x": 0.6 },
+          { "if": "sex == 'M' && age < 31", "x": 0.85 },
           { "if": "sex == 'F' && age < 32", "x": 1.3 },
           { "if": "sex == 'F' && age >= 34", "x": 0.85 }
         ]
