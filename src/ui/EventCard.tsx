@@ -84,7 +84,7 @@ export function EventCard({ game, card }: { game: GameState; card: ActiveCard })
                     {circled(i)}
                   </span>
                   <span className="choice-text">{c.text}</span>
-                  {c.check && <span className="choice-check">{c.check} 판정</span>}
+                  {c.check && <span className="choice-check">{c.check}</span>}
                 </button>
               </li>
             ))}
