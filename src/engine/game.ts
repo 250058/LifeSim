@@ -13,7 +13,8 @@
 
 import { performActivity, timePointsFor, type ActivityResult } from './activities';
 import { birthStory, createCharacter, type NewGameOptions } from './character';
-import { hireChance, jobOpenings, leaveJob, takeJob, yearlyEarnings } from './career';
+import { hireChance, jobOpenings, leaveJob, meetsJob, takeJob, yearlyEarnings } from './career';
+import { currentType, jobRequirements, offerFor, payCapital, TYPE_LABEL } from './work';
 import { ACTIVITY_BY_ID, JOB_BY_ID, REGION_BY_ID } from './data';
 import { directorYearEnd, initDirector } from './director';
 import { addFlag, changeAttr, killCharacter, removeFlag } from './effects';
@@ -92,22 +93,49 @@ export interface ActionResult {
   changes?: Change[];
 }
 
+/** 공고 없이 직접 찾아가 지원할 때의 합격 배수 (빈자리가 있는지부터 모른다) */
+const DIRECT_APPLY = 0.6;
+
+/**
+ * 구직: 올해 공고(jobOpenings)에 있으면 그대로 지원하고, 공고가 없어도 자격이 되면 시간 한 칸을 들여
+ * 직접 찾아가 지원할 수 있다 (합격 가능성은 낮다). 자영업·장비 지입은 붙으면 개업 자금을 낸다
+ */
 export function applyForJob(state: GameState, jobId: string): ActionResult {
   const ch = state.ch;
   const job = JOB_BY_ID.get(jobId);
   if (!job || state.phase !== 'action') return { ok: false, text: '지원할 수 없다.' };
   if (ch.career.appliedThisYear.includes(jobId)) return { ok: false, text: '올해는 이미 지원했다.' };
-  if (!jobOpenings(state).some((o) => o.job.id === jobId)) return { ok: false, text: '지원 자격이 안 된다.' };
+  if (ch.career.jobId === jobId) return { ok: false, text: '지금 하는 일이다.' };
+  const posted = jobOpenings(state).find((o) => o.job.id === jobId);
+  if (!posted) {
+    if (!job.listed || !meetsJob(state, job)) {
+      const missing = jobRequirements(state, job).filter((r) => !r.ok).map((r) => r.label);
+      return { ok: false, text: missing.length ? `지원 자격이 안 된다: ${missing.join(', ')}.` : '지원 자격이 안 된다.' };
+    }
+    if (state.points.left < 1) return { ok: false, text: '공고가 없는 곳에 직접 찾아갈 시간이 없다.' };
+  }
+  const offer = posted?.offer ?? offerFor(state, job);
+  if (!offer) return { ok: false, text: '올해는 이 일을 시작할 형편이 안 된다 (개업 자금 등).' };
+  if (!posted) state.points.left -= 1;
   ch.career.appliedThisYear.push(jobId);
   const rng = rngFor(state.seed, 'apply', ch.age, jobId);
-  if (rng.chance(hireChance(state, job))) {
+  const chance = posted ? posted.chance : hireChance(state, job) * DIRECT_APPLY;
+  if (rng.chance(chance)) {
     if (ch.edu.status === 'university' && !ch.edu.onLeave) {
       // 졸업 전 취업: 학교는 그만둔다
       ch.edu.status = 'dropout';
     }
     takeJob(state, jobId);
-    state.log.push({ year: state.year, age: ch.age, kind: 'event', title: '합격', text: `${josa(job.title, '으로/로')} 일하게 됐다. 연봉 ${formatWon(ch.career.salary)}.`, tone: 'positive', impact: 15 });
-    return { ok: true, text: `합격. ${josa(job.title, '으로/로')} 출근한다.`, changes: [{ text: `직업: ${job.title}`, sign: 'good' }] };
+    const changes: Change[] = [{ text: `직업: ${job.title} (${TYPE_LABEL[currentType(state) ?? offer.type]})`, sign: 'good' }];
+    // 자영업·장비 지입: 개업 자금 (현금이 모자라면 사업 대출)
+    if (offer.capital > 0 && currentType(state) === offer.type) {
+      const paid = payCapital(state, offer.capital);
+      changes.push({ text: `개업 자금 −${formatWon(paid.cash)}`, sign: 'bad' });
+      if (paid.loan > 0) changes.push({ text: `사업 대출 ${formatWon(paid.loan)}`, sign: 'bad' });
+    }
+    const how = posted?.via === 'referral' ? '지인 추천으로 ' : posted?.via === 'return' ? '예전 경력을 살려 ' : '';
+    state.log.push({ year: state.year, age: ch.age, kind: 'event', title: '합격', text: `${how}${josa(job.title, '으로/로')} 일하게 됐다. ${TYPE_LABEL[currentType(state) ?? offer.type]}, 연봉 ${formatWon(ch.career.salary)}.`, tone: 'positive', impact: 15 });
+    return { ok: true, text: `합격. ${josa(job.title, '으로/로')} 출근한다.`, changes };
   }
   return { ok: false, text: `${job.title} 불합격. 다음에 다시 지원할 수 있다.` };
 }
@@ -116,9 +144,10 @@ export function quitJob(state: GameState): ActionResult {
   const c = state.ch.career;
   if (!c.jobId || c.business || state.phase !== 'action') return { ok: false, text: '그만둘 일이 없다.' };
   const title = c.title;
-  const pay = leaveJob(state, 0);
-  state.log.push({ year: state.year, age: state.ch.age, kind: 'event', title: '퇴사', text: `${josa(title ?? '일', '을/를')} 그만뒀다. 퇴직금 ${formatWon(pay)}.`, tone: 'neutral', impact: 10 });
-  return { ok: true, text: `사표를 냈다. 퇴직금 ${formatWon(pay)}.` };
+  const pay = leaveJob(state, 0, 'quit');
+  const paid = pay > 0 ? ` 퇴직금 ${formatWon(pay)}.` : '';
+  state.log.push({ year: state.year, age: state.ch.age, kind: 'event', title: '퇴사', text: `${josa(title ?? '일', '을/를')} 그만뒀다.${paid}`, tone: 'neutral', impact: 10 });
+  return { ok: true, text: `그만뒀다.${paid} 스스로 그만두면 구직급여는 나오지 않는다.` };
 }
 
 export function prepareCsat(state: GameState): ActionResult {

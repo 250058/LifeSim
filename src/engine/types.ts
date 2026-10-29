@@ -174,6 +174,87 @@ export interface Career {
   history: { jobId: string; title: string; fromAge: number; toAge?: number }[];
   /** 올해 지원한 일자리 */
   appliedThisYear: string[];
+  /**
+   * 일하는 방식: 고용 형태·계약·부업·면허·실직 기록·소득 원장 (work.ts).
+   * 옛 저장에는 없다. 읽을 때는 직업의 표준 형태로 보고, 모르는 과거(계약 만료일 등)는 만들어 넣지 않는다
+   */
+  work?: WorkState;
+}
+
+/** 고용 형태: 정규직, 계약직(기간제), 파견·용역, 일용직, 시간제, 플랫폼 노동, 프리랜서, 자영업, 무급 가족종사 */
+export const EMPLOYMENT_TYPES = ['regular', 'contract', 'dispatch', 'daily', 'parttime', 'platform', 'freelance', 'self', 'family'] as const;
+export type EmploymentType = (typeof EMPLOYMENT_TYPES)[number];
+
+/** 근무 형태: 주간, 교대, 야간, 재택, 현장(야외), 출장·이동, 계절, 불규칙 */
+export const WORK_SCHEDULES = ['day', 'shift', 'night', 'remote', 'field', 'travel', 'seasonal', 'irregular'] as const;
+export type WorkSchedule = (typeof WORK_SCHEDULES)[number];
+
+/**
+ * 일을 그만둔 까닭. 구직급여(비자발적 이직)를 가린다.
+ * 사직, 권고사직·해고, 계약 만료, 징계·결격, 업무상 부상, 임금 체불, 폐업, 플랫폼 계정 정지, 정년·은퇴
+ */
+export type ExitReason = 'quit' | 'layoff' | 'contract_end' | 'dismissed' | 'injury' | 'arrears' | 'closed' | 'deactivated' | 'retire';
+
+/** 면허·자격 하나의 기록. 떨어져도 남고, 다시 응시할 수 있다 */
+export interface LicenseRecord {
+  /** 응시 횟수 */
+  tries: number;
+  /** 마지막으로 응시한 나이 (한 해 한 번) */
+  lastTry?: number;
+  /** 합격한 나이 */
+  passed?: number;
+  /** 갱신(적성검사)해야 하는 나이 */
+  renewAt?: number;
+  /** 갱신 기한을 넘겨 효력을 잃었다 */
+  lapsed?: boolean;
+}
+
+/** 소득 원장 한 해: 금액은 모두 2026년 원 (물가를 나눈 실질액) */
+export interface WorkYear {
+  age: number;
+  jobId?: string;
+  type?: EmploymentType;
+  /** 본업 세전 소득 (적자면 음수) */
+  gross: number;
+  /** 부업 세전 소득 */
+  side?: number;
+  /** 구직급여·휴업급여·체불 회수처럼 일 밖에서 들어온 돈 */
+  benefit?: number;
+  /** 일용직이 실제로 일한 날 */
+  days?: number;
+}
+
+export interface WorkState {
+  /** 지금 일자리의 고용 형태 */
+  type?: EmploymentType;
+  /** 주당 근로시간 */
+  hours?: number;
+  /** 계약이 끝나는 나이 (계약직·파견·시간제). 없으면 기간의 정함이 없다 */
+  contractUntil?: number;
+  /** 같은 일자리에서 계약을 갱신한 횟수 */
+  renewals?: number;
+  /** 사업주가 재계약하지 않기로 했다 (다음 해 첫머리에 만료 카드) */
+  ending?: boolean;
+  /** 지난 평가·사건이 남긴 평판: +는 좋은 평, −는 나쁜 평. 계약 판정에 쓰고 비운다 */
+  standing?: number;
+  /** 개업·장비에 들인 돈 (2026년 원). 접을 때 일부를 돌려받는다 */
+  capital?: number;
+  /** 받지 못한 임금 (2026년 원). 진정하면 회수를 시도하고 3년이 지나면 시효로 사라진다 */
+  arrears?: { amount: number; since: number };
+  /** 업무상 부상: 다친 나이, 쉰 달 수, 처리 방식 */
+  injury?: { age: number; months: number; cover: 'claim' | 'company' | 'self' };
+  /** 부업 하나 */
+  side?: { jobId: string; type: EmploymentType; hours: number; since: number };
+  /** 면허·자격 (data/jobs.json licenses의 id) */
+  licenses?: Record<string, LicenseRecord>;
+  /** 직업훈련을 마친 분야 (care·it·trade·office·drive) */
+  trained?: string[];
+  /** 마지막으로 일을 그만둔 기록 (구직급여·경력 복귀) */
+  exit?: { age: number; reason: ExitReason; jobId: string; type: EmploymentType; wage2026: number; insuredYears: number };
+  /** 구직급여를 받은 실직 (exit.age). 같은 실직에 두 번 주지 않는다 */
+  benefitFor?: number;
+  /** 연도별 소득 원장 (최근 100년) */
+  ledger?: WorkYear[];
 }
 
 export type MilitaryStatus = 'none' | 'pending' | 'serving' | 'done' | 'exempt';

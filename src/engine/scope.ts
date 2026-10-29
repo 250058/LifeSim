@@ -5,6 +5,7 @@ import { JOB_BY_ID, REGION_BY_ID } from './data';
 import { familySupport, alive, npcAge, partnerOf, spouseOf } from './relations';
 import { ELITE_HIGH, stageOf } from './format';
 import { substanceScope } from './substances';
+import { layoffExposed, orgRetirement, workScope } from './work';
 import { isPresidentialYear } from './world';
 import type { Scope } from './conditions';
 import type { GameState } from './types';
@@ -160,10 +161,14 @@ export function buildScope(state: GameState, ctx: Record<string, string> = {}): 
       years: ch.career.years,
       business: Boolean(ch.career.business),
       retired: ch.career.retired,
-      layoffRisk: job ? job.layoffRisk : 0,
+      // 희망퇴직·구조조정은 정규직·계약직 일자리만 (플랫폼·프리랜서·자영업에는 고용주가 내보낼 자리가 없다)
+      layoffRisk: job && layoffExposed(state) ? job.layoffRisk : 0,
       stress: job ? job.stress : 0,
       retireAge: job ? job.retireAge : 0,
-      atRetireAge: Boolean(job && !ch.career.business && ch.age >= job.retireAge),
+      // 정년퇴직 카드는 조직에 속한 일만. 자영업·프리랜서는 work.ts가 그 직업의 은퇴 나이에 스스로 접는다
+      atRetireAge: Boolean(job && !ch.career.business && ch.age >= job.retireAge && orgRetirement(state)),
+      // 고용 형태·근무 형태·산재 등급·계약·부업·면허 (work.ts): job.type, job.shift, job.injury, job.contractEnding …
+      ...workScope(state),
     },
     military: {
       status: mil.status,
