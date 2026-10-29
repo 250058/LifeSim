@@ -2,7 +2,7 @@
   "schema_version": 1,
   "repository": "250058/LifeSim",
   "current_plan_path": "docs/PLAN.md",
-  "latest_report_path": "docs/reviews/2026-10-29T12-50-37Z.md",
+  "latest_report_path": "docs/reviews/2026-10-29T12-53-25Z.md",
   "handoff_issue_number": 1,
   "initial_full_review_pending": true,
   "last_completed_review_at": "2026-10-29T12:51:39Z",
@@ -1146,5 +1146,36 @@
     "evidence_line": 95,
     "observed_at": "2026-10-29T10:54:47Z",
     "kind": "written_acknowledgement_not_direct_session_delivery"
+  },
+  "latest_operations_report_path": "docs/reviews/2026-10-29T12-53-25Z.md",
+  "last_operations_update_at": "2026-10-29T12:53:25Z",
+  "claude_availability": {
+    "status": "unknown",
+    "monitoring_paused": false,
+    "reported_at": null,
+    "quota_resets_at": null,
+    "work_resumes_at": null,
+    "resume_at": null,
+    "resume_time_zone": null,
+    "resume_time_basis": null,
+    "resume_time_text": null,
+    "source_url": null,
+    "source_comment_id": null,
+    "recorded_at": "2026-10-29T12:53:25Z",
+    "note": "No explicit quota-limit or return-time report has been observed. Absence of commits is not evidence of a usage limit."
+  },
+  "claude_limit_policy": {
+    "requested_at": "2026-10-29",
+    "instructions_path": "CLAUDE_REVIEW.md",
+    "report_path": "docs/reviews/2026-10-29T12-53-25Z.md",
+    "pause_on_confirmed_limit": true,
+    "skip_repeated_no_change_reports": true,
+    "resume_time_priority": [
+      "explicit_work_resume",
+      "provider_quota_reset"
+    ],
+    "unknown_resume_behavior": "check_only_limit_or_return_status_on_existing_schedule",
+    "preserve_existing_schedule": true,
+    "scheduled_task_id": "6ae2b72838488191990e7c1f27132292"
   }
 }
