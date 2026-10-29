@@ -5,8 +5,8 @@ import { evaluate } from './conditions';
 import { CONCEIVED_CTX, CONTRA_CTX, contraceptionMethod, drawScare, fecundity, pregnancyRisk } from './contraception';
 import { choreActivity, isChore } from './daily';
 import { ACTIVITIES, ACTIVITY_BY_ID, EVENT_BY_ID } from './data';
-import { addFlag, applyEffects, removeFlag } from './effects';
-import { formatWon, josa, signedWon } from './format';
+import { addFlag, applyEffects, pay, paymentText, removeFlag } from './effects';
+import { josa, signedWon } from './format';
 import { addFriend, alive, changeCloseness, npcAge, partnerOf, spouseOf, startPartner } from './relations';
 import { rngFor, type Rng } from './rng';
 import { buildScope, inPrison } from './scope';
@@ -121,10 +121,9 @@ export function performActivity(state: GameState, id: string): ActivityResult | 
   let text = def.log ?? def.desc;
   let queuedCard = false;
 
-  if (view.cost > 0 && ch.age >= 19) {
-    ch.res.cash -= view.cost;
-    changes.push({ text: `현금 −${formatWon(view.cost)}`, sign: 'bad' });
-  }
+  // 성인의 활동비: 사건 지출과 같은 규칙(effects.ts pay)으로 내고, 표시도 실제로 줄어든 현금과 새로 생긴 빚을 나눠 쓴다
+  // (검토 R-016). 메뉴는 현금이 모자라면 막지만, 표시가 청구액을 그대로 쓰면 잔액 변화와 어긋날 수 있다
+  if (view.cost > 0 && ch.age >= ADULT_AGE) changes.push(paymentText(pay(state, view.cost)));
   applyEffects(state, def.effects, { ctx, rng, changes });
 
   for (const d of def.discover ?? []) {
