@@ -46,7 +46,6 @@ export interface ActivityView {
 
 /** 지금 나이·상태에서 보이는 활동과 할 수 있는지 여부 */
 export function activityViews(state: GameState): ActivityView[] {
-  ((globalThis as any).__cnt ??= {})['activities'] = (((globalThis as any).__cnt['activities']) ?? 0) + 1; // TEMPCOUNT
   const ch = state.ch;
   const scope = buildScope(state);
   const coupleOk = (scope.family as { partnerAdult: boolean }).partnerAdult;

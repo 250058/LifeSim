@@ -15,7 +15,7 @@
 import { evaluate, type Scope } from './conditions';
 import { EVENTS, getEvent } from './data';
 import { addImpact, BIG_IMPACT, directorFactor, fillerMinimum, updatePace } from './director';
-import { applyEffects } from './effects';
+import { applyEffects, type EffectContext } from './effects';
 import { STAGES, stageOf } from './format';
 import { rngFor, type Rng } from './rng';
 import { buildScope } from './scope';
@@ -518,7 +518,6 @@ function cancelledEntry(state: GameState, ev: EventDef, ctx: Record<string, stri
  * 일기 한 줄만 남기고 false(대기열의 다음 사건으로 넘어간다). 건너뛴 사건도 false.
  */
 export function presentCard(state: GameState, pending: PendingCard): boolean {
-  ((globalThis as any).__cnt ??= {})['eventEngine'] = (((globalThis as any).__cnt['eventEngine']) ?? 0) + 1; // TEMPCOUNT
   const ev = getEvent(pending.eventId);
   if (!state.ch.alive) return false;
   // 물려받은 대상(자녀·부모·형제·친구·연인·배우자)이 그사이 죽었거나 역할·자녀 나이대에서 벗어났으면
@@ -595,7 +594,7 @@ export function chooseOption(state: GameState, displayIndex: number): void {
   const choice = ev.choices![shown.index];
   const rng = rngFor(state.seed, 'card', card.serial, 'choice', shown.index);
   const changes: Change[] = [];
-  const ec = { ctx: card.ctx, rng, changes };
+  const ec: EffectContext = { ctx: card.ctx, rng, changes };
 
   applyEffects(state, choice.effects, ec);
   let text = choice.result ?? '';
@@ -610,6 +609,8 @@ export function chooseOption(state: GameState, displayIndex: number): void {
       if (out.next) next = out.next;
     }
   }
+  // 사건이 주려던 직업이 임용 자격에 걸렸으면 '첫 출근' 같은 문장 대신 무산된 까닭을 보여 준다 (R-018)
+  if (ec.refusal) text = ec.refusal;
   const resultText = render(text, state, card.ctx);
   card.result = {
     choice: shown.text,

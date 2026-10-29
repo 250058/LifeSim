@@ -885,4 +885,106 @@ describe('R-018: 공고·시험 사건·직접 효과·후계자 생성이 같�
     expect(startBusiness(s, 0.5, '가게')).toBeGreaterThan(0);
     expect(s.ch.career.jobId).toBe('self_employed');
   });
+
+  /** 마이스터고 3학년 18세 (공기업 기술직 채용 카드의 조건) */
+  function meisterStudent(seed: string): GameState {
+    const s = adult(seed, 18, 'middle');
+    s.ch.edu.status = 'high';
+    s.ch.edu.highType = 'meister';
+    s.ch.edu.grade = 100;
+    s.ch.stats.stamina = 100;
+    s.phase = 'action';
+    s.card = undefined;
+    s.queue = [];
+    return s;
+  }
+
+  /** 카드의 첫 선택을 성공할 때까지 시드를 바꿔 고른다 (판정 실패 쪽은 다른 직업으로 간다) */
+  function passCard(make: (seed: string) => GameState, eventId: string, prefix: string): GameState {
+    for (let i = 0; i < 40; i++) {
+      const s = make(`${prefix}-${i}`);
+      expect(presentCard(s, { eventId, ctx: {} })).toBe(true);
+      choose(s, 0);
+      if (s.card!.result!.success) return s;
+    }
+    throw new Error(`${eventId} 합격 시드를 찾지 못했다`);
+  }
+
+  it('마이스터고 채용 사건: 소년 시절 집행유예는 자격 법령에서 없는 것으로 본다(소년법 67조). 소년 실형은 집행을 마치기 전이면 임용되지 않고 결과 문장도 그렇게 바뀐다', () => {
+    // 17세 집행유예: 소년법 67조로 공공 부문 결격이 없다 → 공기업 기술직 임용
+    const exempt = passCard(
+      (seed) => {
+        const s = meisterStudent(seed);
+        addSentence(s.ch, { age: 17, crime: 'theft', kind: 'probation', months: 6, until: 19 });
+        return s;
+      },
+      'meister_hire',
+      'R018-MEISTER-OK',
+    );
+    expect(jobBarred(exempt.ch, JOB_BY_ID.get('public_tech')!)).toBe(false);
+    expect(exempt.ch.career.jobId).toBe('public_tech');
+    expect(exempt.card!.result!.text).toContain('발전소');
+    // 17세 실형, 19세 출소 예정: 집행을 마치기 전에는 예외가 없다 → 같은 합격 판정이 임용으로 이어지지 않는다
+    const serving = passCard(
+      (seed) => {
+        const s = meisterStudent(seed);
+        addSentence(s.ch, { age: 17, crime: 'theft', kind: 'prison', months: 24, until: 19 });
+        return s;
+      },
+      'meister_hire',
+      'R018-MEISTER-BAR',
+    );
+    expect(serving.ch.career.jobId).toBeUndefined();
+    expect(serving.ch.career.history).toEqual([]);
+    expect(serving.ch.career.salary).toBe(0);
+    expect(serving.card!.result!.text).toContain('임용되지 않았다');
+    expect(serving.card!.result!.text).not.toContain('발전소 교대 근무다');
+    expect(serving.card!.result!.changes.map((c) => c.text)).toContain('임용 결격: 공기업 기술직');
+    // 졸업은 그대로 한다 (임용과 상관없는 효과)
+    expect(serving.ch.edu.degree).toBe('high');
+  });
+
+  it('지인 추천(work_referral 사건): 결격 기간에는 추천 공고로도 결격 직업이 나오지 않고, 끝나면 나올 수 있다', () => {
+    for (const t of TIMINGS) {
+      for (let i = 0; i < 15; i++) {
+        const s = convicted(`R018-REF-${t.age}-${i}`, t.age);
+        leaveJob(s, 0, 'quit');
+        syncDerivedFlags(s);
+        s.ch.flags.work_referral = { since: t.age };
+        const ref = jobOpenings(s).find((o) => o.via === 'referral');
+        expect(ref, t.label).toBeDefined();
+        for (const o of jobOpenings(s)) expect(jobBarred(s.ch, o.job), `${t.label} ${o.job.id}`).toBe(false);
+        // 추천 공고에 지원해 붙어도 임용 자격은 그대로다
+        const r = applyForJob(s, ref!.job.id);
+        if (r.ok) expect(appointIssues(s, JOB_BY_ID.get(s.ch.career.jobId!)!)).toEqual([]);
+      }
+    }
+  });
+
+  it('후계자의 직업은 저장·재개 뒤에도 같고, 근속을 거슬러 잡아도 그 직업의 최소 나이 전에 들어간 기록이 없다', () => {
+    let checked = 0;
+    for (let i = 0; i < 30; i++) {
+      const seed = `R018-HEIR-SAVE-${i}`;
+      const p = newGame({ seed, mode: 'reality', birthYear: 2026 });
+      p.ch.age = 70;
+      p.year = p.ch.birthYear + 70;
+      p.world.year = p.year;
+      p.ch.npcs = [];
+      const child = haveChild(p, rngFor(seed, 'child'));
+      child.birthYear = p.year - 40;
+      p.ch.alive = false;
+      p.phase = 'dead';
+      p.ch.death = { age: 70, year: p.year, cause: '검사' };
+      const heir = continueAsChild(p, child.id)!;
+      const back = reload(heir);
+      expect(careerPrint(back)).toBe(careerPrint(heir));
+      const id = back.ch.career.jobId;
+      if (!id) continue;
+      checked++;
+      const job = JOB_BY_ID.get(id)!;
+      expect(appointIssues(back, job)).toEqual([]);
+      expect(back.ch.career.history[0].fromAge, id).toBeGreaterThanOrEqual(job.minAge);
+    }
+    expect(checked).toBeGreaterThan(5);
+  });
 });

@@ -55,7 +55,6 @@ export function inPrison(state: GameState): boolean {
 }
 
 export function buildScope(state: GameState, ctx: Record<string, string> = {}): Scope {
-  ((globalThis as any).__cnt ??= {})['scope'] = (((globalThis as any).__cnt['scope']) ?? 0) + 1; // TEMPCOUNT
   const ch = state.ch;
   const year = state.year;
   const flags: Record<string, boolean> = {};

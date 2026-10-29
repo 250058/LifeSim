@@ -434,7 +434,8 @@ function fillSchoolAndWork(state: GameState, rng: Rng, wealth: number): void {
       const pick = rng.weighted(jobs, (j) => (DEGREE_RANK[j.minDegree] === mine ? 4 : mine - DEGREE_RANK[j.minDegree] >= 2 ? 0.5 : 1))!;
       // 후계자도 다른 경로와 같은 임용 자격을 takeJob 안에서 받는다 (R-018). 걸리면 일 없이 시작한다
       const job = takeJob(state, pick.id);
-      const years = rng.int(0, Math.max(0, Math.min(age - 23, 30)));
+      // 근속을 거슬러 잡아도 그 직업의 최소 나이 전에 들어간 기록은 만들지 않는다 (임용 자격의 나이 조건, R-018)
+      const years = rng.int(0, Math.max(0, Math.min(age - 23, age - pick.minAge, 30)));
       if (job) {
         const c = ch.career;
         c.years = years;

@@ -4,7 +4,6 @@ import { evaluate, type Scope } from './conditions';
 import { JOB_BY_ID, JOBS, REGION_BY_ID, WORLD } from './data';
 import { BARRED_JOBS, barredFromJob, publicSectorBarred, recordHireFactor } from './records';
 import { rngFor, type Rng } from './rng';
-import { buildScope } from './scope';
 import type { JobDef } from './schema';
 import { ELITE_HIGH } from './format';
 import type { Character, Degree, ExitReason, GameState, HighType, UnivTier } from './types';
@@ -22,6 +21,7 @@ import {
   LICENSE_BY_ID,
   offerFor,
   payFactor,
+  reqScope,
   standardType,
   startWork,
   TRAINING_TRACKS,
@@ -234,7 +234,7 @@ export function canAppoint(state: GameState, job: JobDef): boolean {
 }
 
 export function meetsJob(state: GameState, job: JobDef): boolean {
-  return meetsJobWith(state, job, () => buildScope(state));
+  return meetsJobWith(state, job, () => reqScope(state));
 }
 
 /**
@@ -420,7 +420,8 @@ function listedForAge(age: number): number[] {
 function computeOpenings(state: GameState): JobOpening[] {
   const ch = state.ch;
   let scope: Scope | undefined;
-  const lazyScope = () => (scope ??= buildScope(state));
+  // 직업 조건식은 능력치만 읽는다: 전체 범위(buildScope) 대신 가벼운 범위를 한 번만 만든다
+  const lazyScope = () => (scope ??= reqScope(state));
   const last = lastField(ch);
   const seeker: Seeker = {
     age: ch.age,

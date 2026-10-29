@@ -199,6 +199,11 @@ export interface EffectContext {
   ctx: Record<string, string>;
   rng: Rng;
   changes: Change[];
+  /**
+   * 사건이 주려던 직업이 임용 자격(R-018)에 걸려 무산됐을 때의 결과 문장. 카드의 결과 문장('합격. 첫 출근…')이
+   * 실제 상태와 어긋나지 않게 eventEngine이 이 문장으로 바꿔 보여 준다
+   */
+  refusal?: string;
 }
 
 export function applyEffects(state: GameState, fx: Effects | undefined, ec: EffectContext): void {
@@ -476,6 +481,9 @@ function runAction(state: GameState, a: Action, ec: EffectContext): void {
       const why = issues.map((i) => i.label).join(', ');
       const barred = issues.some((i) => i.kind === 'barred');
       changes.push({ text: barred ? `임용 결격: ${title}` : `채용 무산: ${title} (${why})`, sign: 'bad' });
+      ec.refusal = barred
+        ? `선발 절차는 통과했지만 임용 전 신원 조회에서 판결 기록이 확인됐다. 결격 기간이라 ${josa(title, '으로/로')} 임용되지 않았다. 결격 기간이 끝나면 다시 지원할 수 있다.`
+        : `${josa(title, '으로/로')} 일하게 되는 줄 알았지만, 마지막 확인에서 ${why} 조건이 안 돼 없던 일이 됐다.`;
       state.log.push({
         year: state.year,
         age: ch.age,

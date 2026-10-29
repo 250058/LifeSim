@@ -382,8 +382,11 @@ export function describeReq(req: string): string {
     .join('');
 }
 
-// 조건식(req)용 범위: career.ts의 buildScope를 직접 부르면 순환이 생겨 여기서는 필요한 값만 만든다
-function reqScope(state: GameState): Scope {
+/**
+ * 직업·면허 조건식(req)용 범위: 능력치·숨은 값·성격·나이만 담는다. 조건식은 능력치만 읽으므로
+ * (tests/jobs.test.ts가 검사) 전체 범위(buildScope)를 만들 필요가 없다. 공고 계산이 해마다 직업 수백 개를 볼 때 쓴다
+ */
+export function reqScope(state: GameState): Scope {
   const ch = state.ch;
   return { stats: { ...ch.stats }, hidden: { ...ch.hidden }, personality: { ...ch.personality }, age: ch.age };
 }
