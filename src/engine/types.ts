@@ -48,6 +48,8 @@ export interface Talent {
 export interface FlagInfo {
   since: number;
   until?: number;
+  /** 누구의 기록인가 (인물 ID). 남성 주인공에게 상대가 쓰는 피임 방법만 남긴다 (contraception.ts). 옛 저장에는 없다 */
+  owner?: string;
 }
 
 export interface Resources {

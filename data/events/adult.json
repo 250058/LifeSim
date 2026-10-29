@@ -71,7 +71,7 @@
     {
       "id": "pregnancy",
       "type": "random",
-      "motif": "2025년 합계출산율 0.80명, 출생아 25만 4,300명 (통계청). 보정(2026-10-29): 현실 모드 2,000명 모의의 합계출산율 근사 0.8 안팎, 2024 출생통계의 나이별 모양(30~34세 70.4·35~39세 46.0명/여성 천 명, 평균 출산 연령 33.7세)에 맞춰 기본 확률·나이 곡선·둘째 이후 배수를 정했다. 피임 보정은 src/engine/contraception.ts와 같은 규칙: 일반 사용 첫해 실패율 ÷ 피임 안 함 85% (콘돔 13%·피임약 7%·자궁 내 장치·피하 이식 0.4%·정관수술 0.15%, Contraceptive Technology 21판), 가장 센 방법 하나만, 임신 준비 중이면 되돌릴 수 있는 방법은 멈춤, 딩크는 0.1과 방법 배수 중 작은 쪽",
+      "motif": "2025년 합계출산율 0.80명, 출생아 25만 4,300명 (통계청). 보정(2026-10-29): 현실 모드 2,000명 모의의 합계출산율 근사 0.8 안팎, 2024 출생통계의 나이별 모양(30~34세 70.4·35~39세 46.0명/여성 천 명, 평균 출산 연령 33.7세)에 맞춰 기본 확률·나이 곡선·둘째 이후 배수를 정했다. 피임 보정은 src/engine/contraception.ts와 같은 규칙: 일반 사용 첫해 실패율 ÷ 피임 안 함 85% (콘돔 13%·피임약 7%·자궁 내 장치·피하 이식 0.4%·정관수술 0.15%, Contraceptive Technology 21판), 가장 센 방법 하나만, 임신 준비 중이면 되돌릴 수 있는 방법은 멈춤, 딩크는 0.1과 방법 배수 중 작은 쪽. 어느 방법이 적용되는지는 엔진이 정한다(family.contraception: 남성 주인공에게 상대가 쓰는 방법은 그 상대가 지금 배우자일 때만). 아이가 태어나면 피임약·장치 기록이 끝난다",
       "title": "두 줄",
       "text": "임신 테스트기에 선명한 두 줄. 둘 다 한참 말이 없었다. 그러다 동시에 웃었다.",
       "tone": "positive",
@@ -86,18 +86,12 @@
           { "if": "family.children >= 2", "x": 0.3 },
           { "if": "money.cash < 10000000", "x": 0.7 },
           { "if": "family.marriedYears < 1", "x": 0.6 },
-          {
-            "if": "flags.rom_childfree && !(sex == 'M' && flags.med_vasectomy) && (flags.rom_trying || (!flags.rom_larc && !flags.rom_pill_use))",
-            "x": 0.1
-          },
+          { "if": "flags.rom_childfree && (family.contraception == 'none' || family.contraception == 'condom')", "x": 0.1 },
           { "if": "flags.rom_trying", "x": 1.5 },
-          {
-            "if": "flags.rom_safe && !flags.rom_childfree && !flags.rom_trying && !flags.rom_larc && !flags.rom_pill_use && !(sex == 'M' && flags.med_vasectomy)",
-            "x": 0.1529
-          },
-          { "if": "flags.rom_pill_use && !flags.rom_trying && !flags.rom_larc && !(sex == 'M' && flags.med_vasectomy)", "x": 0.08235 },
-          { "if": "flags.rom_larc && !flags.rom_trying && !(sex == 'M' && flags.med_vasectomy)", "x": 0.004706 },
-          { "if": "sex == 'M' && flags.med_vasectomy", "x": 0.001765 }
+          { "if": "family.contraception == 'condom' && !flags.rom_childfree", "x": 0.152941 },
+          { "if": "family.contraception == 'pill'", "x": 0.082353 },
+          { "if": "family.contraception == 'longActing'", "x": 0.004706 },
+          { "if": "family.contraception == 'permanent'", "x": 0.001765 }
         ]
       },
       "limit": { "max": 4, "cooldown": 1 },
@@ -108,6 +102,7 @@
           "result": "1년 동안 아이 곁에 있었다. 복직하니 내 자리에 다른 사람이 앉아 있었다.",
           "effects": {
             "do": [{ "type": "haveChild" }],
+            "removeFlags": ["rom_pill_use", "rom_larc"],
             "stats": { "happiness": 12, "stress": 6 },
             "money": { "cashPct": -0.1 }
           }
@@ -116,13 +111,13 @@
           "text": "맞벌이를 유지한다",
           "if": "job.employed",
           "result": "등원 도우미와 할머니 찬스로 버틴다. 매일이 전쟁이다.",
-          "effects": { "do": [{ "type": "haveChild" }], "stats": { "happiness": 8, "stress": 15 } }
+          "effects": { "do": [{ "type": "haveChild" }], "removeFlags": ["rom_pill_use", "rom_larc"], "stats": { "happiness": 8, "stress": 15 } }
         },
         {
           "text": "아이 곁에 있는다",
           "if": "!job.employed",
           "result": "밤에 세 번씩 깼다. 처음으로 부모님이 이해됐다.",
-          "effects": { "do": [{ "type": "haveChild" }], "stats": { "happiness": 12, "stress": 10 } }
+          "effects": { "do": [{ "type": "haveChild" }], "removeFlags": ["rom_pill_use", "rom_larc"], "stats": { "happiness": 12, "stress": 10 } }
         }
       ]
     },
