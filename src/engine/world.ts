@@ -69,6 +69,8 @@ export function initWorld(year: number): WorldState {
     },
     politics: { ruling: null, approval: 45, lastPresidential: 2025 },
     tension: 45,
+    war: { active: false, yearsLeft: 0 },
+    unified: false,
     automation: 20,
     pandemic: 0,
     news: {},
@@ -128,8 +130,55 @@ export function updateWorld(state: GameState, rng: Rng): LogEntry[] {
   e.housingIndex = Math.max(30, e.housingIndex * (1 + v.housing + rng.normal(0, 0.03)));
   e.minWage = Math.round((e.minWage * (1 + Math.max(0, e.inflation + 1) / 100)) / 10) * 10;
 
-  // 안보·기술·재난
-  w.tension = Math.max(5, Math.min(98, w.tension + rng.normal((45 - w.tension) * 0.2, 8)));
+  // 안보: 도발 → 국지전 → 전면전. 전쟁은 휴전이나 통일로 끝난다
+  let provocation = false;
+  let skirmish = false;
+  let warStart = false;
+  let warEnd = false;
+  if (w.unified) {
+    w.tension = Math.max(0, Math.min(30, w.tension + rng.normal((8 - w.tension) * 0.3, 3)));
+  } else if (w.war.active) {
+    w.war.yearsLeft -= 1;
+    if (w.war.yearsLeft <= 0) {
+      const outcome = rng.weighted(
+        [
+          ['armistice', 70],
+          ['unification', 20],
+          ['continue', 10],
+        ] as const,
+        ([, x]) => x,
+      )![0];
+      if (outcome === 'continue') w.war.yearsLeft = 1;
+      else {
+        w.war = { active: false, yearsLeft: 0, startYear: w.war.startYear, outcome };
+        warEnd = true;
+        if (outcome === 'unification') w.unified = true;
+        w.tension = outcome === 'unification' ? 10 : 70;
+      }
+    }
+  } else {
+    if (rng.chance(0.08)) {
+      w.tension += rng.int(12, 25);
+      provocation = true;
+    }
+    w.tension = Math.max(5, Math.min(99, w.tension + rng.normal((45 - w.tension) * 0.2, 9)));
+    if (w.tension >= 75 && rng.chance(0.18)) skirmish = true;
+    // 전면전: 현실 모드에서 평생 1~2%, 드라마 모드 4~6%가 되도록 맞췄다
+    if (w.tension >= 85 && rng.chance(0.012 * modeMultiplier(state.mode, 0.00015, 85))) {
+      w.war = { active: true, yearsLeft: rng.chance(0.4) ? 2 : 1, startYear: year };
+      warStart = true;
+    }
+  }
+  if (warStart || w.war.active) {
+    // 전쟁 중 경제: 금융시장 패닉, 집값 하락
+    e.phase = 'crisis';
+    if (warStart) {
+      e.stockIndex *= 0.7;
+      e.housingIndex *= 0.85;
+    }
+  }
+
+  // 기술·감염병
   w.automation = Math.min(95, w.automation + 1.2 + rng.normal(0, 0.5));
   let pandemicStart = false;
   if (w.pandemic > 0) w.pandemic -= 1;
@@ -138,13 +187,28 @@ export function updateWorld(state: GameState, rng: Rng): LogEntry[] {
     pandemicStart = true;
   }
 
-  // 그해의 뉴스 플래그
+  // 그해의 뉴스 플래그: 사회 현상과 재난
   w.news = {
     scamCompound: rng.chance(0.15),
     voicePhishing: rng.chance(0.3),
     jeonseFraud: rng.chance(0.12),
     pandemicStart,
     pandemicOngoing: w.pandemic > 0,
+    provocation,
+    skirmish,
+    warStart,
+    warOngoing: w.war.active && !warStart,
+    warEnd,
+    quake: rng.chance(0.02),
+    typhoon: rng.chance(0.35),
+    flood: rng.chance(0.3),
+    heatwave: rng.chance(0.35),
+    coldwave: rng.chance(0.25),
+    wildfire: rng.chance(0.12),
+    fineDust: rng.chance(0.5),
+    outage: rng.chance(0.04),
+    protest: rng.chance(w.politics.approval < 25 ? 0.3 : 0.04),
+    priceSurge: e.inflation >= 3.5,
   };
 
   // 선거
@@ -155,7 +219,12 @@ export function updateWorld(state: GameState, rng: Rng): LogEntry[] {
     실업률: e.unemployment.toFixed(1),
   };
   const news: string[] = [];
-  if (isPresidentialYear(year)) {
+  // 전쟁과 국지전 소식이 가장 먼저다
+  if (warStart) news.push(headline('warStart', rng, vars));
+  else if (w.war.active) news.push(headline('warOngoing', rng, vars));
+  if (warEnd) news.push(headline(w.war.outcome === 'unification' ? 'unification' : 'armistice', rng, vars));
+  if (skirmish) news.push(headline('skirmish', rng, vars));
+  if (isPresidentialYear(year) && !w.war.active) {
     const winner = pickParty(w, rng);
     w.politics.ruling = winner;
     w.politics.approval = rng.int(45, 60);
@@ -163,19 +232,24 @@ export function updateWorld(state: GameState, rng: Rng): LogEntry[] {
     vars.정당 = winner;
     vars.대수 = String(22 + (year - 2030) / 5);
     news.push(headline('presidential', rng, vars));
-  } else if (isGeneralElectionYear(year)) {
+  } else if (isGeneralElectionYear(year) && !w.war.active) {
     vars.정당 = pickParty(w, rng);
     vars.대수 = String(23 + (year - 2028) / 4);
     news.push(headline('general', rng, vars));
   }
   w.politics.approval = Math.max(15, Math.min(75, w.politics.approval + rng.normal(-2, 6)));
 
+  if (w.news.quake) news.push(headline('quake', rng, vars));
+  if (w.news.wildfire && rng.chance(0.5)) news.push(headline('wildfire', rng, vars));
+  if (provocation) news.push(headline('tensionHigh', rng, vars));
   if (e.phase !== prevPhase || rng.chance(0.25)) news.push(headline(e.phase, rng, vars));
   if (w.news.pandemicStart) news.push(headline('pandemic', rng, vars));
-  if (w.tension > 75) news.push(headline('tensionHigh', rng, vars));
-  else if (w.tension < 20) news.push(headline('tensionLow', rng, vars));
+  if (w.tension < 20 && !w.unified) news.push(headline('tensionLow', rng, vars));
+  if (w.news.protest) news.push(headline('protest', rng, vars));
   if (w.news.scamCompound) news.push(headline('scamCompound', rng, vars));
   if (w.news.jeonseFraud) news.push(headline('jeonseFraud', rng, vars));
+  if (w.news.typhoon && rng.chance(0.3)) news.push(headline('typhoon', rng, vars));
+  if (w.news.heatwave && rng.chance(0.3)) news.push(headline('heatwave', rng, vars));
   if (w.news.voicePhishing && rng.chance(0.4)) news.push(headline('voicePhishing', rng, vars));
   if (rng.chance(0.2)) news.push(headline('minWage', rng, vars));
   if (w.automation > 40 && rng.chance(0.15)) news.push(headline('automation', rng, vars));

@@ -190,6 +190,35 @@ export function performActivity(state: GameState, id: string): ActivityResult | 
     case 'drink':
       if (rng.chance(0.12)) addFlag(state, 'heavy_drinker', changes);
       break;
+    case 'shopping':
+      // 옷장 스타일이 아직 없으면 쇼핑하면서 하나가 정해진다
+      if (!ch.flags.style_basic && !ch.flags.style_trendy && !ch.flags.style_luxury && !ch.flags.style_comfort) {
+        addFlag(state, rng.chance(0.6) ? 'style_trendy' : 'style_basic', changes);
+      }
+      break;
+    case 'diet': {
+      // 배달·외식비를 아낀다
+      const saved = Math.round(rng.int(30, 80) * 10_000 * state.world.economy.priceIndex);
+      ch.res.cash += saved;
+      changes.push({ text: `식비 절약 ${signedWon(saved)}`, sign: 'good' });
+      if (ch.flags.diet_junk) {
+        if (rng.chance(0.5)) {
+          removeFlag(state, 'diet_junk', changes);
+          text = '배달앱을 지웠다. 냉장고에 채소가 생겼다.';
+        }
+      } else if (!ch.flags.diet_healthy && rng.chance(0.35)) {
+        addFlag(state, 'diet_healthy', changes);
+        text = '저염식이 입에 붙었다. 건강검진 수치가 좋아졌다.';
+      }
+      break;
+    }
+    case 'foodie':
+      if (!ch.flags.diet_junk && rng.chance(ch.flags.diet_healthy ? 0.06 : 0.12)) {
+        removeFlag(state, 'diet_healthy', changes);
+        addFlag(state, 'diet_junk', changes);
+        text = '야식이 습관이 됐다. 바지가 끼기 시작했다.';
+      }
+      break;
   }
 
   if (ch.edu.status !== 'none' && id === 'study') {

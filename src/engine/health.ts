@@ -20,7 +20,7 @@ const INFANT_Q = 0.0025;
  * 시뮬레이터 보정값. 사건(암, 사고, 감금 등)으로 생기는 사망이 생명표 위에 더해지므로
  * 기본 사망률을 조금 낮춘다. tools/simulator로 맞춘 값.
  */
-export const BASE_HAZARD_SCALE = 0.93;
+export const BASE_HAZARD_SCALE = 0.78;
 
 /** 생명표 기준 연간 사망 확률 */
 export function baseMortality(age: number, sex: Sex): number {
@@ -93,7 +93,7 @@ export function pickCause(ch: Character, rng: Rng): string {
 export function pickCauseByAge(age: number, sex: Sex, rng: Rng): string {
   const table = WORLD.causesOfDeath.find((t) => age <= t.maxAge) ?? WORLD.causesOfDeath[WORLD.causesOfDeath.length - 1];
   // 남성은 암 사망 비중이 높다 (보정표: 암 사망 확률 남 24.5%, 여 15.2%)
-  const cancerX = sex === 'M' ? 1.3 : 0.6;
+  const cancerX = sex === 'M' ? 0.95 : 0.3;
   const picked = rng.weighted(table.causes, ([cause, w]) => (cause === '암' ? w * cancerX : w));
   return picked ? picked[0] : '노환';
 }
@@ -104,6 +104,10 @@ export function yearlyHealthDelta(ch: Character, rng: Rng): number {
   let d = (healthTarget(age) - stats.health) * 0.18;
   if (flags.smoker) d -= 1.2;
   if (flags.heavy_drinker) d -= 0.8;
+  if (flags.diet_healthy) d += 0.6;
+  if (flags.diet_junk) d -= 0.8;
+  if (flags.diet_vegan) d += 0.3;
+  if (flags.ptsd) d -= 0.5;
   if (state.stress > 70) d -= (state.stress - 70) * 0.1;
   if (flags.cancer) d -= 6;
   if (flags.dementia) d -= 3;

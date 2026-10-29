@@ -225,6 +225,74 @@
     },
     { "id": "arts_award", "name": "실기 대회 입상", "visible": true, "sign": "good" },
     { "id": "ged", "name": "검정고시 출신", "visible": true, "sign": "info" },
-    { "id": "early_admission", "name": "수시 합격", "visible": false }
+    { "id": "early_admission", "name": "수시 합격", "visible": false },
+    {
+      "id": "veteran",
+      "name": "참전용사",
+      "desc": "평판이 오르고 정계 영입 가능성. PTSD 위험",
+      "visible": true,
+      "sign": "good",
+      "epitaph": "전장에서도",
+      "priority": 9
+    },
+    { "id": "war_medal", "name": "무공훈장", "visible": true, "sign": "good", "achievement": true },
+    {
+      "id": "pow_survivor",
+      "name": "포로생환",
+      "desc": "악몽·불면 사건, 훈장과 방송 출연",
+      "visible": true,
+      "sign": "bad",
+      "epitaph": "포로수용소에서도",
+      "priority": 9
+    },
+    { "id": "collaborator", "name": "배신자 낙인", "visible": true, "sign": "bad" },
+    { "id": "volunteer_soldier", "name": "자원입대", "visible": true, "sign": "good" },
+    { "id": "war_refugee", "name": "피난민", "visible": true, "sign": "bad", "epitaph": "피난길에서도", "priority": 7 },
+    { "id": "separated_family", "name": "이산가족", "visible": true, "sign": "bad" },
+    { "id": "war_abroad", "name": "해외 피신", "visible": true, "sign": "info" },
+    { "id": "ptsd", "name": "PTSD", "desc": "악몽과 불면. 상담을 받으면 나아질 수 있다", "visible": true, "sign": "bad" },
+    {
+      "id": "disaster_victim",
+      "name": "이재민",
+      "visible": true,
+      "sign": "bad",
+      "epitaph": "무너진 집 앞에서도",
+      "priority": 5
+    },
+    {
+      "id": "hero",
+      "name": "의인",
+      "desc": "위험 속에서 다른 사람을 구했다",
+      "visible": true,
+      "sign": "good",
+      "achievement": true,
+      "epitaph": "불길 속에서도",
+      "priority": 8
+    },
+    { "id": "burn_survivor", "name": "화상 생존자", "visible": true, "sign": "bad" },
+    { "id": "has_pet", "name": "반려동물", "desc": "외로움이 덜하다", "visible": true, "sign": "good" },
+    { "id": "cult_member", "name": "사이비 신도", "visible": true, "sign": "bad" },
+    { "id": "style_basic", "name": "스타일: 기본템", "visible": true, "sign": "info" },
+    { "id": "style_trendy", "name": "스타일: 유행", "visible": true, "sign": "info" },
+    { "id": "style_luxury", "name": "스타일: 명품", "visible": true, "sign": "info" },
+    { "id": "style_comfort", "name": "스타일: 편안함", "visible": true, "sign": "info" },
+    { "id": "interview_ready", "name": "면접 준비", "visible": false, "duration": 1 },
+    {
+      "id": "diet_healthy",
+      "name": "건강한 식단",
+      "desc": "건강이 해마다 조금씩 오른다",
+      "visible": true,
+      "sign": "good",
+      "duration": 3
+    },
+    {
+      "id": "diet_junk",
+      "name": "야식·배달 식단",
+      "desc": "건강이 해마다 조금씩 깎인다",
+      "visible": true,
+      "sign": "bad",
+      "duration": 2
+    },
+    { "id": "diet_vegan", "name": "채식", "visible": true, "sign": "info" }
   ]
 }

@@ -115,6 +115,18 @@ for (const id of ['overseas_job_offer', 'compound_arrival', 'compound_death', 'c
 }
 row('대통령 당선', `${lives.filter((s) => s.ch.flags.president).length}명`);
 
+console.log('\n재난·전쟁 (인생 중 한 번 이상)');
+for (const id of ['missile_alert', 'skirmish_border', 'war_outbreak', 'war_outbreak_child', 'war_combat', 'war_kia', 'war_end_unification', 'house_fire', 'workplace_fire', 'fire_death', 'earthquake', 'typhoon', 'banjiha_flood', 'heatwave', 'wildfire', 'crowd_crush', 'random_attack']) {
+  row(id, `${(livesWith[id] ?? 0)}명`, pct(share(id)));
+}
+row('전쟁을 겪음', pct(lives.filter((s) => s.world.war.startYear !== undefined).length / N));
+row('통일을 봄', pct(lives.filter((s) => s.world.unified).length / N));
+
+console.log('\n옷·식단·생활');
+for (const flag of ['style_basic', 'style_trendy', 'style_luxury', 'style_comfort', 'diet_healthy', 'diet_junk', 'diet_vegan', 'has_pet']) {
+  row(flag, pct(lives.filter((s) => s.ch.flags[flag]).length / N));
+}
+
 console.log('\n사망 원인 상위');
 for (const [cause, n] of Object.entries(causes).sort((a, b) => b[1] - a[1]).slice(0, 10)) row(cause, pct(n / N));
 

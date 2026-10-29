@@ -8,7 +8,8 @@
       "births2024": 41605,
       "costIndex": 1.25,
       "homePrice": 1250000000,
-      "metro": true
+      "metro": true,
+      "risks": ["front", "lowland"]
     },
     {
       "id": "busan",
@@ -17,7 +18,8 @@
       "births2024": 13063,
       "costIndex": 1,
       "homePrice": 420000000,
-      "metro": true
+      "metro": true,
+      "risks": ["coastal", "quake"]
     },
     {
       "id": "daegu",
@@ -26,7 +28,8 @@
       "births2024": 10103,
       "costIndex": 1,
       "homePrice": 380000000,
-      "metro": true
+      "metro": true,
+      "risks": ["quake"]
     },
     {
       "id": "incheon",
@@ -35,7 +38,8 @@
       "births2024": 15236,
       "costIndex": 1.08,
       "homePrice": 450000000,
-      "metro": true
+      "metro": true,
+      "risks": ["front", "lowland"]
     },
     {
       "id": "gwangju",
@@ -44,7 +48,8 @@
       "births2024": 6034,
       "costIndex": 0.97,
       "homePrice": 340000000,
-      "metro": true
+      "metro": true,
+      "risks": []
     },
     {
       "id": "daejeon",
@@ -53,7 +58,8 @@
       "births2024": 7266,
       "costIndex": 0.98,
       "homePrice": 360000000,
-      "metro": true
+      "metro": true,
+      "risks": []
     },
     {
       "id": "ulsan",
@@ -62,7 +68,8 @@
       "births2024": 5282,
       "costIndex": 1,
       "homePrice": 330000000,
-      "metro": true
+      "metro": true,
+      "risks": ["coastal", "quake", "wildfire"]
     },
     {
       "id": "sejong",
@@ -71,7 +78,8 @@
       "births2024": 2895,
       "costIndex": 1.02,
       "homePrice": 480000000,
-      "metro": true
+      "metro": true,
+      "risks": []
     },
     {
       "id": "gyeonggi",
@@ -80,7 +88,8 @@
       "births2024": 71285,
       "costIndex": 1.1,
       "homePrice": 560000000,
-      "metro": false
+      "metro": false,
+      "risks": ["front", "lowland"]
     },
     {
       "id": "gangwon",
@@ -89,7 +98,8 @@
       "births2024": 6592,
       "costIndex": 0.92,
       "homePrice": 230000000,
-      "metro": false
+      "metro": false,
+      "risks": ["front", "wildfire"]
     },
     {
       "id": "chungbuk",
@@ -98,7 +108,8 @@
       "births2024": 7540,
       "costIndex": 0.92,
       "homePrice": 240000000,
-      "metro": false
+      "metro": false,
+      "risks": ["lowland"]
     },
     {
       "id": "chungnam",
@@ -107,7 +118,8 @@
       "births2024": 9855,
       "costIndex": 0.92,
       "homePrice": 250000000,
-      "metro": false
+      "metro": false,
+      "risks": []
     },
     {
       "id": "jeonbuk",
@@ -116,7 +128,8 @@
       "births2024": 6780,
       "costIndex": 0.9,
       "homePrice": 210000000,
-      "metro": false
+      "metro": false,
+      "risks": []
     },
     {
       "id": "jeonnam",
@@ -125,7 +138,8 @@
       "births2024": 8225,
       "costIndex": 0.88,
       "homePrice": 190000000,
-      "metro": false
+      "metro": false,
+      "risks": ["coastal"]
     },
     {
       "id": "gyeongbuk",
@@ -134,7 +148,8 @@
       "births2024": 10333,
       "costIndex": 0.9,
       "homePrice": 200000000,
-      "metro": false
+      "metro": false,
+      "risks": ["coastal", "quake", "wildfire"]
     },
     {
       "id": "gyeongnam",
@@ -143,7 +158,8 @@
       "births2024": 13067,
       "costIndex": 0.93,
       "homePrice": 260000000,
-      "metro": false
+      "metro": false,
+      "risks": ["coastal", "quake", "wildfire"]
     },
     {
       "id": "jeju",
@@ -152,7 +168,9 @@
       "births2024": 3156,
       "costIndex": 1,
       "homePrice": 420000000,
-      "metro": false
+      "metro": false,
+      "risks": ["coastal"]
     }
-  ]
+  ],
+  "risks": "front: 전방(전쟁 시 위험), coastal: 태풍, quake: 지진, wildfire: 산불, lowland: 저지대 침수"
 }

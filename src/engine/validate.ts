@@ -31,7 +31,8 @@ export const KNOWN_PLACEHOLDERS = new Set([
   '신체등급', '연금', '연인', '배우자', '조부모', '수능백분위', '빚',
   // 카드가 처음 뜰 때 생성
   '지인', '상대', '친구', '부모', '형제', '재능', '재능장면', '암종', '병기', '정당', '잔소리', '자녀', '합격대학', '분양가',
-  '과기원', '예대', '체대', '수시목표', '수시대학', '학교',
+  '과기원', '예대', '체대', '수시목표', '수시대학', '학교', '집값',
+  '헤어진가족', '상봉',
   // 행동(do)이 채우는 값
   '수능', '결과', '판결',
   // 엔진이 카드와 함께 넘기는 값
@@ -43,7 +44,7 @@ const ACTION_TYPES = new Set([
   'parentsDivorce', 'parentsMarriage', 'moveRegion', 'enroll', 'computeCsat', 'enterUniversity', 'graduate', 'getJob',
   'loseJob', 'promote', 'retire', 'militaryExam', 'enlist', 'startService', 'discharge', 'prosecute', 'release', 'gamble',
   'startBusiness', 'closeBusiness', 'parentHealth', 'npcCloseness', 'leaveHome', 'refundPct', 'inherit', 'grade',
-  'buyHome', 'debtRelief', 'earlyAdmit', 'passGed',
+  'buyHome', 'debtRelief', 'earlyAdmit', 'passGed', 'separateFamily', 'reunite', 'setStyle',
 ]);
 
 const HIGH_TYPES = new Set(['general', 'foreign', 'autonomous', 'gifted', 'science', 'arts', 'sports', 'vocational', 'meister', 'alternative']);
@@ -195,7 +196,9 @@ export function validateData(): Issue[] {
       checkEffects(where, ev.effects);
       checkNext(where, ev.next);
       const choices = ev.choices ?? [];
-      if (choices.length > 5) err(where, `선택지가 너무 많다 (${choices.length})`);
+      // 화면에는 조건에 맞는 선택지만 뜬다. 조건 없는 선택지는 4개까지
+      if (choices.length > 8) err(where, `선택지가 너무 많다 (${choices.length})`);
+      if (choices.filter((c) => !c.if).length > 4) err(where, '조건 없는 선택지가 4개를 넘는다');
       if (choices.length === 1) warn(where, '선택지가 하나뿐이다 (정보 카드라면 choices를 비워라)');
       choices.forEach((c, i) => checkChoice(`${where} › 선택지 ${i + 1}`, c));
     }

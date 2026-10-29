@@ -186,6 +186,12 @@ export function generateCtx(state: GameState, ev: EventDef, ctx: Record<string, 
         ctx.합격등급 = tier;
         break;
       }
+      case '집값': {
+        const price = homePrice(state);
+        ctx.homePrice = String(price);
+        ctx[key] = formatWon(price);
+        break;
+      }
       case '분양가': {
         const price = Math.round(homePrice(state) * 0.85);
         ctx.homePrice = String(price);

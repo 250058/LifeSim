@@ -58,8 +58,9 @@ export function makeNpc(
 
 // ── 조회 ─────────────────────────────────────────────────
 
+/** 살아 있고 연락이 닿는 사람 (이산가족은 빠진다) */
 export function alive(ch: Character, ...roles: NpcRole[]): Npc[] {
-  return ch.npcs.filter((n) => n.alive && roles.includes(n.role));
+  return ch.npcs.filter((n) => n.alive && !n.missing && roles.includes(n.role));
 }
 
 export function parentsOf(ch: Character): Npc[] {
@@ -243,6 +244,8 @@ export function npcYear(state: GameState, rng: Rng): PendingCard[] {
       n.alive = false;
       n.deathYear = state.year;
       n.deathCause = pickCauseByAge(age, n.sex, rng);
+      // 헤어진 가족은 죽어도 소식이 오지 않는다 (상봉 때 알게 된다)
+      if (n.missing) continue;
       if (n.role === 'spouse') ch.flags.widowed = { since: ch.age };
       if (MOURNED.includes(n.role)) {
         // 가까웠던 만큼 슬프다

@@ -143,6 +143,8 @@ export function buildScope(state: GameState, ctx: Record<string, string> = {}): 
       grade: mil.grade ?? 0,
       branch: mil.branch ?? 'none',
       serving: mil.status === 'serving',
+      // 전시 동원 대상: 전역한 남성 45세까지
+      reservist: ch.sex === 'M' && mil.status === 'done' && ch.age <= 45,
       enlistNow: mil.status === 'pending' && mil.enlistAge === ch.age,
       dischargeNow: mil.status === 'serving' && mil.dischargeAge === ch.age,
       unitMood: mil.unitMood ?? 50,
@@ -161,11 +163,22 @@ export function buildScope(state: GameState, ctx: Record<string, string> = {}): 
       automation: state.world.automation,
       pandemic: state.world.pandemic > 0,
       pandemicStart: Boolean(state.world.news.pandemicStart),
-      electionYear: isPresidentialYear(year),
+      electionYear: isPresidentialYear(year) && !state.world.war.active,
+      war: state.world.war.active,
+      unified: state.world.unified,
+      warOutcome: state.world.war.outcome ?? 'none',
       news: { ...state.world.news },
     },
     director: { tension: state.director.tension, pace: state.director.pace },
-    region: { id: ch.region, metro: Boolean(region?.metro) },
+    region: {
+      id: ch.region,
+      metro: Boolean(region?.metro),
+      front: Boolean(region?.risks.includes('front')),
+      coastal: Boolean(region?.risks.includes('coastal')),
+      quake: Boolean(region?.risks.includes('quake')),
+      wildfire: Boolean(region?.risks.includes('wildfire')),
+      lowland: Boolean(region?.risks.includes('lowland')),
+    },
     ctx,
   };
 }

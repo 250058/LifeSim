@@ -58,6 +58,18 @@ export const CRIMES: Record<string, CrimeDef> = {
     months: [12, 24],
     serious: true,
   },
+  wartime_desertion: {
+    name: '전시 군무이탈',
+    odds: { drop: 0, fine: 0, suspended: 0.2, prison: 0.8 },
+    months: [24, 60],
+    serious: true,
+  },
+  draft_evasion: {
+    name: '전시 병역기피',
+    odds: { drop: 0, fine: 0, suspended: 0.3, prison: 0.7 },
+    months: [12, 36],
+    serious: true,
+  },
   escape: {
     name: '도주',
     odds: { drop: 0, fine: 0, suspended: 0, prison: 1 },

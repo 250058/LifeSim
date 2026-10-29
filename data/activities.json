@@ -211,6 +211,44 @@
       "log": "거울 보는 시간이 늘었다."
     },
     {
+      "id": "shopping",
+      "name": "옷 쇼핑",
+      "desc": "계절 옷을 새로 산다. 외모와 기분이 조금",
+      "group": "life",
+      "points": 1,
+      "cost": 500000,
+      "age": [14, 200],
+      "if": "!legal.inPrison && !military.serving",
+      "effects": { "stats": { "looks": [0, 2], "happiness": [2, 3], "stress": -3 } },
+      "special": "shopping",
+      "log": "쇼핑백을 양손에 들고 왔다."
+    },
+    {
+      "id": "home_cooking",
+      "name": "집밥·식단 관리",
+      "desc": "배달 대신 장을 봐서 해 먹는다. 건강해지고 돈이 덜 든다",
+      "group": "life",
+      "points": 1,
+      "age": [19, 200],
+      "if": "!legal.inPrison && !military.serving",
+      "effects": { "stats": { "health": [1, 2], "stress": 1 } },
+      "special": "diet",
+      "log": "일요일마다 반찬을 만들어 냉장고를 채웠다."
+    },
+    {
+      "id": "food_tour",
+      "name": "맛집 탐방",
+      "desc": "웨이팅 두 시간도 괜찮다. 행복하지만 살이 찐다",
+      "group": "life",
+      "points": 1,
+      "cost": 400000,
+      "age": [15, 200],
+      "if": "!legal.inPrison && !military.serving",
+      "effects": { "stats": { "happiness": [3, 5], "stress": -6, "health": -1 } },
+      "special": "foodie",
+      "log": "줄 서서 먹은 집만 열 곳이 넘는다."
+    },
+    {
       "id": "travel",
       "name": "여행",
       "desc": "행복이 크게 오른다",

@@ -88,6 +88,8 @@ export interface Npc {
   twin?: boolean;
   /** 연인·배우자가 된 때의 내 나이 */
   since?: number;
+  /** 전쟁 통에 헤어져 생사를 모른다 */
+  missing?: boolean;
 }
 
 export type FamilyType = 'two_parent' | 'single_parent' | 'grandparents' | 'facility';
@@ -244,6 +246,10 @@ export interface WorldState {
   };
   /** 남북 긴장도 0~100 */
   tension: number;
+  /** 전면전 상태. 끝나면 outcome에 결과가 남는다 */
+  war: { active: boolean; yearsLeft: number; startYear?: number; outcome?: 'armistice' | 'unification' };
+  /** 통일 이후 */
+  unified: boolean;
   automation: number;
   pandemic: number;
   /** 올해의 뉴스 플래그 (예: scamCompound) */

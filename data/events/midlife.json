@@ -89,8 +89,8 @@
         "noMode": true,
         "modifiers": [
           { "if": "world.economy == 'recession'", "x": 2 },
-          { "if": "world.economy == 'crisis'", "x": 3 },
-          { "if": "world.pandemic", "x": 3 }
+          { "if": "world.economy == 'crisis'", "x": 2.5 },
+          { "if": "world.pandemic", "x": 2 }
         ]
       },
       "limit": { "cooldown": 2 },

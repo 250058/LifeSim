@@ -14,7 +14,7 @@ import {
 } from './career';
 import { REGIONS, TAG_BY_ID } from './data';
 import { addImpact } from './director';
-import { formatWon, HIGH_TYPE_LABEL, signedWon } from './format';
+import { formatWon, HIGH_TYPE_LABEL, josa, signedWon } from './format';
 import { prosecute, payOrBorrow, release } from './justice';
 import {
   addFriend,
@@ -469,6 +469,39 @@ function runAction(state: GameState, a: Action, ec: EffectContext): void {
       addFlag(state, 'bankrupt', changes);
       break;
     }
+    case 'separateFamily': {
+      const candidates = ch.npcs.filter(
+        (n) => n.alive && !n.missing && ['mother', 'father', 'sibling', 'grandparent', 'spouse', 'child'].includes(n.role),
+      );
+      if (candidates.length === 0) break;
+      const lost = rng.pick(candidates);
+      lost.missing = true;
+      ctx.헤어진가족 = roleLabel(lost, ch);
+      addFlag(state, 'separated_family', changes);
+      changes.push({ text: `${roleLabel(lost, ch)} ${josa(lost.name, '과/와')} 헤어졌다`, sign: 'bad' });
+      break;
+    }
+    case 'reunite': {
+      const lost = ch.npcs.find((n) => n.missing);
+      if (!lost) break;
+      lost.missing = false;
+      if (!lost.alive) {
+        ctx.상봉 = `${josa(roleLabel(lost, ch), '은/는')} 이미 세상을 떠난 뒤였다.`;
+        changes.push({ text: `${lost.name}의 소식을 들었다`, sign: 'bad' });
+      } else {
+        ctx.상봉 = `${josa(roleLabel(lost, ch), '이/가')} 살아 있었다.`;
+        lost.closeness = Math.max(lost.closeness, 80);
+        changes.push({ text: `${josa(lost.name, '과/와')} 다시 만났다`, sign: 'good' });
+      }
+      if (!ch.npcs.some((n) => n.missing)) removeFlag(state, 'separated_family', changes);
+      break;
+    }
+    case 'setStyle':
+      for (const s of ['basic', 'trendy', 'luxury', 'comfort']) {
+        if (s !== a.style) delete ch.flags[`style_${s}`];
+      }
+      addFlag(state, `style_${a.style}`, changes);
+      break;
     case 'grade':
       ch.edu.grade = clamp(ch.edu.grade + a.delta);
       changes.push({ text: `내신 ${a.delta > 0 ? '+' : '−'}${Math.abs(a.delta)}`, sign: a.delta > 0 ? 'good' : 'bad' });

@@ -167,6 +167,8 @@ export function hireChance(state: GameState, job: JobDef): number {
   if (tier && ch.edu.degree === 'university') p *= { S: 1.6, A: 1.3, B: 1.1, C: 1, D: 0.9 }[tier];
   if (ch.flags.criminal_record) p *= 0.45;
   if (ch.flags.certified) p *= 1.15;
+  if (ch.flags.interview_ready) p *= 1.15;
+  if (ch.flags.bankrupt) p *= 0.85;
   if (ch.age >= 45) p *= 0.65;
   if (ch.age >= 55) p *= 0.6;
   p *= 3 / Math.max(2, state.world.economy.unemployment);

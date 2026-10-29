@@ -229,10 +229,17 @@ function finishYear(state: GameState): PendingCard[] {
   const pending = settleYear(state, rng);
   // 6단계: 사망 판정
   const deathRng = rngFor(state.seed, 'death', state.ch.age);
-  if (state.ch.alive && deathRng.chance(deathProbability(state.ch))) {
-    killCharacter(state, pickCause(state.ch, deathRng));
+  if (state.ch.alive && deathRng.chance(deathProbability(state.ch) + warHazard(state))) {
+    killCharacter(state, state.world.war.active && deathRng.chance(0.4) ? '전쟁 중 사망' : pickCause(state.ch, deathRng));
   }
   return pending;
+}
+
+/** 전쟁 중 민간인 피해. 전방 지역이 더 위험하다 */
+function warHazard(state: GameState): number {
+  if (!state.world.war.active) return 0;
+  const region = REGION_BY_ID.get(state.ch.region);
+  return region?.risks.includes('front') ? 0.006 : 0.002;
 }
 
 function startYear(state: GameState, pending: PendingCard[]): void {
@@ -385,6 +392,8 @@ function settleYear(state: GameState, rng: Rng): PendingCard[] {
   if (ch.flags.unemployed) happy -= 4;
   if (ch.state.stress > 70) happy -= 4;
   if (alive(ch, 'friend').length === 0 && ch.age >= 7) happy -= 2;
+  if (ch.flags.has_pet) happy += 1.5;
+  if (ch.flags.ptsd) happy -= 2;
   changeAttr(state, 'happiness', happy + rng.normal(0, 3), noChanges);
 
   const job = ch.career.jobId ? JOB_BY_ID.get(ch.career.jobId) : undefined;

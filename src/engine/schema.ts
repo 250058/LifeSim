@@ -101,6 +101,12 @@ export type Action =
   | { type: 'grade'; delta: number }
   /** 개인회생(일부)·파산(전부): 빚의 pct를 탕감 */
   | { type: 'debtRelief'; pct: number }
+  /** 피난길에 가족 한 명과 헤어진다 (이산가족) */
+  | { type: 'separateFamily' }
+  /** 헤어진 가족을 다시 만난다 */
+  | { type: 'reunite' }
+  /** 스타일을 바꾼다 (다른 스타일 태그는 지운다) */
+  | { type: 'setStyle'; style: 'basic' | 'trendy' | 'luxury' | 'comfort' }
   | { type: 'buyHome'; downPct: number };
 
 export interface Effects {
@@ -223,6 +229,8 @@ export interface RegionDef {
   costIndex: number;
   homePrice: number;
   metro: boolean;
+  /** front: 전방, coastal: 태풍, quake: 지진, wildfire: 산불, lowland: 저지대 침수 */
+  risks: string[];
 }
 
 export interface NamesData {
@@ -274,6 +282,9 @@ export interface ActivityDef {
     | 'checkup'
     | 'family'
     | 'certificate'
-    | 'drink';
+    | 'drink'
+    | 'shopping'
+    | 'diet'
+    | 'foodie';
   log?: string;
 }

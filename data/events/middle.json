@@ -127,7 +127,8 @@
           { "if": "stats.looks > 75", "x": 4 },
           { "if": "stats.looks > 85", "x": 3 },
           { "if": "region.id == 'seoul'", "x": 1.5 },
-          { "if": "found.music || found.art", "x": 1.5 }
+          { "if": "found.music || found.art", "x": 1.5 },
+          { "if": "flags.style_trendy", "x": 1.3 }
         ]
       },
       "limit": { "oncePerLife": true },
