@@ -17,7 +17,7 @@ import { startPartner } from '../src/engine/relations';
 import { Rng } from '../src/engine/rng';
 
 /** 1,000개 이상이어야 하는 생활 사건 풀 (사용자 요청) */
-const POOLS_OVER_1000 = ['physiology', 'nutrition'];
+const POOLS_OVER_1000 = ['physiology', 'nutrition', 'medical'];
 
 /** 항상 첫 선택지를 고르며 n년을 산다 */
 function liveYears(state: GameState, years: number): void {
@@ -217,7 +217,7 @@ describe('자녀로 이어하기', () => {
 });
 
 describe('생활 사건 풀', () => {
-  it('생활 사건 풀 중 생리 현상·영양(의료는 합친 뒤 추가)이 각각 1,000개 이상이다', () => {
+  it('생리 현상·영양·의료 사건이 각각 1,000개 이상이다', () => {
     const { byPool } = eventStats();
     for (const pool of POOLS_OVER_1000) expect(byPool[pool] ?? 0, pool).toBeGreaterThanOrEqual(1000);
   });
