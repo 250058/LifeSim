@@ -2,56 +2,98 @@
   "schema_version": 1,
   "repository": "250058/LifeSim",
   "current_plan_path": "docs/PLAN.md",
-  "latest_report_path": "docs/reviews/2026-10-29T05-13-20Z.md",
+  "latest_report_path": "docs/reviews/2026-10-29T05-55-12Z.md",
   "handoff_issue_number": 1,
   "initial_full_review_pending": true,
-  "last_completed_review_at": "2026-10-29T05:14:06Z",
+  "last_completed_review_at": "2026-10-29T06:13:24Z",
   "reviewed_refs": {
     "ccr-d37c47c4-qxyoxr": {
-      "base_sha": "9a7905569e2c6904f2c2a8581590c857cc6575e0",
-      "head_sha": "3d211f0346e39fe6d08eb8de958c39c52633f909",
+      "base_sha": "3d211f0346e39fe6d08eb8de958c39c52633f909",
+      "head_sha": "66b55217daf986621143d3107fcff0a3e75f469a",
       "review_kind": "incremental_scoped",
-      "report_path": "docs/reviews/2026-10-29T04-55-12Z.md",
-      "completed_at": "2026-10-29T05:04:15Z",
+      "report_path": "docs/reviews/2026-10-29T05-55-12Z.md",
+      "completed_at": "2026-10-29T06:13:24Z",
+      "scope_note": "Completed only the explicit source/diff, sampled-data and execution scopes below. Full semantic data, mobile and version migration review remains pending.",
       "diff_files": [
-        "data/catalog/parenting.json",
-        "data/catalog/romance.json",
-        "data/events/adult.json",
-        "docs/review/RESPONSE.md",
-        "src/engine/catalog/parenting.ts",
-        "src/engine/catalog/romance.ts",
+        "data/catalog/nutrition.json",
+        "data/catalog/medical.json",
+        "src/engine/catalog/nutrition.ts",
+        "src/engine/catalog/medical.ts",
+        "src/engine/catalog/build.ts",
         "src/engine/effects.ts",
-        "src/engine/relations.ts",
-        "src/ui/EventCard.tsx"
+        "tests/engine.test.ts",
+        "docs/review/RESPONSE.md"
       ],
       "full_new_source_reads": [
-        "src/engine/catalog/parenting.ts",
-        "src/engine/catalog/romance.ts"
+        "src/engine/catalog/nutrition.ts",
+        "src/engine/catalog/medical.ts"
+      ],
+      "other_full_reads": [
+        "src/engine/catalog/build.ts",
+        "tests/engine.test.ts",
+        "tools/simulator/run.ts",
+        "src/engine/save.ts"
       ],
       "related_paths_read": [
-        "src/engine/catalog/build.ts",
+        "src/engine/effects.ts",
         "src/engine/eventEngine.ts",
-        "src/engine/text.ts",
+        "src/engine/game.ts",
         "src/engine/scope.ts",
-        "src/engine/activities.ts",
-        "src/engine/game.ts"
+        "src/engine/relations.ts",
+        "src/engine/health.ts",
+        "src/engine/text.ts",
+        "src/engine/sim.ts",
+        "src/ui/EventCard.tsx"
       ],
       "partial_static_scope": [
-        "data/catalog/parenting.json: structure, counts and targeted scene samples",
-        "data/catalog/romance.json: structure, counts and targeted event samples",
-        "src/ui/EventCard.tsx: changed line and its checkLabel producer"
+        "data/catalog/nutrition.json: structure and selected food/alcohol/hangover/treatment/allergy/cost scenes",
+        "data/catalog/medical.json: structure, chronic flags/limits, selected patient and followup scenes",
+        "Related engine files: changed or relevant paths, not a new exhaustive reread"
       ],
-      "validation": {
+      "intermediate_validation": {
+        "head_sha": "9d295cca39511679d737ba915376b64987ad1468",
         "build": "passed (includes typecheck)",
         "tests": {
           "passed": 22,
           "failed": 0,
-          "duration_seconds": 33.57
+          "duration_seconds": 40.11
         },
         "event_validate": {
-          "events": 2229,
+          "events": 3392,
+          "errors": 0,
+          "warnings": 0
+        },
+        "reality_sim": {
+          "n": 1000,
+          "seed_prefix": "REVIEW-20261029-0555",
+          "life_expectancy": 83.896,
+          "duration_seconds": 40.9,
+          "exit_code": 0
+        },
+        "targeted_reproductions": [
+          "R-008 nutrition extension",
+          "R-011 through R-013",
+          "R-014 through R-016"
+        ]
+      },
+      "validation": {
+        "node": "24.19.0",
+        "build": "passed (includes typecheck); chunk-size warning",
+        "bundle": {
+          "js_kb": 1964.3,
+          "js_gzip_kb": 604.47
+        },
+        "tests": {
+          "passed": 22,
+          "failed": 0,
+          "duration_seconds": 46.06
+        },
+        "event_validate": {
+          "events": 4510,
           "pools": {
             "physiology": 1339,
+            "medical": 1118,
+            "nutrition": 1163,
             "romance": 334,
             "parenting": 381
           },
@@ -60,22 +102,30 @@
         },
         "reality_sim": {
           "n": 1000,
-          "seed_prefix": "REVIEW-20261029-0455",
-          "life_expectancy_display": 83.6,
+          "seed_prefix": "REVIEW-20261029-0555-medical",
+          "life_expectancy": 83.128,
           "exit_code": 0,
-          "duration_seconds": 33.4
+          "duration_seconds": 40.7,
+          "observed_event_ids": 4105,
+          "unobserved_event_ids": 405,
+          "nutrition_observed_ids": 1073,
+          "medical_observed_ids": 999,
+          "meaningful_situation_count": "not_measured"
         },
         "targeted_reproductions": [
-          "R-011 missing child context affects both children",
-          "R-012 deceased child survives delayed-context reload validation",
-          "R-013 500 paired activity runs ignore rom_safe"
-        ],
-        "confirmed_improvements": [
-          "par_first_smile binds selected child only when childId exists"
+          "R-008 nutrition extension",
+          "R-012 medical delayed-child extension",
+          "R-014 no nonuse option",
+          "R-015 treatment stop/continuation state after reload",
+          "R-016 actual cash and displayed debit mismatch",
+          "R-017 repeated care blocked even 10 years after relapse"
         ]
       },
       "ready_for_review_declared": false,
-      "inherited_static_evidence_report": "docs/reviews/2026-10-29T03-55-12Z.md"
+      "inherited_static_evidence_reports": [
+        "docs/reviews/2026-10-29T03-55-12Z.md",
+        "docs/reviews/2026-10-29T04-55-12Z.md"
+      ]
     }
   },
   "observed_refs_at_handoff": {
@@ -160,10 +210,11 @@
     {
       "id": "R-008",
       "status": "open",
-      "last_checked_sha": "9a7905569e2c6904f2c2a8581590c857cc6575e0",
+      "last_checked_sha": "66b55217daf986621143d3107fcff0a3e75f469a",
       "report_path": "docs/reviews/2026-10-29T03-55-12Z.md",
       "claude_response_status": "accepted_in_progress",
-      "claude_response_sha": "2266b14066b02ba7a958674628b27abc66ccdccd"
+      "claude_response_sha": "2266b14066b02ba7a958674628b27abc66ccdccd",
+      "latest_evidence_report_path": "docs/reviews/2026-10-29T05-55-12Z.md"
     },
     {
       "id": "R-009",
@@ -185,36 +236,75 @@
       "id": "R-011",
       "priority": "P2",
       "status": "open",
-      "last_checked_sha": "3d211f0346e39fe6d08eb8de958c39c52633f909",
+      "last_checked_sha": "9d295cca39511679d737ba915376b64987ad1468",
       "report_path": "docs/reviews/2026-10-29T04-55-12Z.md",
       "claude_response_status": "accepted_next_changes",
-      "claude_response_sha": "9d295cca39511679d737ba915376b64987ad1468"
+      "claude_response_sha": "9d295cca39511679d737ba915376b64987ad1468",
+      "latest_evidence_report_path": "docs/reviews/2026-10-29T05-55-12Z.md"
     },
     {
       "id": "R-012",
       "priority": "P2",
       "status": "open",
-      "last_checked_sha": "3d211f0346e39fe6d08eb8de958c39c52633f909",
+      "last_checked_sha": "66b55217daf986621143d3107fcff0a3e75f469a",
       "report_path": "docs/reviews/2026-10-29T04-55-12Z.md",
       "claude_response_status": "accepted_next_changes",
-      "claude_response_sha": "9d295cca39511679d737ba915376b64987ad1468"
+      "claude_response_sha": "9d295cca39511679d737ba915376b64987ad1468",
+      "latest_evidence_report_path": "docs/reviews/2026-10-29T05-55-12Z.md"
     },
     {
       "id": "R-013",
       "priority": "P2",
       "status": "open",
-      "last_checked_sha": "3d211f0346e39fe6d08eb8de958c39c52633f909",
+      "last_checked_sha": "9d295cca39511679d737ba915376b64987ad1468",
       "report_path": "docs/reviews/2026-10-29T04-55-12Z.md",
       "claude_response_status": "accepted_next_changes",
-      "claude_response_sha": "9d295cca39511679d737ba915376b64987ad1468"
+      "claude_response_sha": "9d295cca39511679d737ba915376b64987ad1468",
+      "latest_evidence_report_path": "docs/reviews/2026-10-29T05-55-12Z.md"
+    },
+    {
+      "id": "R-014",
+      "priority": "P2",
+      "title": "음주 카드의 비사용 선택 누락",
+      "status": "open",
+      "last_checked_sha": "66b55217daf986621143d3107fcff0a3e75f469a",
+      "report_path": "docs/reviews/2026-10-29T05-55-12Z.md",
+      "claude_response_status": "not_yet_received"
+    },
+    {
+      "id": "R-015",
+      "priority": "P2",
+      "title": "치료 유지·중단 상태 미분리",
+      "status": "open",
+      "last_checked_sha": "66b55217daf986621143d3107fcff0a3e75f469a",
+      "report_path": "docs/reviews/2026-10-29T05-55-12Z.md",
+      "claude_response_status": "not_yet_received"
+    },
+    {
+      "id": "R-016",
+      "priority": "P3",
+      "title": "미성년 실제 차감액과 현금 표시 불일치",
+      "status": "open",
+      "last_checked_sha": "66b55217daf986621143d3107fcff0a3e75f469a",
+      "report_path": "docs/reviews/2026-10-29T05-55-12Z.md",
+      "claude_response_status": "not_yet_received"
+    },
+    {
+      "id": "R-017",
+      "priority": "P2",
+      "title": "만성질환 관리·재발의 평생 1회 제한",
+      "status": "open",
+      "last_checked_sha": "66b55217daf986621143d3107fcff0a3e75f469a",
+      "report_path": "docs/reviews/2026-10-29T05-55-12Z.md",
+      "claude_response_status": "not_yet_received"
     }
   ],
   "observed_refs_at_review": {
-    "main": "5a05787a2152378e88303c118a9377415a532ed9",
-    "ccr-d37c47c4-qxyoxr": "9d295cca39511679d737ba915376b64987ad1468"
+    "main": "c912ea6cfc80ec91cb8d7c6b54308de8ccac9031",
+    "ccr-d37c47c4-qxyoxr": "66b55217daf986621143d3107fcff0a3e75f469a"
   },
-  "latest_code_report_path": "docs/reviews/2026-10-29T04-55-12Z.md",
-  "last_completed_code_review_at": "2026-10-29T05:04:15Z",
+  "latest_code_report_path": "docs/reviews/2026-10-29T05-55-12Z.md",
+  "last_completed_code_review_at": "2026-10-29T06:13:24Z",
   "last_completed_document_review_at": "2026-10-29T05:14:06Z",
   "reviewed_document_refs": {
     "ccr-d37c47c4-qxyoxr": {
@@ -343,6 +433,77 @@
           "active-card save and duplicate-choice guard"
         ]
       }
+    },
+    {
+      "branch": "ccr-d37c47c4-qxyoxr",
+      "base_sha": "9a7905569e2c6904f2c2a8581590c857cc6575e0",
+      "head_sha": "3d211f0346e39fe6d08eb8de958c39c52633f909",
+      "review_kind": "incremental_scoped",
+      "report_path": "docs/reviews/2026-10-29T04-55-12Z.md",
+      "completed_at": "2026-10-29T05:04:15Z",
+      "diff_files": [
+        "data/catalog/parenting.json",
+        "data/catalog/romance.json",
+        "data/events/adult.json",
+        "docs/review/RESPONSE.md",
+        "src/engine/catalog/parenting.ts",
+        "src/engine/catalog/romance.ts",
+        "src/engine/effects.ts",
+        "src/engine/relations.ts",
+        "src/ui/EventCard.tsx"
+      ],
+      "full_new_source_reads": [
+        "src/engine/catalog/parenting.ts",
+        "src/engine/catalog/romance.ts"
+      ],
+      "related_paths_read": [
+        "src/engine/catalog/build.ts",
+        "src/engine/eventEngine.ts",
+        "src/engine/text.ts",
+        "src/engine/scope.ts",
+        "src/engine/activities.ts",
+        "src/engine/game.ts"
+      ],
+      "partial_static_scope": [
+        "data/catalog/parenting.json: structure, counts and targeted scene samples",
+        "data/catalog/romance.json: structure, counts and targeted event samples",
+        "src/ui/EventCard.tsx: changed line and its checkLabel producer"
+      ],
+      "validation": {
+        "build": "passed (includes typecheck)",
+        "tests": {
+          "passed": 22,
+          "failed": 0,
+          "duration_seconds": 33.57
+        },
+        "event_validate": {
+          "events": 2229,
+          "pools": {
+            "physiology": 1339,
+            "romance": 334,
+            "parenting": 381
+          },
+          "errors": 0,
+          "warnings": 0
+        },
+        "reality_sim": {
+          "n": 1000,
+          "seed_prefix": "REVIEW-20261029-0455",
+          "life_expectancy_display": 83.6,
+          "exit_code": 0,
+          "duration_seconds": 33.4
+        },
+        "targeted_reproductions": [
+          "R-011 missing child context affects both children",
+          "R-012 deceased child survives delayed-context reload validation",
+          "R-013 500 paired activity runs ignore rom_safe"
+        ],
+        "confirmed_improvements": [
+          "par_first_smile binds selected child only when childId exists"
+        ]
+      },
+      "ready_for_review_declared": false,
+      "inherited_static_evidence_report": "docs/reviews/2026-10-29T03-55-12Z.md"
     }
   ],
   "last_live_detection": {
@@ -360,6 +521,12 @@
       "status": "accepted_deferred_after_F-001",
       "report_path": "docs/reviews/2026-10-29T04-55-12Z.md",
       "claude_response_sha": "9d295cca39511679d737ba915376b64987ad1468"
+    },
+    {
+      "id": "F-005",
+      "title": "공동 식재료의 보관·비용·약속",
+      "status": "proposed_after_existing_daily_chains",
+      "report_path": "docs/reviews/2026-10-29T05-55-12Z.md"
     }
   ],
   "latest_response_report_path": "docs/reviews/2026-10-29T05-13-20Z.md",
@@ -378,20 +545,34 @@
       "execution": "not_rerun_document_only"
     }
   ],
-  "unreviewed_code_refs": {
-    "ccr-d37c47c4-qxyoxr": {
-      "base_sha": "3d211f0346e39fe6d08eb8de958c39c52633f909",
-      "head_sha": "9cb4259349d978e2e1d6860dac70b73424c090e8",
-      "observed_at": "2026-10-29T05:12:06Z",
-      "files": [
-        "data/catalog/nutrition.json",
-        "src/engine/catalog/build.ts",
-        "src/engine/catalog/nutrition.ts",
-        "src/engine/effects.ts",
-        "tests/engine.test.ts"
+  "unreviewed_code_refs": {},
+  "partial_review_scopes": {
+    "ccr-d37c47c4-qxyoxr@66b55217daf986621143d3107fcff0a3e75f469a": {
+      "report_path": "docs/reviews/2026-10-29T05-55-12Z.md",
+      "pending": [
+        "Full semantic/condition review of nutrition and medical data",
+        "Actual mobile/low-end loading and storage permission checks",
+        "Official statistics and era-specific eligibility evidence",
+        "Cross-engine/content-version save migration"
       ],
-      "scope_seen": "commit metadata and changed-file list only",
-      "validation": "not_run"
+      "completed_scope_record": "reviewed_refs.ccr-d37c47c4-qxyoxr",
+      "initial_full_review_pending": true
     }
+  },
+  "last_request_check": {
+    "checked_at": "2026-10-29T06:13:24Z",
+    "open_pr_count": 0,
+    "issue_comment_count": 5,
+    "last_issue_comment_id": 6488599197,
+    "ready_requests_found": [],
+    "native_codex_review_status": "not_confirmed",
+    "event_trigger_configured": false
+  },
+  "last_review_discovery": {
+    "observed_at": "2026-10-29T06:04:54Z",
+    "head_sha": "66b55217daf986621143d3107fcff0a3e75f469a",
+    "source": "branch_discovery_during_review",
+    "ready_message": false,
+    "reviewed_in_report": "docs/reviews/2026-10-29T05-55-12Z.md"
   }
 }
