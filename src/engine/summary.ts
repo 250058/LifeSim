@@ -3,6 +3,7 @@
 
 import { JOB_BY_ID, REGION_BY_ID, TAG_BY_ID } from './data';
 import { DEGREE_LABEL } from './career';
+import { servedPrison } from './records';
 import { alive, spouseOf } from './relations';
 import { netWorth } from './scope';
 import type { GameState, LifeSummary, LogEntry } from './types';
@@ -25,6 +26,8 @@ export function epitaph(state: GameState): string {
   const ch = state.ch;
   const phrases: { text: string; priority: number }[] = [];
   for (const id of Object.keys(ch.flags)) {
+    // 전과자 태그의 '철창 안에서도'는 실형을 산 사람에게만 (벌금·집행유예도 전과 태그를 받는다)
+    if (id === 'criminal_record' && !servedPrison(ch)) continue;
     const tag = TAG_BY_ID.get(id);
     if (tag?.epitaph) phrases.push({ text: tag.epitaph, priority: tag.priority ?? 1 });
   }
