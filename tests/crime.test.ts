@@ -60,7 +60,11 @@ function personAt(seed: string, age: number): GameState {
   s.year = 2000 + age;
   s.world.year = s.year;
   s.ch.res.cash = 50_000_000;
-  if (age >= 19) s.ch.edu.status = 'graduated';
+  if (age >= 19) {
+    s.ch.edu.status = 'graduated';
+    // 공통 임용 자격(R-018)을 통과하도록 고졸 학력을 둔다
+    s.ch.edu.degree = 'high';
+  }
   else if (age >= 7) s.ch.edu.status = age >= 16 ? 'high' : age >= 13 ? 'middle' : 'elementary';
   s.points = { max: 6, left: 6 };
   return s;

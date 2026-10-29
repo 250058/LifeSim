@@ -492,7 +492,7 @@ const TITLE_WORK: [RegExp, WorkKey | 'business'][] = [
 
 /**
  * 지금 직업의 다음 날 아침 일정: 교대 근무(shift), 가게(business), 일터 열쇠, 또는 아침 출근이 없는 일(none).
- * 순서: 플랫폼 노동 → 근무 형태의 교대 → 직업 이름 → 밤에만 하는 일 → 현장 → 고용 형태(자영·프리랜서)·재택·불규칙
+ * 순서: 플랫폼 노동 → 직업 이름 → 근무 형태의 교대 → 밤에만 하는 일 → 현장 → 고용 형태(자영·프리랜서)·재택·불규칙
  * → (근무 형태가 없는 옛 직업 정의만) 직업 이름으로 본 교대 근무 짐작 → 사무실
  */
 export function workKeyOf(state: GameState): WorkKey | 'shift' | 'business' | 'none' {
@@ -502,9 +502,10 @@ export function workKeyOf(state: GameState): WorkKey | 'shift' | 'business' | 'n
   const tags = scheduleTags(job);
   const emp = mainEmployment(state, job);
   if (emp === 'platform' || job.category === '플랫폼' || /배달|라이더|대리운전|퀵서비스/.test(job.title)) return 'platform';
-  if (job.shift === true || tags.some((t) => /shift|교대/.test(t))) return 'shift';
+  // 의사처럼 교대로 일해도 일터 문장이 따로 있는 직업은 이름을 먼저 본다
   const titled = TITLE_WORK.find(([re]) => re.test(job.title));
   if (titled) return titled[1];
+  if (job.shift === true || tags.some((t) => /shift|교대/.test(t))) return 'shift';
   // 밤에만 일하는 사람은 아침에 출근하지 않는다: 다음 날 일정은 외출이다
   if (tags.some((t) => /night|야간/.test(t)) && !tags.includes('day')) return 'none';
   if (tags.includes('field')) return 'field';

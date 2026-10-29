@@ -741,7 +741,9 @@ describe('맥락마다 사슬 중간에 저장·불러오기를 해도 일정 �
 
 /** 그 직업의 출근 일정이 나오는 첫 시드에서 카드를 띄운다 */
 function atWork(prefix: string, jobId: string): GameState {
-  return find(prefix, (seed) => person(seed, { age: 35, job: jobId }), (x) => {
+  // 운동선수는 은퇴 나이(35) 전이어야 공통 임용 자격(R-018)을 통과한다
+  const age = jobId === 'athlete' ? 28 : 35;
+  return find(prefix, (seed) => person(seed, { age, job: jobId }), (x) => {
     const c = open(x);
     return c.schedule.kind === 'office' || c.schedule.kind === 'shift';
   });
