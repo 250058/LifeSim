@@ -2,7 +2,7 @@
   "schema_version": 1,
   "repository": "250058/LifeSim",
   "current_plan_path": "docs/PLAN.md",
-  "latest_report_path": "docs/reviews/2026-10-29T05-55-12Z.md",
+  "latest_report_path": "docs/reviews/2026-10-29T06-16-05Z.md",
   "handoff_issue_number": 1,
   "initial_full_review_pending": true,
   "last_completed_review_at": "2026-10-29T06:13:24Z",
@@ -574,5 +574,27 @@
     "source": "branch_discovery_during_review",
     "ready_message": false,
     "reviewed_in_report": "docs/reviews/2026-10-29T05-55-12Z.md"
-  }
+  },
+  "latest_user_direction_report_path": "docs/reviews/2026-10-29T06-16-05Z.md",
+  "user_directives": [
+    {
+      "id": "U-001",
+      "title": "직업 수를 가능한 한 많이 확대",
+      "status": "approved_by_user_plan_recorded",
+      "requested_at": "2026-10-29T06:16:05Z",
+      "report_path": "docs/reviews/2026-10-29T06-16-05Z.md",
+      "implementation_verified": false,
+      "claude_response_status": "not_yet_received"
+    },
+    {
+      "id": "U-002",
+      "title": "묻지마폭행·성범죄·성희롱 등 범죄와 대응·회복 상황 확대",
+      "status": "approved_by_user_plan_recorded",
+      "requested_at": "2026-10-29T06:16:05Z",
+      "report_path": "docs/reviews/2026-10-29T06-16-05Z.md",
+      "implementation_verified": false,
+      "claude_response_status": "not_yet_received"
+    }
+  ],
+  "last_user_direction_update_at": "2026-10-29T06:19:45Z"
 }
