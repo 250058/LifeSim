@@ -5354,17 +5354,25 @@
       },
       "worse": {
         "title": "피를 토한 밤",
-        "text": "술자리 끝에 피를 토했다. 응급실에서 식도 정맥이 터졌다고 했다. 간이 많이 굳어 있었다.",
+        "text": "한밤중에 피를 토했다. 응급실에서 식도 정맥이 터졌다고 했다. 간이 많이 굳어 있었다.",
         "choices": [
           {
             "text": "지혈을 받고 술을 끊는다",
+            "if": "!substance.alcohol.quitting",
             "result": "의사가 다음은 없다고 했다. 그 말이 처음으로 들렸다.",
             "fx": { "health": -6, "stress": 5, "cost": 1500000, "do": [{ "type": "substance", "substance": "alcohol", "act": "quit" }] }
           },
           {
             "text": "퇴원하고 다시 마신다",
+            "if": "!substance.alcohol.quitting",
             "result": "간 수치는 내려오지 않았다.",
             "fx": { "health": -6, "stress": 3, "cost": 1500000, "do": [{ "type": "substance", "substance": "alcohol", "act": "use", "amount": 1 }] }
+          },
+          {
+            "text": "지혈을 받고 금주를 이어 간다",
+            "if": "substance.alcohol.quitting",
+            "result": "술을 끊었어도 굳은 간은 그대로라고 했다. 정기 검진 날짜를 받아 왔다.",
+            "fx": { "health": -6, "stress": 5, "cost": 1500000 }
           }
         ]
       }

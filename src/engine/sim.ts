@@ -23,6 +23,8 @@ export interface SimOptions {
   birthYear?: number;
   /** 위험한 활동(범죄·도박)을 고를 확률 */
   riskTaste?: number;
+  /** 해마다 봇이 행동하기 전에 한 번 상태를 본다 (보고용 집계. 상태를 바꾸면 안 된다) */
+  observe?: (state: GameState) => void;
 }
 
 function botActions(state: GameState, bot: Rng, riskTaste: number): void {
@@ -79,6 +81,7 @@ export function simulateLife(seed: string, opts: SimOptions = {}): GameState {
     if (state.phase === 'action') {
       if (state.ch.age !== lastAge) {
         lastAge = state.ch.age;
+        opts.observe?.(state);
         botActions(state, bot, riskTaste);
         if (state.phase !== 'action') continue;
       }
