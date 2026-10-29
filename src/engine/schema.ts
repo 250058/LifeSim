@@ -126,6 +126,32 @@ export type Action =
    */
   | { type: 'substance'; substance?: SubstanceId | 'ctx'; act: SubstanceAct; amount?: number; product?: 'cigarette' | 'ecig' };
 
+/**
+ * 치료 한 단계. 기간이 있는 치료 태그(TagDef.stopped가 있는 태그)는 add/remove 대신 이것으로 다룬다.
+ *   start    시작한다. 이미 하는 중이면 기한만 새로 잡는다
+ *   continue 이어 간다. 기한을 지금부터 다시 잡는다 (until = 지금 나이 + duration)
+ *   reduce   줄여 가다 끊는다. 올해 연말 결산까지만 하고 그 뒤에는 '중단 후' 태그가 남는다
+ *   stop     그만둔다. 치료 중 태그를 지우고 '중단 후' 태그를 남긴다 (판정의 성공·실패 양쪽에 쓴다)
+ *   resume   그만뒀던 치료를 다시 시작한다. '중단 후' 태그를 지운다
+ */
+export type TreatAct = 'start' | 'continue' | 'reduce' | 'stop' | 'resume';
+
+export interface TreatStep {
+  tag: string;
+  act: TreatAct;
+}
+
+/**
+ * 상태가 실제로 바뀔 때만 주는 능력치 (만성 질환을 관리하기 시작할 때의 회복 같은 것).
+ * from 태그가 있다가 이번 효과로 사라지고, to가 있으면 그 태그가 없다가 새로 생겼을 때만 적용한다.
+ * 같은 카드를 되풀이해도 상태가 그대로면 쌓이지 않는다.
+ */
+export interface TransitionReward {
+  from: string;
+  to?: string;
+  stats: Partial<Record<AttrKey, Range>>;
+}
+
 export interface Effects {
   stats?: Partial<Record<AttrKey, Range>>;
   money?: {
@@ -142,6 +168,10 @@ export interface Effects {
   };
   addFlags?: string[];
   removeFlags?: string[];
+  /** 치료 단계 (시작·유지·감량·중단·재개) */
+  treat?: TreatStep[];
+  /** 상태가 실제로 바뀔 때만 적용하는 능력치 */
+  transition?: TransitionReward;
   /** n년 뒤 이어지는 사건 */
   later?: { event: string; inYears: number }[];
   /** 디렉터 긴장도 추가분 */
@@ -214,8 +244,20 @@ export interface TagDef {
   name: string;
   desc?: string;
   visible: boolean;
-  /** n년 뒤 자동으로 사라짐 */
+  /**
+   * n년 뒤 자동으로 사라짐. 붙은 나이 + n이 until이고, 태그는 until 나이의 연말 결산까지 남는다
+   * (그해 연초에 오는 예약 사건까지는 유효하다)
+   */
   duration?: number;
+  /**
+   * 치료 태그: 그만두면 남는 '중단 후' 태그. 중단 뒤 경과 사건은 이 태그를 원인으로 쓴다.
+   * 이 필드가 있는 태그는 사건이 add/remove 대신 treat로 다룬다
+   */
+  stopped?: string;
+  /** 계속 받아야 하는 치료: 유지를 고르지 않은 채 기한이 지나면 중단으로 본다 (없으면 정해진 기간을 마친 것) */
+  ongoing?: boolean;
+  /** 치료 이름: 시작·유지·중단을 알릴 때 쓴다 (없으면 태그 이름. 예: '결핵 치료 중' 태그 → '결핵 치료') */
+  treatment?: string;
   /** 묘비명 조각 (예: '교실에서도') */
   epitaph?: string;
   priority?: number;

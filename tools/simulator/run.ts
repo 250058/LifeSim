@@ -1,12 +1,17 @@
-// 밸런스 시뮬레이터: npm run sim -- --n 1000 [--mode reality|drama|makjang] [--seed SIM]
+// 밸런스 시뮬레이터: npm run sim -- --n 10000 [--mode reality|drama|makjang] [--seed SIM] [--out report.json]
 //
 // 기본은 현실 모드다. 2024 생명표 기준의 성별 생존 보정을 판정하고, 나머지 지표는 정의(대상·분모·기간·단위),
 // 표본 수, 95% 신뢰구간과 함께 참고로만 보고한다. --mode drama·makjang은 연출 보고서다: 큰 사건이 인생마다
 // 몇 개 나오는지 보고, 수명이 무너지지 않았는지만 판정한다. 한 번도 일어나지 않은 사건도 여기서 찾는다.
 // 모든 인생은 같은 해(2026)에 태어난 한 코호트이고, 봇의 선택 정책은 src/engine/sim.ts에 있다.
+//
+// 판정 (metrics.ts checkWithin): 항목마다 표본 200명 이상, 95% 신뢰구간 반폭이 허용 오차 이하일 때만 판정한다.
+// 점추정이 허용 범위 안이면 통과, 밖이지만 구간이 겹치면 경계, 구간까지 벗어나면 실패, 표본이 모자라면 판정 불가.
+// 종합 통과는 판정 항목이 모두 통과일 때만이다. 종료 코드: 통과 0 · 실패 1 · 인자 오류 2 · 판정 불가 3 · 경계 4.
 
 import { createHash } from 'node:crypto';
 import { writeFileSync } from 'node:fs';
+import { resolve } from 'node:path';
 import pkg from '../../package.json';
 import { EVENTS } from '../../src/engine/data';
 import { BIG_IMPACT } from '../../src/engine/director';
@@ -17,7 +22,20 @@ import { SAVE_VERSION } from '../../src/engine/save';
 import { SCAM_REFUSE_RATE, simulateLife } from '../../src/engine/sim';
 import type { GameState, Mode, Sex } from '../../src/engine/types';
 import { modeMultiplier } from '../../src/engine/world';
-import { checkWithin, fertilityRate, lifeExpectancy, meanEstimate, proportion, survival, type Estimate } from './metrics';
+import {
+  checkWithin,
+  EXIT_CODE,
+  fertilityRate,
+  lifeExpectancy,
+  meanEstimate,
+  MIN_SAMPLE,
+  overallVerdict,
+  proportion,
+  survival,
+  type CheckResult,
+  type Estimate,
+  type Verdict,
+} from './metrics';
 
 const args = process.argv.slice(2);
 const arg = (name: string, fallback: string) => {
@@ -28,6 +46,8 @@ const MODES: Mode[] = ['reality', 'drama', 'makjang'];
 const N = Number(arg('n', '10000'));
 const MODE = arg('mode', 'reality') as Mode;
 const PREFIX = arg('seed', 'SIM');
+/** 보고서 JSON 경로 (기본 tools/simulator/report.json) */
+const OUT = args.includes('--out') ? resolve(arg('out', 'report.json')) : new URL('./report.json', import.meta.url);
 if (!Number.isInteger(N) || N < 1) {
   console.error(`--n은 1 이상의 정수여야 한다: ${arg('n', '')}`);
   process.exit(2);
@@ -57,6 +77,10 @@ const TABLE = {
 };
 /** 판정 허용 오차 (게임 보정 기준으로 정한 값): 기획서의 '전체 기대수명 ±3세'에 성별 기준을 더한다 */
 const TOL = { e0All: 3, e0Sex: 1.5, survive80: 0.04, remaining: 1.5, cancer: 0.04, firstMarriage: 1.5, tfr: 0.15 };
+const RULE =
+  `판정 규칙: 항목마다 표본 ${MIN_SAMPLE}명 이상이고 95% 신뢰구간 반폭이 허용 오차 이하일 때만 판정한다. ` +
+  `점추정이 허용 범위 안이면 통과, 밖이지만 구간이 겹치면 경계, 구간까지 벗어나면 실패, 표본이 모자라면 판정 불가. ` +
+  `종합 통과는 판정 항목이 모두 통과일 때만 (종료 코드: 통과 0 · 실패 1 · 판정 불가 3 · 경계 4)`;
 
 // ── 시뮬레이션 ────────────────────────────────────────────
 
@@ -96,8 +120,11 @@ function fmt(x: number, unit: Unit): string {
   if (unit === 'pct') return `${(x * 100).toFixed(1)}%`;
   return x.toFixed(unit === 'num' ? 2 : 1);
 }
-const fmtCI = (e: Estimate, unit: Unit) => `[${fmt(e.lo, unit)}, ${fmt(e.hi, unit)}]`;
+const fmtRange = ([lo, hi]: readonly [number, number], unit: Unit) => `[${fmt(lo, unit)}, ${fmt(hi, unit)}]`;
+const fmtCI = (e: Estimate, unit: Unit) => fmtRange([e.lo, e.hi], unit);
 const fmtTol = (tol: number, unit: Unit) => (unit === 'pct' ? `±${Math.round(tol * 100)}%p` : `±${tol}`);
+/** 반폭·차이 (비율이면 %p) */
+const fmtGap = (x: number, unit: Unit) => (unit === 'pct' ? `${(x * 100).toFixed(1)}%p` : fmt(x, unit));
 
 interface Metric {
   id: string;
@@ -109,11 +136,11 @@ interface Metric {
   /** 비교 기준과 비교 가능성 */
   note?: string;
 }
-interface Check extends Metric {
+interface Check extends Metric, CheckResult {
   target: number;
   tol: number;
-  pass: boolean;
-  inside: boolean;
+  /** 이 항목을 판정하려면 필요한 --n 어림 (항목의 분모가 전체 인생 중 차지하는 비율로 환산) */
+  neededLives: number;
 }
 
 const metrics: Metric[] = [];
@@ -126,14 +153,33 @@ function metric(m: Metric): Metric {
   return m;
 }
 
+const VERDICT_LABEL: Record<Verdict, string> = {
+  pass: '통과',
+  border: '경계 (점추정은 허용 범위 밖, 신뢰구간만 겹침)',
+  fail: '벗어남',
+  insufficient: '판정 불가',
+};
+
+/** 항목 판정 문구. 판정 불가면 이유와 필요한 표본을 적는다 */
+function verdictText(c: Check): string {
+  if (c.verdict !== 'insufficient') return VERDICT_LABEL[c.verdict];
+  const lives = c.neededLives.toLocaleString();
+  if (c.est.n < MIN_SAMPLE) return `판정 불가 (표본 ${c.est.n}명 < ${MIN_SAMPLE}명, --n ${lives} 이상 필요)`;
+  return `판정 불가 (구간 반폭 ${fmtGap(c.halfWidth, c.unit)} > 허용 ${fmtTol(c.tol, c.unit)}, --n 약 ${lives} 필요)`;
+}
+
 /** 목표와 허용 오차가 있는 항목. required면 종합 판정에 들어간다 */
 function check(m: Metric, target: number, tol: number, required: boolean): Check {
-  const c: Check = { ...m, target, tol, ...checkWithin(m.est, target, tol) };
+  const r = checkWithin(m.est, target, tol);
+  // 항목의 분모(예: 남성, 60세에 닿은 사람)는 전체 인생 수에 비례한다고 보고 필요한 --n으로 환산한다.
+  // 분모가 아예 없으면 비율을 모르므로 두 성별에 최소 표본씩으로 어림한다
+  const neededLives = m.est.n > 0 ? Math.ceil((r.neededN * N) / m.est.n) : MIN_SAMPLE * 2;
+  const c: Check = { ...m, ...r, target, tol, neededLives };
   if (required) checks.push(c);
   else metrics.push(c);
-  const verdict = c.pass ? (c.inside ? '통과' : '통과 (구간만 겹침)') : '벗어남';
+  const band = `허용 ${fmtRange(c.band, c.unit)}`;
   console.log(
-    `  ${c.label.padEnd(18)} ${fmt(c.est.value, c.unit).padStart(7)}  ${fmtCI(c.est, c.unit).padEnd(17)} 목표 ${fmt(target, c.unit)} ${fmtTol(tol, c.unit)}  ${required ? verdict : `참고: ${verdict}`}`,
+    `  ${c.label.padEnd(18)} ${fmt(c.est.value, c.unit).padStart(7)}  ${fmtCI(c.est, c.unit).padEnd(17)} 목표 ${fmt(target, c.unit)} ${fmtTol(tol, c.unit)} ${band}  ${required ? verdictText(c) : `참고: ${verdictText(c)}`}`,
   );
   console.log(`      ${c.def}${c.note ? ` · ${c.note}` : ''}`);
   return c;
@@ -157,7 +203,8 @@ console.log(`  표본: ${N.toLocaleString()}명 (남 ${bySex('M').length.toLocal
 console.log(`  버전: 엔진 ${pkg.version} · 저장 형식 v${SAVE_VERSION} · 사건 ${EVENTS.length.toLocaleString()}개 (sha1 ${dataHash})`);
 console.log(`  봇: ${botPolicy} (src/engine/sim.ts)`);
 console.log(`  기간: 모든 모의 지표는 2026년생 한 코호트를 죽을 때까지 따라간 값이다. 비교 기준은 대부분 한 해의 기간 지표다.`);
-console.log(`  [ ]는 95% 신뢰구간 (비율은 Wilson, 평균은 정규 근사). 판정은 신뢰구간이 '목표 ± 허용'과 겹치면 통과.`);
+console.log(`  [ ]는 95% 신뢰구간 (비율은 Wilson, 평균은 정규 근사). 허용 [ ]는 목표 ± 허용 오차.`);
+console.log(`  ${RULE}`);
 
 // ── 생존 ──────────────────────────────────────────────────
 
@@ -393,16 +440,28 @@ console.log(`\n이 표본에서 한 번도 일어나지 않은 사건 ${never.le
 
 // ── 종합 판정 ─────────────────────────────────────────────
 
-const pass = checks.every((c) => c.pass);
+const verdict = overallVerdict(checks.map((c) => c.verdict));
+const pass = verdict === 'pass';
 const passScope = REALITY
   ? `현실 모드 생존 보정 ${checks.length}항목 (기대수명 전체 ±${TOL.e0All}세, 성별 기대수명 ±${TOL.e0Sex}세, 성별 80세 생존 ±${Math.round(TOL.survive80 * 100)}%p, 성별 60세 기대여명 ±${TOL.remaining}년). 출산·혼인·사망 원인·사법·사건 빈도는 참고 지표라 판정하지 않았다`
-  : `연출 모드 안전 기준 ${checks.length}항목 (기대수명 전체 ${LIFE_TABLE.e0.all} ±${TOL.e0All}세: 사건 배수가 수명을 무너뜨리지 않았는지). 생명표 보정은 --mode reality에서 판정한다`;
-const failed = checks.filter((c) => !c.pass).map((c) => c.label);
-console.log(`\n종합 판정: ${pass ? '통과' : `실패 (${failed.join(', ')})`} — ${passScope}.`);
+  : `연출 모드 안전 기준 ${checks.length}항목 (기대수명 전체 ${LIFE_TABLE.e0.all} ±${TOL.e0All}세: 사건 배수가 수명을 무너뜨리지 않았는지). 생명표 보정은 기본(현실) 모드에서 판정한다`;
+const OVERALL_LABEL: Record<Verdict, string> = { pass: '통과', fail: '실패', insufficient: '판정 불가 (표본 부족)', border: '경계' };
+const SHORT_LABEL = { fail: '벗어남', insufficient: '판정 불가', border: '경계' } as const;
+/** 통과하지 못한 항목을 판정별로 묶는다 */
+const notPassed = (['fail', 'insufficient', 'border'] as const)
+  .map((v) => [v, checks.filter((c) => c.verdict === v).map((c) => c.label)] as const)
+  .filter(([, labels]) => labels.length > 0)
+  .map(([v, labels]) => `${SHORT_LABEL[v]}: ${labels.join(', ')}`);
+console.log(`\n종합 판정: ${OVERALL_LABEL[verdict]}${notPassed.length ? ` (${notPassed.join(' · ')})` : ''} — ${passScope}.`);
+console.log(`  ${RULE}.`);
+if (verdict === 'insufficient') {
+  const more = Math.max(...checks.filter((c) => c.verdict === 'insufficient').map((c) => c.neededLives));
+  console.log(`  표본을 늘려 다시 실행한다: npm run sim -- --n ${more} 이상 (기본 10000)`);
+}
 
 const plain = (m: Metric | Check) => ({ ...m, est: undefined, value: m.est.value, lo: m.est.lo, hi: m.est.hi, n: m.est.n });
 writeFileSync(
-  new URL('./report.json', import.meta.url),
+  OUT,
   JSON.stringify(
     {
       command,
@@ -413,8 +472,11 @@ writeFileSync(
       version: { engine: pkg.version, save: SAVE_VERSION, events: EVENTS.length, dataSha1: dataHash },
       botPolicy,
       lifeExpectancy: lifeExpectancy(ages(lives)).value,
+      verdict,
+      exitCode: EXIT_CODE[verdict],
       pass,
       passScope,
+      rule: RULE,
       checks: checks.map(plain),
       metrics: metrics.map(plain),
       fertility: { births: fertility.births, personYears: fertility.personYears, asfr: fertility.asfr },
@@ -427,4 +489,4 @@ writeFileSync(
     2,
   ),
 );
-if (!pass) process.exit(1);
+process.exit(EXIT_CODE[verdict]);

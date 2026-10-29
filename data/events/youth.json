@@ -231,6 +231,7 @@
       "choices": [
         {
           "text": "답안지를 제출한다",
+          "if": "!legal.publicBarred",
           "check": { "stat": "intelligence", "dc": 62 },
           "onSuccess": {
             "text": "합격. 발령 대기 석 달 뒤, 주민센터로 첫 출근을 했다.",
@@ -246,6 +247,16 @@
           "text": "시험을 포기하고 취업한다",
           "result": "고시원 짐을 쌌다. 몇 년이 그렇게 지나갔다.",
           "effects": { "removeFlags": ["gongsi"], "stats": { "stress": -5 } }
+        },
+        {
+          "text": "답안지를 제출한다",
+          "if": "legal.publicBarred",
+          "check": { "stat": "intelligence", "dc": 62 },
+          "onSuccess": {
+            "text": "합격자 명단에 이름이 있었다. 그런데 임용 전 신원 조회에서 판결 기록이 나왔다. 국가공무원법 33조 결격 사유라 합격이 취소됐다. 집행유예는 끝나고 2년, 실형은 출소하고 5년이 지나야 임용될 수 있다.",
+            "effects": { "removeFlags": ["gongsi"], "stats": { "happiness": -12, "stress": 10 } }
+          },
+          "onFail": { "text": "커트라인에서 2점 모자랐다.", "effects": { "stats": { "happiness": -8, "stress": 8 } } }
         }
       ]
     },

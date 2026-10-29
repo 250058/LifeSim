@@ -1,5 +1,5 @@
 // 사건·활동의 효과를 상태에 적용하고, 화면에 보여 줄 변화 목록을 만든다.
-// 적용 순서: 능력치 → 돈 → 태그 추가 → 행동(do) → 태그 제거 → 예약 → 긴장도 → 사망
+// 적용 순서: 능력치 → 돈 → 태그 추가 → 치료 단계 → 행동(do) → 태그 제거 → 상태 변화 보상 → 예약 → 긴장도 → 사망
 
 import {
   closeBusiness,
@@ -13,10 +13,11 @@ import {
   takeJob,
 } from './career';
 import { applyCrimeAction } from './crime';
-import { REGIONS, TAG_BY_ID } from './data';
+import { JOB_BY_ID, REGIONS, TAG_BY_ID } from './data';
 import { addImpact } from './director';
 import { formatWon, HIGH_TYPE_LABEL, josa, signedWon } from './format';
-import { prosecute, payOrBorrow, release } from './justice';
+import { prosecute, release } from './justice';
+import { barredFromJob } from './records';
 import {
   addFriend,
   addSibling,
@@ -33,7 +34,7 @@ import {
 } from './relations';
 import type { Rng } from './rng';
 import { mortgageLimit } from './scope';
-import type { Action, Effects, Range } from './schema';
+import type { Action, Effects, Range, TagDef, TreatStep } from './schema';
 import { applySubstanceAction } from './substances';
 import type { AttrKey, Change, GameState, TalentKey, UnivTier } from './types';
 import { STAT_KEYS, HIDDEN_KEYS, STATE_KEYS } from './types';
@@ -101,11 +102,21 @@ export function changeAttr(state: GameState, key: AttrKey, delta: number, change
   changes.push({ text: `${ATTR_LABEL[key]} ${d > 0 ? '+' : '−'}${Math.abs(d)}`, sign: good ? 'good' : 'bad' });
 }
 
+// ── 태그 ─────────────────────────────────────────────────
+// 기간이 있는 태그의 until은 '그 나이의 연말 결산에서 사라진다'는 뜻이다. 붙은 나이 + duration이 until이고,
+// until 나이에도 연초 예약 사건과 그해 사건까지는 남아 있다 (expireFlags).
+
+/** 지금 붙이면 언제까지 남는가 */
+function untilFor(state: GameState, tag: TagDef | undefined): number | undefined {
+  return tag?.duration !== undefined ? state.ch.age + tag.duration : undefined;
+}
+
+/** 이미 있는 태그는 그대로 둔다 (기한도 새로 잡지 않는다. 치료를 이어 가려면 treat의 continue를 쓴다) */
 export function addFlag(state: GameState, id: string, changes: Change[]): void {
   const ch = state.ch;
   if (ch.flags[id]) return;
   const tag = TAG_BY_ID.get(id);
-  ch.flags[id] = { since: ch.age, until: tag?.duration !== undefined ? ch.age + tag.duration : undefined };
+  ch.flags[id] = { since: ch.age, until: untilFor(state, tag) };
   if (tag?.visible) changes.push({ text: `태그: ${tag.name}`, sign: tag.sign ?? 'info' });
 }
 
@@ -115,6 +126,74 @@ export function removeFlag(state: GameState, id: string, changes: Change[]): voi
   delete ch.flags[id];
   const tag = TAG_BY_ID.get(id);
   if (tag?.visible && tag.sign === 'bad') changes.push({ text: `${tag.name} 태그가 사라졌다`, sign: 'good' });
+}
+
+/** '중단 후' 태그를 지금부터 새로 붙인다 (그만둔 때가 경과 사건의 기준이다) */
+function markStopped(state: GameState, id: string): void {
+  state.ch.flags[id] = { since: state.ch.age, until: untilFor(state, TAG_BY_ID.get(id)) };
+}
+
+/** 치료 태그를 지금부터 새로 잡는다. 하는 중이면 시작 나이는 그대로 두고 기한만 늘린다 */
+function renewTreatment(state: GameState, tag: TagDef): void {
+  const ch = state.ch;
+  const since = ch.flags[tag.id]?.since ?? ch.age;
+  ch.flags[tag.id] = { since, until: untilFor(state, tag) };
+  if (tag.stopped) delete ch.flags[tag.stopped];
+}
+
+/**
+ * 치료 한 단계 (schema의 TreatAct). 같은 상태에서 이어 가기와 그만두기를 고르면 저장한 뒤에도 서로 다르다:
+ * 이어 가면 치료 중 태그의 기한이 새로 잡히고, 그만두면 치료 중 태그가 지워지고 '중단 후' 태그가 남는다.
+ */
+export function applyTreatment(state: GameState, step: TreatStep, changes: Change[]): void {
+  const ch = state.ch;
+  const tag = TAG_BY_ID.get(step.tag);
+  if (!tag?.stopped) throw new Error(`치료 태그가 아니다 (stopped가 없다): ${step.tag}`);
+  const using = Boolean(ch.flags[tag.id]);
+  const name = tag.treatment ?? tag.name;
+  switch (step.act) {
+    case 'start':
+    case 'resume':
+    case 'continue': {
+      // 하는 중이면 셋 다 '이어 가기'다. 그만둔 뒤라면 셋 다 다시 시작하는 것이다
+      const fresh = step.act === 'start' && !ch.flags[tag.stopped];
+      renewTreatment(state, tag);
+      const until = ch.flags[tag.id].until;
+      const label = using
+        ? `${name} 유지${until !== undefined ? ` (${until}세까지)` : ''}`
+        : `${name} ${fresh ? '시작' : '다시 시작'}`;
+      changes.push({ text: label, sign: 'info' });
+      break;
+    }
+    case 'reduce':
+      // 올해 연말 결산까지만 하고 끝낸다. 계속 받아야 하는 치료면 그 뒤에 '중단 후' 태그가 남는다
+      if (!using) break;
+      ch.flags[tag.id] = { since: ch.flags[tag.id].since, until: ch.age };
+      changes.push({ text: `${name} 줄여 가기 (올해까지)`, sign: 'info' });
+      break;
+    case 'stop':
+      delete ch.flags[tag.id];
+      markStopped(state, tag.stopped);
+      changes.push({ text: `${name} 중단`, sign: 'info' });
+      break;
+  }
+}
+
+/**
+ * 연말 결산에서 기한이 지난 태그를 지운다 (until 나이의 결산 때). 계속 받아야 하는 치료(ongoing)를
+ * 유지하지 않은 채 기한을 넘기면 그만둔 것으로 보고 '중단 후' 태그를 남긴다. 정해진 기간을 마친 치료는 그냥 끝난다.
+ */
+export function expireFlags(state: GameState): void {
+  const ch = state.ch;
+  const lapsed: string[] = [];
+  for (const [id, f] of Object.entries(ch.flags)) {
+    if (f.until === undefined || ch.age < f.until) continue;
+    delete ch.flags[id];
+    const tag = TAG_BY_ID.get(id);
+    if (tag?.ongoing && tag.stopped) lapsed.push(tag.stopped);
+  }
+  // 지우기를 다 끝낸 뒤에 붙인다 (같은 결산에서 지워질 옛 '중단 후' 태그와 섞이지 않게)
+  for (const id of lapsed) markStopped(state, id);
 }
 
 export interface EffectContext {
@@ -128,27 +207,14 @@ export function applyEffects(state: GameState, fx: Effects | undefined, ec: Effe
   const { rng, changes, ctx } = ec;
   const ch = state.ch;
 
-  if (fx.stats) {
-    for (const [key, r] of Object.entries(fx.stats)) {
-      if (r === undefined) continue;
-      changeAttr(state, key as AttrKey, rollRange(r, rng), changes);
-    }
-  }
+  if (fx.stats) applyStats(state, fx.stats, rng, changes);
 
   if (fx.money) {
     const m = fx.money;
     const r = ch.res;
-    if (m.cash !== undefined) {
-      const amount = rollRange(m.cash, rng);
-      if (amount < 0) pay(state, -amount);
-      else r.cash += amount;
-      if (amount !== 0) changes.push({ text: `현금 ${signedWon(amount)}`, sign: amount > 0 ? 'good' : 'bad' });
-    }
+    if (m.cash !== undefined) cashChange(state, rollRange(m.cash, rng), changes);
     if (m.cash2026 !== undefined) {
-      const amount = Math.round((rollRange(m.cash2026, rng) * state.world.economy.priceIndex) / 1000) * 1000;
-      if (amount < 0) pay(state, -amount);
-      else r.cash += amount;
-      if (amount !== 0) changes.push({ text: `현금 ${signedWon(amount)}`, sign: amount > 0 ? 'good' : 'bad' });
+      cashChange(state, Math.round((rollRange(m.cash2026, rng) * state.world.economy.priceIndex) / 1000) * 1000, changes);
     }
     if (m.cashPct !== undefined && r.cash > 0) {
       const amount = Math.round(r.cash * m.cashPct);
@@ -180,9 +246,15 @@ export function applyEffects(state: GameState, fx: Effects | undefined, ec: Effe
     }
   }
 
+  // 상태 변화 보상은 태그가 바뀌기 전 상태와 비교한다
+  const before = fx.transition ? transitionBefore(state, fx.transition.from, fx.transition.to) : undefined;
   for (const id of fx.addFlags ?? []) addFlag(state, id, changes);
+  for (const step of fx.treat ?? []) applyTreatment(state, step, changes);
   for (const action of fx.do ?? []) runAction(state, action, ec);
   for (const id of fx.removeFlags ?? []) removeFlag(state, id, changes);
+  if (fx.transition && before && transitioned(state, before, fx.transition.from, fx.transition.to)) {
+    applyStats(state, fx.transition.stats, rng, changes);
+  }
 
   for (const l of fx.later ?? []) {
     state.scheduled.push({ eventId: l.event, atAge: ch.age + l.inYears, ctx: { ...ctx } });
@@ -191,17 +263,69 @@ export function applyEffects(state: GameState, fx: Effects | undefined, ec: Effe
   if (fx.death) killCharacter(state, fx.death);
 }
 
+function applyStats(state: GameState, stats: NonNullable<Effects['stats']>, rng: Rng, changes: Change[]): void {
+  for (const [key, r] of Object.entries(stats)) {
+    if (r === undefined) continue;
+    changeAttr(state, key as AttrKey, rollRange(r, rng), changes);
+  }
+}
+
+function transitionBefore(state: GameState, from: string, to: string | undefined): { from: boolean; to: boolean } {
+  const flags = state.ch.flags;
+  return { from: Boolean(flags[from]), to: to !== undefined && Boolean(flags[to]) };
+}
+
+/** from이 있다가 사라졌고, to가 있으면 없다가 생겼는가. 이미 관리 중이던 사람에게는 보상이 없다 */
+function transitioned(state: GameState, before: { from: boolean; to: boolean }, from: string, to: string | undefined): boolean {
+  const flags = state.ch.flags;
+  if (!before.from || flags[from]) return false;
+  return to === undefined || (!before.to && Boolean(flags[to]));
+}
+
+// ── 지출 ─────────────────────────────────────────────────
+
+/** 지출 한 번의 내역 (원). 청구액 total = 내 현금 cash + 새 빚 debt + 보호자 부담 guardian */
+export interface Payment {
+  total: number;
+  cash: number;
+  debt: number;
+  guardian: number;
+}
+
 /**
- * 사건이 요구한 지출. 미성년자는 가진 돈까지만 내고 나머지는 보호자가 낸다 (아이에게 빚이 생기지 않는다).
- * 성인은 모자라면 빚이 된다.
+ * 사건이 요구한 지출. 먼저 내 현금에서 낸다. 모자라면 미성년자는 나머지를 보호자가 내고 (아이에게 빚이 생기지 않는다),
+ * 성인은 나머지가 빚이 된다. 돌려주는 내역으로 실제 잔액 변화와 다른 사람의 부담을 따로 보여 준다.
+ * 보호자의 지원 자격·예산은 아직 모델링하지 않았다 (가구 회계 전체가 구현된 것은 아니다).
  */
-function pay(state: GameState, amount: number): void {
+export function pay(state: GameState, amount: number): Payment {
   const r = state.ch.res;
-  if (state.ch.age < 19) {
-    r.cash = Math.max(0, r.cash - amount);
+  const cash = Math.min(Math.max(0, r.cash), amount);
+  r.cash -= cash;
+  const rest = amount - cash;
+  if (state.ch.age < 19) return { total: amount, cash, debt: 0, guardian: rest };
+  r.debt += rest;
+  return { total: amount, cash, debt: rest, guardian: 0 };
+}
+
+/** 지출 표시: 실제로 줄어든 내 현금을 앞에, 빚이나 보호자 부담으로 넘어간 몫을 괄호에 쓴다 */
+export function paymentText(p: Payment): Change {
+  const others = [p.debt > 0 ? `빚 +${formatWon(p.debt)}` : '', p.guardian > 0 ? `보호자 부담 ${formatWon(p.guardian)}` : '']
+    .filter(Boolean)
+    .join(', ');
+  if (p.cash > 0) return { text: `현금 −${formatWon(p.cash)}${others ? ` (${others})` : ''}`, sign: 'bad' };
+  // 내 돈은 그대로다: 빚이 늘었거나 (성인) 보호자가 다 냈다 (미성년자)
+  return { text: others, sign: p.debt > 0 ? 'bad' : 'info' };
+}
+
+/** 현금이 오가는 효과: 들어오면 그대로 더하고, 나가면 pay로 실제 지급 내역을 나눠 보여 준다 */
+function cashChange(state: GameState, amount: number, changes: Change[]): void {
+  if (amount === 0) return;
+  if (amount > 0) {
+    state.ch.res.cash += amount;
+    changes.push({ text: `현금 ${signedWon(amount)}`, sign: 'good' });
     return;
   }
-  payOrBorrow(state, amount);
+  changes.push(paymentText(pay(state, -amount)));
 }
 
 export function killCharacter(state: GameState, cause: string): void {
@@ -340,6 +464,11 @@ function runAction(state: GameState, a: Action, ec: EffectContext): void {
       }
       break;
     case 'getJob': {
+      // 공공 부문 결격 기간이면 사건이 주는 직업도 임용되지 않는다 (직업 목록과 같은 조회, records.ts)
+      if (barredFromJob(ch, a.job)) {
+        changes.push({ text: `임용 결격: ${JOB_BY_ID.get(a.job)?.title ?? a.job}`, sign: 'bad' });
+        break;
+      }
       const job = takeJob(state, a.job);
       changes.push({ text: `직업: ${job.title}`, sign: 'good' });
       break;

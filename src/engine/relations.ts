@@ -195,9 +195,11 @@ export function divorce(state: GameState): Npc | undefined {
 export function haveChild(state: GameState, rng: Rng): Npc {
   const ch = state.ch;
   const spouse = spouseOf(ch);
+  // 아이의 다른 친부모를 인물 ID로 남긴다: 배우자, 혼인신고를 미뤘으면 연인. 나중에 결혼·이혼해도 같은 사람이다
+  const otherParent = spouse ?? partnerOf(ch);
   const father = ch.sex === 'M' ? ch.surname : spouse ? spouse.name.slice(0, 1) : ch.surname;
   const sex: Sex = rng.chance(105 / 205) ? 'M' : 'F';
-  const npc = makeNpc(state, rng, 'child', sex, state.year, { surname: father, closeness: 85, health: 88 });
+  const npc = makeNpc(state, rng, 'child', sex, state.year, { surname: father, closeness: 85, health: 88, otherParentId: otherParent?.id ?? null });
   ch.npcs.push(npc);
   return npc;
 }
