@@ -1245,6 +1245,7 @@
       "name": "숙취",
       "tags": ["formal", "social", "transit", "quiet"],
       "age": [19, 100],
+      "if": "substance.alcohol.usedThisYear",
       "notice": "seen",
       "w": 0.5,
       "not": ["exam_eve", "camp_night"],
@@ -1252,7 +1253,11 @@
       "choices": [
         { "text": "콩나물국밥으로 해장한다", "result": "국물을 한 숟갈 뜨자 사람이 됐다.", "fx": { "cost": 9000, "health": 1 } },
         { "text": "숙취해소제를 마신다", "result": "효과가 있는지는 모르겠지만 마음은 편했다.", "fx": { "cost": 5000 } },
-        { "text": "다시는 안 마신다고 다짐한다", "result": "그 다짐은 일주일을 갔다." }
+        {
+          "text": "다시는 안 마신다고 다짐한다",
+          "result": "물을 한 통 다 마시고 휴대폰 메모장에 '금주'라고 적었다.",
+          "fx": { "add": ["quitting_drinking"] }
+        }
       ]
     },
     {
@@ -1712,13 +1717,18 @@
     {
       "id": "first_hangover",
       "group": "first_drink",
-      "age": [19, 21],
+      "age": [19, 100],
+      "if": "substance.alcohol.usedThisYear && substance.alcohol.novice",
       "title": "첫 숙취",
       "zoom": "다음 날 아침",
-      "text": "성인이 되고 처음 마신 술. 다음 날 아침, 천장이 빙글빙글 돌았다.",
+      "text": "처음으로 제대로 마신 술. 다음 날 아침, 천장이 빙글빙글 돌았다.",
       "choices": [
         { "text": "해장국을 먹으러 간다", "result": "어른들이 왜 해장국을 찾는지 알게 됐다.", "fx": { "cost": 9000 } },
-        { "text": "다시는 안 마신다고 다짐한다", "result": "그 다짐은 다음 주 개강 파티까지 갔다." }
+        {
+          "text": "다시는 안 마신다고 다짐한다",
+          "result": "냉장고 문에 '금주'라고 써 붙였다. 지킬지 말지는 이제 내가 정한다.",
+          "fx": { "add": ["quitting_drinking"] }
+        }
       ]
     },
     {

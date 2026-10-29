@@ -199,6 +199,7 @@
     {
       "id": "first_cigarette",
       "type": "random",
+      "motif": "청소년보호법: 만 19세 미만에게 담배 판매 금지. 권유와 노출은 청소년기에도 일어나지만, 본인의 흡연 선택은 성인이 된 뒤에 열린다 (개정 계획 '성인기의 술 담배와 약물')",
       "title": "학교 뒤편",
       "text": "체육관 뒤에서 무리가 담배를 돌린다. 한 명이 나에게도 내민다. \"너도 해 봐. 별거 아냐.\"",
       "tone": "neutral",
@@ -213,18 +214,12 @@
         ]
       },
       "limit": { "oncePerLife": true },
+      "effects": { "do": [{ "type": "substance", "substance": "tobacco", "act": "offered" }] },
       "choices": [
-        {
-          "text": "받아서 피운다",
-          "result": "기침이 멈추지 않았다. 그래도 무리에 낀 기분이었다.",
-          "effects": {
-            "addFlags": ["smoker"],
-            "stats": { "health": -2, "sociability": 2, "morality": -3, "stress": -3 }
-          }
-        },
         {
           "text": "웃으며 거절한다",
           "check": { "stat": "sociability", "dc": 45 },
+          "effects": { "do": [{ "type": "substance", "substance": "tobacco", "act": "refuse" }] },
           "onSuccess": {
             "text": "\"그래, 너는 공부해라.\" 다들 웃고 넘어갔다.",
             "effects": { "stats": { "sociability": 1 } }
@@ -234,7 +229,26 @@
             "effects": { "stats": { "sociability": -2, "happiness": -2 } }
           }
         },
-        { "text": "그 자리를 뜬다", "result": "뒤에서 뭐라고 하는 소리가 들렸다.", "effects": { "stats": { "morality": 2 } } }
+        {
+          "text": "받아 들고 머뭇거린다",
+          "check": { "stat": "mental", "dc": 50 },
+          "onSuccess": {
+            "text": "불을 붙이기 전에 종이 울렸다. 담배는 화장실 휴지통에 버렸다. 아무도 다시 묻지 않았다.",
+            "effects": { "do": [{ "type": "substance", "substance": "tobacco", "act": "refuse" }] }
+          },
+          "onFail": {
+            "text": "그때 학생부 선생님이 모퉁이를 돌아 나왔다. 피우지는 않았지만 같이 서 있었다는 이유로 벌점을 받았고, {보호자}에게 전화가 갔다.",
+            "effects": { "stats": { "stress": 6, "reputation": -1, "happiness": -2 } }
+          }
+        },
+        {
+          "text": "그 자리를 뜬다",
+          "result": "뒤에서 뭐라고 하는 소리가 들렸다.",
+          "effects": {
+            "stats": { "morality": 2 },
+            "do": [{ "type": "substance", "substance": "tobacco", "act": "refuse" }]
+          }
+        }
       ]
     }
   ]

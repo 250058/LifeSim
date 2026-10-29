@@ -8,7 +8,7 @@ import { STAGES } from './format';
 import { newGame } from './game';
 import { buildScope } from './scope';
 import type { Action, ChoiceDef, Effects, EventDef, NextRef } from './schema';
-import { HIDDEN_KEYS, STATE_KEYS, STAT_KEYS, TALENT_KEYS } from './types';
+import { HIDDEN_KEYS, STATE_KEYS, STAT_KEYS, SUBSTANCE_ACTS, SUBSTANCE_IDS, TALENT_KEYS } from './types';
 import { POOL_IDS } from './pools';
 
 export interface Issue {
@@ -21,7 +21,32 @@ const TYPES = new Set(['milestone', 'random', 'chain_start', 'chain', 'consequen
 const DRAWN = new Set(['random', 'chain_start', 'consequence', 'npc', 'world']);
 const ATTRS = new Set<string>([...STAT_KEYS, ...HIDDEN_KEYS, ...STATE_KEYS]);
 /** 엔진 코드가 직접 부르는 사건 (다른 사건이 참조하지 않아도 된다) */
-const SYSTEM_EVENTS = new Set(['npc_death', 'inheritance', 'arrested', 'rom_pregnancy_scare']);
+const SYSTEM_EVENTS = new Set([
+  'npc_death',
+  'inheritance',
+  'arrested',
+  'rom_pregnancy_scare',
+  // substances.ts: 재발, 불법 약물 적발·응급실
+  'sub_relapse',
+  'sub_drug_arrest',
+  'sub_drug_emergency',
+]);
+/** 본인의 술·담배·약물 사용을 뜻하는 태그 */
+const USE_TAGS = new Set(['smoker', 'vaper', 'heavy_drinker', 'drug_use']);
+/** 물질을 정하지 않아도 되는 행동 (치료 중·끊는 중인 물질 전부에 적용) */
+const SUBSTANCE_ANY_ACTS = new Set(['completeTreatment', 'dropTreatment', 'resist']);
+
+/** 효과가 본인의 사용을 일으키는가 (사용 행동 또는 사용 태그) */
+function causesUse(fx: Effects | undefined): boolean {
+  if (!fx) return false;
+  if ((fx.addFlags ?? []).some((f) => USE_TAGS.has(f))) return true;
+  return (fx.do ?? []).some((a) => a.type === 'substance' && a.act === 'use');
+}
+
+function choiceCausesUse(c: ChoiceDef): boolean {
+  return causesUse(c.effects) || causesUse(c.onSuccess?.effects) || causesUse(c.onFail?.effects);
+}
+
 /** 경로 첫 부분이 이 중 하나면 동적 키라서 하위 키를 검사하지 않는다 */
 const DYNAMIC_ROOTS = new Set(['flags', 'ctx', 'traits']);
 
@@ -37,7 +62,7 @@ export const KNOWN_PLACEHOLDERS = new Set([
   // 행동(do)이 채우는 값
   '수능', '결과', '판결',
   // 엔진이 카드와 함께 넘기는 값
-  '고인', '고인관계', '향년', '사인', '상속액', '혐의',
+  '고인', '고인관계', '향년', '사인', '상속액', '혐의', '물질',
 ]);
 
 const ACTION_TYPES = new Set([
@@ -45,7 +70,7 @@ const ACTION_TYPES = new Set([
   'parentsDivorce', 'parentsMarriage', 'moveRegion', 'enroll', 'computeCsat', 'enterUniversity', 'graduate', 'getJob',
   'loseJob', 'promote', 'retire', 'militaryExam', 'enlist', 'startService', 'discharge', 'prosecute', 'release', 'gamble',
   'startBusiness', 'closeBusiness', 'parentHealth', 'npcCloseness', 'leaveHome', 'refundPct', 'inherit', 'grade',
-  'buyHome', 'debtRelief', 'earlyAdmit', 'passGed', 'separateFamily', 'reunite', 'setStyle',
+  'buyHome', 'debtRelief', 'earlyAdmit', 'passGed', 'separateFamily', 'reunite', 'setStyle', 'substance',
 ]);
 
 const HIGH_TYPES = new Set(['general', 'foreign', 'autonomous', 'gifted', 'science', 'arts', 'sports', 'vocational', 'meister', 'alternative']);
@@ -112,6 +137,15 @@ export function validateData(): Issue[] {
     if (a.type === 'prosecute' && a.crime !== 'ctx' && !CRIMES[a.crime]) err(where, `없는 범죄: ${a.crime}`);
     if (a.type === 'discoverTalent' && a.talent && !(TALENT_KEYS as readonly string[]).includes(a.talent)) {
       err(where, `없는 재능: ${a.talent}`);
+    }
+    if (a.type === 'substance') {
+      if (!(SUBSTANCE_ACTS as readonly string[]).includes(a.act)) err(where, `없는 물질 행동: ${a.act}`);
+      if (a.substance === undefined) {
+        if (!SUBSTANCE_ANY_ACTS.has(a.act)) err(where, `물질을 정해야 하는 행동: ${a.act}`);
+      } else if (a.substance !== 'ctx' && !(SUBSTANCE_IDS as readonly string[]).includes(a.substance)) {
+        err(where, `없는 물질: ${a.substance}`);
+      }
+      if (a.amount !== undefined && !(a.amount > 0 && a.amount <= 3)) err(where, `사용량은 0보다 크고 3 이하: ${a.amount}`);
     }
   };
 
@@ -201,6 +235,15 @@ export function validateData(): Issue[] {
       if (ev.pool && !(POOL_IDS as string[]).includes(ev.pool)) err(where, `없는 풀: ${ev.pool}`);
       // 성인 전용 사건은 만 19세 미만에게 절대 열리지 않아야 한다
       if (ev.adult && !(t?.age && t.age[0] >= 19)) err(where, '성인 전용 사건은 trigger.age 최소가 19 이상이어야 한다');
+      // 본인의 술·담배·약물 사용은 성인만: 사건 자체가 19세 이상이거나, 선택지에 substance.adult 조건이 있어야 한다.
+      // 미성년자에게 권유가 오는 사건은 괜찮다 (거절·노출만 기록된다)
+      const adultOnly = Boolean(ev.adult) || (t?.age?.[0] ?? 0) >= 19;
+      if (!adultOnly && causesUse(ev.effects)) err(where, '미성년자에게도 일어나는 사건이 술·담배·약물 사용을 일으킨다');
+      (ev.choices ?? []).forEach((c, i) => {
+        if (!adultOnly && choiceCausesUse(c) && !c.if?.includes('substance.adult')) {
+          err(`${where} › 선택지 ${i + 1}`, '미성년자도 고를 수 있는 선택지가 술·담배·약물 사용을 일으킨다 (if에 substance.adult가 필요하다)');
+        }
+      });
       if (ev.filler && !(ev.type === 'random' || ev.type === 'npc')) err(where, 'filler는 random·npc 사건만 될 수 있다');
       if (ev.filler && (ev.impact ?? 0) > 12) warn(where, '충격량이 12를 넘어 일상 사건으로 쓰이지 않는다');
       checkEffects(where, ev.effects);
@@ -224,8 +267,20 @@ export function validateData(): Issue[] {
     const where = `activities.json › ${a.id}`;
     if (a.if) checkExpr(where, a.if);
     checkEffects(where, a.effects);
-    if (a.adult && (a.age[0] < 19 || !a.if?.includes('family.partnerAdult'))) {
-      err(where, '성인 전용 활동은 만 19세 이상이고 family.partnerAdult 조건이 있어야 한다');
+    // 성인 전용(adult)은 본인 나이만 본다. 커플 활동(couple)은 여기에 더해 상대도 성인이어야 한다
+    // (엔진이 family.partnerAdult를 따로 검사한다). 독신의 음주·흡연에 커플 조건을 요구하지 않는다
+    if (a.adult && a.age[0] < 19) err(where, '성인 전용 활동은 만 19세 이상이어야 한다');
+    if (a.couple && !a.adult) err(where, '커플 활동은 성인 전용(adult)이기도 해야 한다');
+    if (causesUse(a.effects) && !a.adult) err(where, '술·담배·약물 사용 활동은 성인 전용(adult)이어야 한다');
+    if (a.special === 'substance' || a.substance) {
+      const s = a.substance;
+      if (!s || a.special !== 'substance') {
+        err(where, 'special "substance"와 substance 정보는 함께 써야 한다');
+      } else {
+        if (!(SUBSTANCE_IDS as readonly string[]).includes(s.id)) err(where, `없는 물질: ${s.id}`);
+        if (!(SUBSTANCE_ACTS as readonly string[]).includes(s.act)) err(where, `없는 물질 행동: ${s.act}`);
+        if (s.act === 'use' && !a.adult) err(where, '술·담배·약물 사용 활동은 성인 전용(adult)이어야 한다');
+      }
     }
   }
 

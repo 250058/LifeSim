@@ -1,6 +1,7 @@
 // 저장: 브라우저 저장소. 시크릿 창처럼 저장소가 막힌 환경에서도 게임은 돌아가야 하므로
 // 모든 읽기·쓰기를 try/catch로 감싼다.
 
+import { normalizeSubstances } from './substances';
 import type { GameState, LifeSummary } from './types';
 
 export const SAVE_VERSION = 1;
@@ -39,6 +40,8 @@ export function loadGame(storage = defaultStorage()): GameState | null {
     if (!raw) return null;
     const state = JSON.parse(raw) as GameState;
     if (state.v !== SAVE_VERSION || !state.ch) return null;
+    // 술·담배·약물 기록: 옛 저장에는 없다 (읽을 때 빈 기록으로 본다). 있으면 빠진 값만 채운다
+    normalizeSubstances(state);
     return state;
   } catch {
     return null;

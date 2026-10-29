@@ -6,6 +6,7 @@
 
 import { TAG_BY_ID, WORLD } from './data';
 import type { Rng } from './rng';
+import { substanceHealthDelta } from './substances';
 import type { Character, Sex } from './types';
 
 const GOMPERTZ: Record<Sex, { a: number; b: number; c: number }> = {
@@ -102,8 +103,8 @@ export function pickCauseByAge(age: number, sex: Sex, rng: Rng): string {
 export function yearlyHealthDelta(ch: Character, rng: Rng): number {
   const { age, stats, flags, state } = ch;
   let d = (healthTarget(age) - stats.health) * 0.18;
-  if (flags.smoker) d -= 1.2;
-  if (flags.heavy_drinker) d -= 0.8;
+  // 술·담배·약물: 올해 실제로 쓴 빈도만큼 (매일 흡연 −1.2, 과음 −0.8은 기존 보정 그대로). 끊으면 붙지 않는다
+  d += substanceHealthDelta(ch);
   if (flags.diet_healthy) d += 0.6;
   if (flags.diet_junk) d -= 0.8;
   if (flags.diet_vegan) d += 0.3;
