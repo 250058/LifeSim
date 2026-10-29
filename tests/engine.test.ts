@@ -3,6 +3,7 @@
 import { describe, expect, it } from 'vitest';
 import { EVENTS } from '../src/engine/data';
 import { eventProbability } from '../src/engine/eventEngine';
+import { continueAsChild, heirOptions, inheritanceTax } from '../src/engine/heir';
 import { formatWon, josa } from '../src/engine/format';
 import { choose, endTurn, newGame, proceed } from '../src/engine/game';
 import { loadGame, saveGame, type KeyValueStorage } from '../src/engine/save';
@@ -162,5 +163,49 @@ describe('수명', () => {
     const mean = total / n;
     expect(mean).toBeGreaterThan(83.7 - 3);
     expect(mean).toBeLessThan(83.7 + 3);
+  });
+});
+
+describe('자녀로 이어하기', () => {
+  // 자녀를 남기고 죽는 첫 인생을 찾는다 (시드가 같으면 늘 같은 인생)
+  const parent = (() => {
+    for (let i = 0; i < 80; i++) {
+      const s = simulateLife(`HEIR-${i}`);
+      if (heirOptions(s).length > 0) return s;
+    }
+    throw new Error('자녀를 남긴 인생이 없다');
+  })();
+
+  it('같은 해, 같은 세계에서 자녀의 나이로 이어 산다', () => {
+    const heir = heirOptions(parent)[0];
+    const next = continueAsChild(parent, heir.npc.id)!;
+    expect(next.year).toBe(parent.year);
+    expect(next.ch.age).toBe(heir.age);
+    expect(next.ch.surname + next.ch.given).toBe(heir.npc.name);
+    expect(next.world.economy.priceIndex).toBe(parent.world.economy.priceIndex);
+    expect(next.lineage?.generation).toBe(2);
+    expect(next.ch.npcs.some((n) => !n.alive && n.name === parent.ch.surname + parent.ch.given)).toBe(true);
+    expect(next.phase).toBe('action');
+  });
+
+  it('같은 자녀를 고르면 같은 판이 나오고, 끝까지 살 수 있다', () => {
+    const id = heirOptions(parent)[0].npc.id;
+    const a = continueAsChild(parent, id)!;
+    const b = continueAsChild(parent, id)!;
+    expect(JSON.stringify(b)).toBe(JSON.stringify(a));
+    liveYears(a, 150);
+    expect(a.phase).toBe('dead');
+    expect(a.summary?.epitaph).toBeTruthy();
+  });
+
+  it('살아 있는 사람으로는 이어 살 수 없다', () => {
+    const living = newGame({ seed: 'ALIVE', mode: 'drama', birthYear: 2026 });
+    expect(continueAsChild(living, 'n1')).toBeNull();
+  });
+
+  it('상속세는 누진세율로 매긴다', () => {
+    expect(inheritanceTax(100_000_000, 1)).toBe(10_000_000);
+    expect(inheritanceTax(500_000_000, 1)).toBe(90_000_000);
+    expect(inheritanceTax(1_000_000_000, 1)).toBe(240_000_000);
   });
 });

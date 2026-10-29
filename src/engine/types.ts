@@ -365,4 +365,6 @@ export interface GameState {
   lastAge: Record<string, number>;
   serial: number;
   summary?: LifeSummary;
+  /** 자녀로 이어 사는 판: 몇 대째인지, 누구의 자녀인지 */
+  lineage?: { generation: number; parentName: string; rootSeed: string };
 }

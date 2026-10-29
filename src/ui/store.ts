@@ -3,6 +3,7 @@
 
 import { create } from 'zustand';
 import { newGame } from '../engine/game';
+import { continueAsChild } from '../engine/heir';
 import { randomSeed } from '../engine/rng';
 import { addToGraveyard, clearSave, loadGame, loadGraveyard, saveGame } from '../engine/save';
 import type { Change, GameState, LifeSummary, Mode } from '../engine/types';
@@ -25,6 +26,8 @@ interface Store {
   adult: boolean;
   /** 새 인생 */
   start(opts: { seed?: string | null; mode: Mode; birthYear?: number }): void;
+  /** 죽은 사람의 자녀로 이어 살기 */
+  continueAs(childId: string): void;
   /** 저장된 인생으로 돌아가기 */
   resume(): void;
   toTitle(): void;
@@ -72,6 +75,15 @@ export const useGame = create<Store>((set, get) => ({
   start({ seed, mode, birthYear }) {
     // 기본값은 올해 출생. 같은 시드로 다시 태어날 때는 그 해를 그대로 쓴다
     const game = newGame({ seed: seed || randomSeed(), mode, birthYear: birthYear ?? new Date().getFullYear() });
+    saveGame(game);
+    set({ game, screen: 'game', sheet: null, notice: null });
+  },
+
+  continueAs(childId) {
+    const prev = get().game;
+    if (!prev) return;
+    const game = continueAsChild(prev, childId);
+    if (!game) return;
     saveGame(game);
     set({ game, screen: 'game', sheet: null, notice: null });
   },

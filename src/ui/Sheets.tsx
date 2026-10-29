@@ -469,6 +469,15 @@ const TRAIT_LABEL: Record<string, string> = {
   perfect_pitch: '절대음감',
 };
 
+function talentText(talents: GameState['ch']['talents']): string {
+  if (talents.length === 0) return '특별한 재능은 없는 것 같다.';
+  const found = talents.filter((t) => t.discovered).map((t) => TALENT_LABEL[t.key]);
+  const hidden = talents.length - found.length;
+  const parts = [...found];
+  if (hidden > 0) parts.push(`아직 모르는 재능 ${hidden}개 (활동을 해 봐야 드러난다)`);
+  return parts.join(', ');
+}
+
 function ProfileSheet({ game }: { game: GameState }) {
   const toTitle = useGame((s) => s.toTitle);
   const ch = game.ch;
@@ -495,6 +504,14 @@ function ProfileSheet({ game }: { game: GameState }) {
             {FAMILY_LABEL[ch.family.type]} · {wealth}
           </dd>
         </div>
+        {game.lineage && (
+          <div>
+            <dt>이어 사는 인생</dt>
+            <dd>
+              {game.lineage.generation}대째 · {game.lineage.parentName}의 자녀
+            </dd>
+          </div>
+        )}
         {ch.traits.length > 0 && (
           <div>
             <dt>타고난 것</dt>
@@ -521,9 +538,7 @@ function ProfileSheet({ game }: { game: GameState }) {
       <section className="group">
         <h3 className="label">재능</h3>
         <p className="plain">
-          {ch.talents.length === 0
-            ? '특별한 재능은 없는 것 같다.'
-            : ch.talents.map((t) => (t.discovered ? TALENT_LABEL[t.key] : '아직 모르는 재능')).join(', ')}
+          {talentText(ch.talents)}
         </p>
       </section>
 

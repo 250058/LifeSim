@@ -1,4 +1,5 @@
 import { formatWon, josa } from '../engine/format';
+import { heirOptions } from '../engine/heir';
 import type { GameState } from '../engine/types';
 import { MODE_INFO } from './labels';
 import { Seed } from './Sheets';
@@ -7,7 +8,10 @@ import { abandonLife, useGame } from './store';
 export function DeathScreen({ game }: { game: GameState }) {
   const s = game.summary!;
   const start = useGame((st) => st.start);
+  const continueAs = useGame((st) => st.continueAs);
   const graves = useGame((st) => st.graves);
+  const heirs = heirOptions(game);
+  const lineage = game.lineage;
   const lifeNo = graves.length;
   return (
     <main className="death page">
@@ -79,16 +83,42 @@ export function DeathScreen({ game }: { game: GameState }) {
       )}
 
       <section className="group">
-        <Seed seed={s.seed} label={`${MODE_INFO[s.mode].label} 모드 · 시드 (같은 시드면 같은 인생)`} />
+        <Seed
+          seed={s.seed}
+          label={
+            lineage
+              ? `${MODE_INFO[s.mode].label} 모드 · ${lineage.generation}대째 · 시드`
+              : `${MODE_INFO[s.mode].label} 모드 · 시드 (같은 시드면 같은 인생)`
+          }
+        />
       </section>
+
+      {heirs.length > 0 && (
+        <section className="group">
+          <h2 className="label">자녀로 이어 살기</h2>
+          <p className="plain">같은 세상, 같은 해에서 자녀의 나이로 이어 산다. 재산은 상속세를 떼고 나눠 받는다.</p>
+          <div className="end-actions">
+            {heirs.map((h) => (
+              <button key={h.npc.id} type="button" className="btn wide" onClick={() => continueAs(h.npc.id)}>
+                {h.npc.name}
+                <small>
+                  {h.label} · {h.age}세
+                </small>
+              </button>
+            ))}
+          </div>
+        </section>
+      )}
 
       <div className="end-actions">
         <button type="button" className="btn primary wide" onClick={() => start({ seed: null, mode: s.mode })}>
           새 인생
         </button>
-        <button type="button" className="btn wide" onClick={() => start({ seed: s.seed, mode: s.mode, birthYear: s.birthYear })}>
-          같은 시드로 다시 태어나기
-        </button>
+        {!lineage && (
+          <button type="button" className="btn wide" onClick={() => start({ seed: s.seed, mode: s.mode, birthYear: s.birthYear })}>
+            같은 시드로 다시 태어나기
+          </button>
+        )}
         <button type="button" className="btn wide ghost" onClick={abandonLife}>
           제목 화면
         </button>
