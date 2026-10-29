@@ -29,6 +29,13 @@ export const CRIMES: Record<string, CrimeDef> = {
     odds: { drop: 0.15, fine: 0.8, suspended: 0.05, prison: 0 },
     fine: [1_000_000, 5_000_000],
   },
+  // 불법 약물 투약 (추상화). 초범 단순 투약은 치료조건부 기소유예·집행유예가 많고 재범은 실형이 늘어난다 (substances.ts)
+  drug_use: {
+    name: '마약류 관리법 위반(투약)',
+    odds: { drop: 0.3, fine: 0.1, suspended: 0.45, prison: 0.15 },
+    fine: [3_000_000, 10_000_000],
+    months: [6, 24],
+  },
   scam_accomplice: {
     name: '사기 방조(보이스피싱 현금 수거)',
     odds: { drop: 0, fine: 0, suspended: 0.35, prison: 0.65 },

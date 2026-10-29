@@ -4,6 +4,7 @@
 import { JOB_BY_ID, REGION_BY_ID } from './data';
 import { familySupport, alive, npcAge, partnerOf, spouseOf } from './relations';
 import { ELITE_HIGH, stageOf } from './format';
+import { substanceScope } from './substances';
 import { isPresidentialYear } from './world';
 import type { Scope } from './conditions';
 import type { GameState } from './types';
@@ -126,7 +127,7 @@ export function buildScope(state: GameState, ctx: Record<string, string> = {}): 
       spouseCloseness: spouse ? spouse.closeness : 0,
       children: alive(ch, 'child').length,
       partnerAge: partner ? npcAge(partner, year) : spouse ? npcAge(spouse, year) : 0,
-      // 성인 전용 사건: 나와 상대가 모두 만 19세 이상
+      // 성인 전용 사건·커플 활동: 나와 상대가 모두 만 19세 이상
       partnerAdult: ch.age >= 19 && Boolean(partner ?? spouse) && npcAge((partner ?? spouse)!, year) >= 19,
       youngestChildAge: childAges.length ? Math.min(...childAges) : -1,
       oldestChildAge: childAges.length ? Math.max(...childAges) : -1,
@@ -205,6 +206,8 @@ export function buildScope(state: GameState, ctx: Record<string, string> = {}): 
       wildfire: Boolean(region?.risks.includes('wildfire')),
       lowland: Boolean(region?.risks.includes('lowland')),
     },
+    // 술·담배·약물: substance.adult(본인 만 19세 이상), substance.alcohol.current, substance.tobacco.quitting …
+    substance: substanceScope(state),
     ctx,
   };
 }

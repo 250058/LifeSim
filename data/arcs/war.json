@@ -515,6 +515,7 @@
         },
         {
           "text": "술로 버틴다",
+          "if": "substance.adult",
           "result": "잠은 들었지만 아침이 더 힘들어졌다.",
           "effects": { "addFlags": ["heavy_drinker", "ptsd"], "stats": { "health": -4, "stress": -4 } }
         },

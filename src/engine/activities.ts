@@ -9,6 +9,7 @@ import { addFriend, alive, changeCloseness, npcAge, partnerOf, spouseOf, startPa
 import { rngFor } from './rng';
 import { buildScope, inPrison } from './scope';
 import type { ActivityDef } from './schema';
+import { ADULT_AGE, substanceActivity } from './substances';
 import { TALENT_LABEL } from './text';
 import type { Change, GameState, Npc } from './types';
 
@@ -45,10 +46,13 @@ export interface ActivityView {
 export function activityViews(state: GameState): ActivityView[] {
   const ch = state.ch;
   const scope = buildScope(state);
+  const coupleOk = (scope.family as { partnerAdult: boolean }).partnerAdult;
   const views: ActivityView[] = [];
   for (const def of ACTIVITIES) {
     if (ch.age < def.age[0] || ch.age > def.age[1]) continue;
-    if (def.adult && ch.age < 19) continue;
+    // 성인 전용은 본인 나이만 본다. 커플 활동은 상대도 성인이어야 한다 (family.partnerAdult)
+    if (def.adult && ch.age < ADULT_AGE) continue;
+    if (def.couple && !coupleOk) continue;
     if (def.if && !evaluate(def.if, scope)) continue;
     const cost = Math.round((def.cost ?? 0) * state.world.economy.priceIndex);
     let reason: string | undefined;
@@ -192,12 +196,16 @@ export function performActivity(state: GameState, id: string): ActivityResult | 
         text = '두 문제 차이로 떨어졌다.';
       }
       break;
-    case 'drink':
-      if (rng.chance(0.12)) addFlag(state, 'heavy_drinker', changes);
+    case 'substance': {
+      // 술·담배·약물: 사용 이력·의존·끊기·치료는 substances.ts가 기록한다
+      const out = substanceActivity(state, def, rng, changes);
+      if (out.text) text = out.text;
+      if (out.queued) queuedCard = true;
       break;
+    }
     case 'motel':
     case 'intimacy': {
-      // 성인 커플만 (활동 조건 family.partnerAdult). 묘사는 하지 않고 관계만 가까워진다
+      // 성인 커플만 (couple: 상대도 성인). 묘사는 하지 않고 관계만 가까워진다
       const married = Boolean(spouseOf(ch));
       changeCloseness(ch, married ? 'spouse' : 'partner', def.special === 'motel' ? 8 : 6);
       const kids = alive(ch, 'child').length;

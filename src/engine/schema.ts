@@ -10,6 +10,8 @@ import type {
   SchoolStatus,
   Sex,
   StageId,
+  SubstanceAct,
+  SubstanceId,
   TalentKey,
   Tone,
   UnivTier,
@@ -115,7 +117,12 @@ export type Action =
   | { type: 'reunite' }
   /** 스타일을 바꾼다 (다른 스타일 태그는 지운다) */
   | { type: 'setStyle'; style: 'basic' | 'trendy' | 'luxury' | 'comfort' }
-  | { type: 'buyHome'; downPct: number };
+  | { type: 'buyHome'; downPct: number }
+  /**
+   * 술·담배·약물 기록 (substances.ts). use는 만 19세 이상만 처리되고 미성년자는 노출로만 남는다.
+   * substance가 'ctx'면 카드 ctx.substance를 쓴다. 치료 마침·중단·버티기는 생략하면 해당하는 물질 전부
+   */
+  | { type: 'substance'; substance?: SubstanceId | 'ctx'; act: SubstanceAct; amount?: number; product?: 'cigarette' | 'ecig' };
 
 export interface Effects {
   stats?: Partial<Record<AttrKey, Range>>;
@@ -300,13 +307,17 @@ export interface ActivityDef {
     | 'checkup'
     | 'family'
     | 'certificate'
-    | 'drink'
+    | 'substance'
     | 'shopping'
     | 'diet'
     | 'foodie'
     | 'motel'
     | 'intimacy';
-  /** 성인 전용 (만 19세 이상, 상대도 성인) */
+  /** special 'substance': 술·담배·약물 행동 (substances.ts) */
+  substance?: { id: SubstanceId; act: SubstanceAct; product?: 'cigarette' | 'ecig'; context?: 'social' | 'alone' };
+  /** 성인 전용: 본인이 만 19세 이상일 때만 보인다 (술·담배 등) */
   adult?: boolean;
+  /** 커플 활동: 연인·배우자도 만 19세 이상이어야 한다 (family.partnerAdult). adult와 함께 쓴다 */
+  couple?: boolean;
   log?: string;
 }

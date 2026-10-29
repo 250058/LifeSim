@@ -196,6 +196,54 @@ export interface Legal {
   probationUntil?: number;
 }
 
+/** 술·담배·불법 약물 (약물은 실제 이름 없이 하나로 추상화한다) */
+export const SUBSTANCE_IDS = ['alcohol', 'tobacco', 'drug'] as const;
+export type SubstanceId = (typeof SUBSTANCE_IDS)[number];
+
+/** 사용 빈도: 0 안 함, 1 가끔, 2 자주(매일 흡연·주 1회 이상 음주), 3 과다(과음·하루 한 갑 이상) */
+export type UseBand = 0 | 1 | 2 | 3;
+
+/** 사건 선택지·활동이 물질 기록에 하는 일 */
+export const SUBSTANCE_ACTS = ['offered', 'use', 'refuse', 'cutDown', 'quit', 'treat', 'completeTreatment', 'dropTreatment', 'resist'] as const;
+export type SubstanceAct = (typeof SUBSTANCE_ACTS)[number];
+
+/** 물질 하나의 이력. 권유·노출은 사용이 아니다: 직접 고른 사용만 ever·uses에 남는다 */
+export interface SubstanceRecord {
+  ever: boolean;
+  /** 처음·마지막으로 쓴 나이 (옛 저장에서 옮겨 와 모르면 없음) */
+  firstAge?: number;
+  lastAge?: number;
+  /** 평생 사용 횟수 (활동 한 번·사건 선택 한 번) */
+  uses: number;
+  /** 올해 직접 고른 사용량 (활동 1, 사건 속 한 자리 0.5). 연말에 0으로 */
+  usesThisYear: number;
+  /** 몸에 밴 습관: 고르지 않아도 이어지는 빈도 */
+  habit: UseBand;
+  /** 의존 0~100 */
+  dependence: number;
+  /** 갈망·금단 0~100 */
+  craving: number;
+  /** 의존이 쌓이는 속도의 개인차 (기록을 만들 때 시드로 정한다) */
+  sensitivity: number;
+  /** 끊기 시작한 나이. 다시 쓰면 지운다 */
+  abstinentSince?: number;
+  quitAttempts: number;
+  /** 줄이기를 시작한 나이 (그해만 유효) */
+  cutDownAge?: number;
+  treatment: 'none' | 'active' | 'completed';
+  treatmentSince?: number;
+  treatmentStarts: number;
+  relapses: number;
+  /** 권유·노출 횟수와 거절 횟수 */
+  offers: number;
+  refusals: number;
+  lastRefusalAge?: number;
+  /** 담배 종류 */
+  product?: 'cigarette' | 'ecig';
+}
+
+export type Substances = Record<SubstanceId, SubstanceRecord>;
+
 export interface Character {
   surname: string;
   given: string;
@@ -221,6 +269,8 @@ export interface Character {
   career: Career;
   military: Military;
   legal: Legal;
+  /** 술·담배·약물 기록. 한 번도 권유·사용이 없었거나 옛 저장이면 없다 (읽을 때 빈 기록으로 본다) */
+  substances?: Substances;
 }
 
 export type EconomyPhase = 'boom' | 'normal' | 'recession' | 'crisis';

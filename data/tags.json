@@ -45,8 +45,42 @@
     },
     { "id": "raised_by_grandparents", "name": "조손가정", "visible": true, "sign": "info" },
     { "id": "chaebol_heir", "name": "재벌2세", "desc": "납치·사기 표적 확률 상승, 상속 분쟁", "visible": true, "sign": "info" },
-    { "id": "smoker", "name": "흡연자", "desc": "건강이 해마다 깎인다", "visible": true, "sign": "bad" },
-    { "id": "heavy_drinker", "name": "술꾼", "visible": true, "sign": "bad" },
+    { "id": "smoker", "name": "흡연자", "desc": "매일 담배를 피운다. 건강이 해마다 깎인다", "visible": true, "sign": "bad" },
+    {
+      "id": "vaper",
+      "name": "전자담배",
+      "desc": "전자담배를 매일 쓴다. 덜 해롭다는 근거는 아직 부족하다",
+      "visible": true,
+      "sign": "bad"
+    },
+    {
+      "id": "quitting_smoking",
+      "name": "금연 중",
+      "desc": "갈망이 남아 있다. 다시 피울 수도, 다시 끊을 수도 있다",
+      "visible": true,
+      "sign": "info"
+    },
+    {
+      "id": "ex_smoker",
+      "name": "금연 성공",
+      "desc": "끊은 지 2년이 넘었다",
+      "visible": true,
+      "sign": "good",
+      "achievement": true
+    },
+    { "id": "heavy_drinker", "name": "술꾼", "desc": "과음이 습관이 됐다", "visible": true, "sign": "bad" },
+    { "id": "quitting_drinking", "name": "금주 중", "desc": "술을 끊고 버티는 중이다", "visible": true, "sign": "info" },
+    { "id": "sober", "name": "금주 유지", "desc": "술을 끊은 지 2년이 넘었다", "visible": true, "sign": "good" },
+    { "id": "drug_use", "name": "약물 사용", "desc": "불법 약물을 쓰고 있다. 의존·건강·처벌 위험", "visible": true, "sign": "bad" },
+    {
+      "id": "drug_recovery",
+      "name": "회복 중",
+      "desc": "약물을 끊고 회복하는 중이다. 다시 미끄러져도 도움을 청할 수 있다",
+      "visible": true,
+      "sign": "info",
+      "epitaph": "회복의 길 위에서도",
+      "priority": 3
+    },
     { "id": "runaway", "name": "가출 경험", "visible": true, "sign": "bad" },
     { "id": "dropout", "name": "자퇴", "visible": true, "sign": "info" },
     { "id": "trainee", "name": "연습생", "desc": "데뷔 평가를 기다린다", "visible": true, "sign": "info" },

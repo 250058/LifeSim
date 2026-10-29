@@ -33,6 +33,7 @@ import {
 import type { Rng } from './rng';
 import { mortgageLimit } from './scope';
 import type { Action, Effects, Range } from './schema';
+import { applySubstanceAction } from './substances';
 import type { AttrKey, Change, GameState, TalentKey, UnivTier } from './types';
 import { STAT_KEYS, HIDDEN_KEYS, STATE_KEYS } from './types';
 import { TALENT_LABEL } from './text';
@@ -557,5 +558,9 @@ function runAction(state: GameState, a: Action, ec: EffectContext): void {
       changes.push({ text: `집 ${formatWon(price)} (대출 ${formatWon(price - down)})`, sign: 'info' });
       break;
     }
+    case 'substance':
+      // 술·담배·약물: 사용·거절·줄이기·끊기·치료. 미성년자의 사용은 substances.ts가 막는다
+      applySubstanceAction(state, a, ec);
+      break;
   }
 }

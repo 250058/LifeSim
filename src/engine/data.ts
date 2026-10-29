@@ -24,6 +24,7 @@ import senior from '../../data/events/senior.json';
 import general from '../../data/events/general.json';
 import disaster from '../../data/events/disaster.json';
 import lifestyle from '../../data/events/lifestyle.json';
+import substances from '../../data/events/substances.json';
 import schoolViolence from '../../data/arcs/school_violence.json';
 import militaryAbuse from '../../data/arcs/military_abuse.json';
 import voicePhishing from '../../data/arcs/voice_phishing.json';
@@ -58,6 +59,8 @@ export const EVENT_FILES: Record<string, EventDef[]> = {
   'events/general.json': (general as unknown as EventFile).events,
   'events/disaster.json': (disaster as unknown as EventFile).events,
   'events/lifestyle.json': (lifestyle as unknown as EventFile).events,
+  // 성인기의 술·담배·약물 (substances.ts와 짝)
+  'events/substances.json': (substances as unknown as EventFile).events,
   'arcs/school_violence.json': (schoolViolence as unknown as EventFile).events,
   'arcs/military_abuse.json': (militaryAbuse as unknown as EventFile).events,
   'arcs/voice_phishing.json': (voicePhishing as unknown as EventFile).events,

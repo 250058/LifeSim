@@ -23,6 +23,7 @@ import { alive, npcYear } from './relations';
 import { rngFor, type Rng } from './rng';
 import { annualIncome, homePrice, inPrison, mortgageLimit } from './scope';
 import { SAVE_VERSION } from './save';
+import { substanceYearEnd } from './substances';
 import { buildSummary } from './summary';
 import type { Change, GameState, HighType, PendingCard } from './types';
 import { initWorld, updateWorld } from './world';
@@ -420,6 +421,9 @@ function settleYear(state: GameState, rng: Rng): PendingCard[] {
   changeAttr(state, 'reputation', (5 - ch.state.reputation) * 0.05, noChanges);
   changeAttr(state, 'mental', (50 - ch.hidden.mental) * 0.05, noChanges);
   if (alive(ch, 'friend').length === 0 && ch.age >= 7) changeAttr(state, 'sociability', -0.5, noChanges);
+
+  // 술·담배·약물: 습관 비용, 의존·갈망, 치료, 재발 (기록이 없으면 아무 일도 없다. 난수는 따로 쓴다)
+  pending.push(...substanceYearEnd(state));
 
   // 돈
   const r = ch.res;
