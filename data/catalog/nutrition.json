@@ -132,15 +132,36 @@
       "visible": true,
       "sign": "good",
       "duration": 3,
-      "healthPerYear": 0.3
+      "healthPerYear": 0.3,
+      "stopped": "nut_ed_recovery_stopped",
+      "treatment": "섭식장애 치료"
+    },
+    {
+      "id": "nut_ed_recovery_stopped",
+      "name": "섭식장애 치료 중단",
+      "desc": "치료를 그만둔 뒤의 시기. 흔들리면 언제든 다시 도움을 청할 수 있다",
+      "visible": true,
+      "sign": "info",
+      "duration": 3
     },
     {
       "id": "nut_glp1",
       "name": "비만 치료 주사",
-      "desc": "주 1회 주사를 맞는다. 끊으면 체중이 돌아오기 쉽다",
+      "desc": "주 1회 주사를 맞는다. 끊으면 체중이 돌아오기 쉽다. 이어 맞으려면 해마다 재진에서 정한다",
       "visible": true,
       "sign": "info",
-      "duration": 1
+      "duration": 1,
+      "healthPerYear": 0.2,
+      "stopped": "nut_glp1_stopped",
+      "ongoing": true
+    },
+    {
+      "id": "nut_glp1_stopped",
+      "name": "비만 치료 주사 중단",
+      "desc": "주사를 그만둔 뒤의 시기. 식욕과 체중이 돌아오기 쉽다",
+      "visible": true,
+      "sign": "info",
+      "duration": 2
     },
     {
       "id": "nut_cook",
@@ -6877,7 +6898,7 @@
             "fx": {
               "health": 1,
               "cost": 1200000,
-              "add": ["nut_glp1"],
+              "treat": [{ "tag": "nut_glp1", "act": "start" }],
               "later": [{ "event": "nut_follow_glp1_year", "inYears": 1 }]
             }
           },
@@ -8104,13 +8125,13 @@
           {
             "text": "믿을 만한 어른이나 상담 선생님에게 털어놓는다",
             "result": "말하고 나니 울음이 터졌다. 그날 처음으로 전문 상담을 예약했다.",
-            "fx": { "stress": -2, "mental": 3, "add": ["nut_ed_recovery"], "remove": ["nut_dieting"] }
+            "fx": { "stress": -2, "mental": 3, "treat": [{ "tag": "nut_ed_recovery", "act": "start" }], "remove": ["nut_dieting"] }
           },
           {
             "text": "청소년상담 1388에 문자를 보낸다",
             "if": "age <= 24",
             "result": "상담 선생님이 천천히 이야기를 들어 주었다. 가까운 상담센터와 병원도 함께 찾아 주었다.",
-            "fx": { "stress": -2, "mental": 2, "add": ["nut_ed_recovery"], "remove": ["nut_dieting"] }
+            "fx": { "stress": -2, "mental": 2, "treat": [{ "tag": "nut_ed_recovery", "act": "start" }], "remove": ["nut_dieting"] }
           },
           {
             "text": "괜찮다고 웃어넘긴다",
@@ -8138,7 +8159,7 @@
               "mental": 3,
               "cost": 50000,
               "remove": ["nut_ed"],
-              "add": ["nut_ed_recovery"]
+              "treat": [{ "tag": "nut_ed_recovery", "act": "start" }]
             }
           },
           {
@@ -8163,7 +8184,7 @@
           {
             "text": "정신건강의학과에서 상담을 받는다",
             "result": "폭식장애라는 이름을 처음 들었다. 굶지 않고 규칙적으로 먹는 것부터 다시 시작했다.",
-            "fx": { "stress": -2, "mental": 3, "cost": 50000, "add": ["nut_ed_recovery"] }
+            "fx": { "stress": -2, "mental": 3, "cost": 50000, "treat": [{ "tag": "nut_ed_recovery", "act": "start" }] }
           },
           {
             "text": "가까운 사람에게 털어놓는다",
@@ -8196,7 +8217,7 @@
               "mental": 3,
               "cost": 100000,
               "remove": ["nut_ed"],
-              "add": ["nut_ed_recovery"]
+              "treat": [{ "tag": "nut_ed_recovery", "act": "start" }]
             }
           },
           {
@@ -8222,6 +8243,14 @@
             "text": "힘든 마음을 상담 시간에 꺼내 놓는다",
             "result": "나쁜 날도 회복의 일부라는 말을 들었다.",
             "fx": { "stress": -2, "mental": 1 }
+          },
+          {
+            "text": "이제 혼자 할 수 있다며 치료를 그만둔다",
+            "check": ["mental", 60],
+            "result": "상담 없이도 끼니를 지켜 나갔다. 힘든 날에는 식사 계획표를 다시 꺼냈다.",
+            "fx": { "treat": [{ "tag": "nut_ed_recovery", "act": "stop" }] },
+            "fail": "몇 달 뒤 다시 끼니를 거르기 시작했다.",
+            "failFx": { "health": -1, "add": ["nut_ed"], "treat": [{ "tag": "nut_ed_recovery", "act": "stop" }] }
           }
         ]
       },
@@ -8237,15 +8266,15 @@
           {
             "text": "치료진에게 연락한다",
             "result": "다음 날로 예약이 잡혔다. 한 번 흔들렸다고 처음으로 돌아가는 건 아니었다.",
-            "fx": { "stress": -1, "mental": 2 }
+            "fx": { "stress": -1, "mental": 2, "treat": [{ "tag": "nut_ed_recovery", "act": "continue" }] }
           },
           {
             "text": "혼자 버텨 본다",
             "check": ["mental", 55],
             "result": "힘든 한 주를 넘겼다. 조금 단단해진 기분이었다.",
             "fx": { "mental": 1 },
-            "fail": "다시 굶기 시작했다.",
-            "failFx": { "health": -2, "add": ["nut_ed"] }
+            "fail": "다시 굶기 시작했다. 상담 예약도 하나둘 미뤘다.",
+            "failFx": { "health": -2, "add": ["nut_ed"], "treat": [{ "tag": "nut_ed_recovery", "act": "stop" }] }
           }
         ]
       },
@@ -8724,6 +8753,8 @@
     {
       "id": "glp1_year",
       "age": [25, 75],
+      "if": "!legal.inPrison",
+      "flags": ["nut_glp1"],
       "title": "주사 1년",
       "zoom": "비만 클리닉 재진",
       "text": "비만 치료 주사를 맞은 지 1년. 체중은 12kg 줄었다. 그런데 한 달 수십만 원의 비용이 계속 부담이었다. 연구에서는 주사를 끊은 사람 상당수가 1년 안에 빠졌던 체중의 3분의 2를 되찾았다.",
@@ -8731,20 +8762,115 @@
         {
           "text": "계속 맞는다",
           "result": "체중은 유지됐다. 통장은 가벼워졌다.",
-          "fx": { "health": 1, "cost": 4000000, "add": ["nut_glp1"] }
+          "fx": {
+            "health": 1,
+            "cost": 4000000,
+            "treat": [{ "tag": "nut_glp1", "act": "continue" }],
+            "later": [{ "event": "nut_follow_glp1_keep", "inYears": 1 }]
+          }
         },
         {
           "text": "끊고 식단과 운동으로 버틴다",
           "check": ["mental", 55],
           "result": "체중이 조금 돌아왔지만 절반 넘게 지켰다.",
-          "fx": { "health": 1 },
+          "fx": {
+            "health": 1,
+            "treat": [{ "tag": "nut_glp1", "act": "stop" }],
+            "later": [{ "event": "nut_follow_glp1_after", "inYears": 1 }]
+          },
           "fail": "1년 만에 거의 다 돌아왔다.",
-          "failFx": { "happiness": -2 }
+          "failFx": {
+            "happiness": -2,
+            "treat": [{ "tag": "nut_glp1", "act": "stop" }],
+            "later": [{ "event": "nut_follow_glp1_after", "inYears": 1 }]
+          }
         },
         {
           "text": "의사와 상의해 천천히 줄여 간다",
-          "result": "근력 운동과 단백질 식단을 함께 시작했다.",
-          "fx": { "health": 1, "stamina": 1, "cost": 1000000 }
+          "result": "근력 운동과 단백질 식단을 함께 시작했다. 주사는 올해 안에 끊기로 했다.",
+          "fx": {
+            "health": 1,
+            "stamina": 1,
+            "cost": 1000000,
+            "treat": [{ "tag": "nut_glp1", "act": "reduce" }],
+            "later": [{ "event": "nut_follow_glp1_after", "inYears": 1 }]
+          }
+        }
+      ]
+    },
+    {
+      "id": "glp1_keep",
+      "age": [25, 85],
+      "if": "!legal.inPrison",
+      "flags": ["nut_glp1"],
+      "title": "주사 또 1년",
+      "zoom": "비만 클리닉 재진",
+      "text": "비만 치료 주사를 이어 맞은 지 또 1년이 지났다. 체중은 버티고 있었다. 한 달 수십만 원도 여전히 빠져나갔다. 이어 갈지, 줄일지, 끊을지 올해도 정해야 했다.",
+      "choices": [
+        {
+          "text": "1년 더 맞는다",
+          "result": "재진 날짜를 내년으로 잡았다.",
+          "fx": {
+            "cost": 4000000,
+            "treat": [{ "tag": "nut_glp1", "act": "continue" }],
+            "later": [{ "event": "nut_follow_glp1_keep", "inYears": 1 }]
+          }
+        },
+        {
+          "text": "끊고 식단과 운동으로 버틴다",
+          "check": ["mental", 55],
+          "result": "식욕이 돌아왔지만 식단 일기로 버텼다.",
+          "fx": {
+            "stress": -1,
+            "treat": [{ "tag": "nut_glp1", "act": "stop" }],
+            "later": [{ "event": "nut_follow_glp1_after", "inYears": 1 }]
+          },
+          "fail": "몇 달 만에 체중이 다시 오르기 시작했다.",
+          "failFx": {
+            "happiness": -2,
+            "treat": [{ "tag": "nut_glp1", "act": "stop" }],
+            "later": [{ "event": "nut_follow_glp1_after", "inYears": 1 }]
+          }
+        },
+        {
+          "text": "의사와 상의해 천천히 줄여 간다",
+          "result": "의사와 계획을 세워 올해 안에 끊기로 했다.",
+          "fx": {
+            "cost": 1000000,
+            "treat": [{ "tag": "nut_glp1", "act": "reduce" }],
+            "later": [{ "event": "nut_follow_glp1_after", "inYears": 1 }]
+          }
+        }
+      ]
+    },
+    {
+      "id": "glp1_after",
+      "age": [25, 85],
+      "if": "!legal.inPrison",
+      "flags": ["nut_glp1_stopped"],
+      "title": "주사를 끊고 1년",
+      "zoom": "체중계 위",
+      "text": "비만 치료 주사를 끊은 지 1년. 식욕이 돌아오면서 체중계 숫자도 조금씩 올라왔다. 끊은 뒤 체중이 다시 느는 건 흔한 일이고, 의지가 약해서만은 아니다.",
+      "choices": [
+        {
+          "text": "다시 처방받는다",
+          "if": "money.cash > 1200000",
+          "result": "같은 클리닉에서 다시 시작했다. 이번에는 해마다 재진에서 이어 갈지 정하기로 했다.",
+          "fx": {
+            "cost": 1200000,
+            "treat": [{ "tag": "nut_glp1", "act": "resume" }],
+            "later": [{ "event": "nut_follow_glp1_keep", "inYears": 1 }]
+          }
+        },
+        {
+          "text": "식단과 운동을 이어 간다",
+          "result": "빠르지는 않았다. 그래도 더 늘지는 않았다.",
+          "fx": { "stress": 1 }
+        },
+        {
+          "text": "몸무게보다 혈압과 혈당 숫자를 본다",
+          "result": "검진 수치는 나쁘지 않았다. 체중계는 욕실 구석으로 밀어 두었다.",
+          "fx": { "stress": -1 }
         }
       ]
     }
