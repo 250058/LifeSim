@@ -3,7 +3,9 @@
 // - 발생 → 대응 선택 → 기관 처리 → 오래 남는 상태 (같은 사건 번호로 이어진다)
 // - 신고하지 않은 사건도 남고, 공소시효 안이면 몇 년 뒤에도 신고할 수 있다 (친고죄 고소기간·시효가 지나면 안 된다)
 // - 지원 역할: 피해자(NPC)가 스스로 정하고, 그 사람이 떠나면 사건도 이유와 함께 닫힌다
-// - 미성년자에게는 성범죄·성희롱 사건이 생기지 않는다 (데이터·처리 단계·실제 진행 모두)
+// - 성인 대상 성범죄·성희롱 장면은 성인에게만 (데이터·처리 단계·실제 진행 모두)
+// - 아동·청소년 피해(성범죄 피해 포함)는 보호 장면으로: 털어놓기·보호자·학교·지원 기관·신고·회복, 사건·보호자·기관 id가 남는다.
+//   성적 행동 선택지와 행위 묘사는 없다 (데이터 검사 + 실제 카드 문장 검사). 플레이어는 어느 나이에도 성범죄를 저지르지 않는다
 // - 피해자는 피해 때문에 도덕성·평판을 잃지 않고, 회복은 지원·시간에 따라 언젠가 끝난다
 // - 같은 시드·선택이면 같은 결과, 저장·불러오기를 사이에 둬도 같다. 옛 저장도 불러온다
 //
@@ -12,19 +14,26 @@
 import { describe, expect, it } from 'vitest';
 import { activityViews } from '../src/engine/activities';
 import { jobOpenings, takeJob } from '../src/engine/career';
-import { CATEGORY, CRIME_ACTS, PRESSING_ACTS, stepEventId, type SceneRow } from '../src/engine/catalog/crime';
+import { CATEGORY, CRIME_ACTS, MINOR_SAFE_ACTS, PRESSING_ACTS, stepEventId, type SceneRow } from '../src/engine/catalog/crime';
 import {
+  canCivil,
+  canGuardianReport,
   canReport,
   CRIME_ADULT_AGE,
   CRIME_SCENES,
+  crimeDataProblems,
   crimeScope,
+  explicitWordsIn,
   findCase,
+  institutionsOf,
+  minorOutcomeKeys,
   readLedger,
   recoveryAt,
   sceneAllowed,
   type CrimeCase,
 } from '../src/engine/crime';
-import { EVENT_FILES, getEvent } from '../src/engine/data';
+import { CRIMES } from '../src/engine/justice';
+import { EVENT_FILES, EVENTS, getEvent } from '../src/engine/data';
 import { applyEffects } from '../src/engine/effects';
 import { chooseOption, dismissCard, eventProbability, limitOk, presentCard, triggerOk } from '../src/engine/eventEngine';
 import { applyForJob, buyHome, buyStocks, choose, doActivity, endTurn, homePrice, newGame, proceed, repayDebt } from '../src/engine/game';
@@ -52,6 +61,7 @@ function personAt(seed: string, age: number): GameState {
   s.world.year = s.year;
   s.ch.res.cash = 50_000_000;
   if (age >= 19) s.ch.edu.status = 'graduated';
+  else if (age >= 7) s.ch.edu.status = age >= 16 ? 'high' : age >= 13 ? 'middle' : 'elementary';
   s.points = { max: 6, left: 6 };
   return s;
 }
@@ -159,6 +169,17 @@ function prepare(state: GameState, scene: SceneRow): void {
     const f = addFriend(state, rng);
     f.birthYear = ch.birthYear;
   }
+  if (scene.if?.includes('family.livesWithParents') && !scene.if.includes('!family.livesWithParents')) ch.family.livesWithParents = true;
+  if (scene.victim === 'child' && scene.childAge) {
+    const k = addFriend(state, rngFor('prepare', scene.id, 'child'));
+    k.role = 'child';
+    k.birthYear = state.year - Math.round((scene.childAge[0] + scene.childAge[1]) / 2);
+  }
+}
+
+/** 카드의 화면 문장 전부 (제목·본문·선택지·결과) */
+function cardTexts(card: ActiveCard): string[] {
+  return [card.title, card.text, card.zoom ?? '', ...card.choices.map((c) => c.text), card.result?.text ?? ''];
 }
 
 // ── 데이터 계약 ──────────────────────────────────────────
@@ -206,8 +227,15 @@ describe('범죄 사건 데이터', () => {
     expect(always).toEqual(expect.arrayContaining(['postpone', 'close']));
   });
 
-  it('성범죄·성희롱 장면은 성인 전용이고, 미성년자에게 열리는 장면은 비성적 범죄의 허용된 역할뿐이다', () => {
-    for (const s of CRIME_SCENES) {
+  it('사건표 규칙 검사(crime.ts)가 통과한다: 신고 강요 없음, 성인 장면·보호 장면의 나이·대응·표현', () => {
+    expect(crimeDataProblems()).toEqual([]);
+    // 검사기가 실제로 잡아내는지: 표현 검사 낱말
+    expect(explicitWordsIn('성관계를 요구했다')).toEqual(['성관계']);
+    expect(explicitWordsIn('선생님이 끝까지 들어 주셨다')).toEqual([]);
+  });
+
+  it('성인 대상 성범죄·성희롱 장면은 성인 전용이고, 미성년자에게 열리는 일반 장면은 비성적 범죄의 허용된 역할뿐이다', () => {
+    for (const s of CRIME_SCENES.filter((x) => !x.minor)) {
       const rule = CATEGORY[s.cat];
       const ev = getEvent(s.id);
       if (rule.sexual) {
@@ -223,6 +251,43 @@ describe('범죄 사건 데이터', () => {
         expect(rule.minorRoles, s.id).toContain(s.role);
       }
     }
+  });
+
+  it('아동·청소년 보호 장면: 성인 전용 표시로 지우지 않고, 나이·대응이 보호 경로뿐이다', () => {
+    const minorScenes = CRIME_SCENES.filter((x) => x.minor);
+    // 피해자 본인·미성년 친구 돕기·보호자인 주인공, 성범죄 피해와 아동학대가 모두 있다
+    expect(minorScenes.map((x) => x.minor).sort()).toEqual(expect.arrayContaining(['guardian', 'self']));
+    expect(minorScenes.some((x) => CATEGORY[x.cat].sexual && x.role === 'victim')).toBe(true);
+    expect(minorScenes.some((x) => x.cat === 'domestic' && x.role === 'victim')).toBe(true);
+    expect(minorScenes.some((x) => x.role === 'supporter' && x.victim === 'friend')).toBe(true);
+    for (const s of minorScenes) {
+      const ev = getEvent(s.id);
+      expect(ev.adult, s.id).toBeFalsy();
+      if (s.minor === 'self') expect(s.age[1], s.id).toBeLessThan(CRIME_ADULT_AGE);
+      if (s.minor === 'guardian') {
+        expect(s.age[0], s.id).toBeGreaterThanOrEqual(CRIME_ADULT_AGE);
+        expect(s.childAge![1], s.id).toBeLessThan(CRIME_ADULT_AGE);
+      }
+      for (const c of ev.choices ?? []) {
+        for (const a of choiceActs(c)) expect(MINOR_SAFE_ACTS as readonly string[], `${s.id}: ${a}`).toContain(a);
+        // 사용·성인 활동 효과가 없다 (돈을 보내거나 관계를 시작·끝내는 효과 포함)
+        const fx = [c.effects, c.onSuccess?.effects, c.onFail?.effects];
+        for (const f of fx) for (const a of f?.do ?? []) expect(a.type, `${s.id}: ${a.type}`).toBe('crime');
+      }
+    }
+  });
+
+  it('플레이어는 어느 나이에도 성범죄를 저지르지 않는다: 처벌받는 죄에 성범죄가 없고, 대응은 피해·목격·지원·보호뿐이다', () => {
+    const sexualWords = ['성폭력', '추행', '강간', '촬영', '성희롱', '음란', '성착취', '그루밍', '허위영상'];
+    for (const [id, def] of Object.entries(CRIMES)) {
+      for (const w of sexualWords) expect(def.name.includes(w), `${id}: ${def.name}`).toBe(false);
+    }
+    for (const ev of EVENTS) {
+      const all = [ev.effects, ...(ev.choices ?? []).flatMap((c) => [c.effects, c.onSuccess?.effects, c.onFail?.effects])];
+      for (const fx of all) for (const a of fx?.do ?? []) if (a.type === 'prosecute') expect(CRIMES[a.crime] ?? a.crime === 'ctx', ev.id).toBeTruthy();
+    }
+    // 범죄 행동은 피해자·목격자·돕는 사람·보호자의 대응뿐: 가해 쪽 행동 id가 없다
+    for (const act of CRIME_ACTS) expect(['offend', 'assault', 'harass', 'film_victim'].includes(act)).toBe(false);
   });
 
   it('피해자·지원 장면의 선택지는 도덕성·평판을 깎지 않는다 (엔진도 깎지 않는다)', () => {
@@ -258,6 +323,10 @@ describe('범죄 사건 데이터', () => {
       'protect.kept', 'revisit.calm', 'revisit.middle', 'revisit.heavy', 'revisit.others', 'revisit.expired', 'witness.call',
       'support.gone', 'support.lost', 'support.reported', 'support.not_reported', 'support.ongoing', 'support.care', 'support.raised',
       'recovered',
+      // 아동·청소년 보호 경로
+      'teacher', 'teacher.school', 'teacher.reported', 'guardian.report', 'guardian.care', 'guardian.dismissed', 'guardian_report',
+      'guardian_report.unavailable', 'support.guardian', 'report.filed.child', 'report.delayed.minor', 'postpone.child', 'witness.call.child',
+      'testify.child', 'statement.child', 'civil.filed.child', 'help.minor',
     ];
     for (const k of required) expect(OUTCOMES[k]?.length, k).toBeGreaterThan(0);
     const allowed = new Set(['상대', '지인', '혐의', '형기', '유예', '벌금', '이름', '보호자']);
@@ -479,21 +548,100 @@ describe('가족·친구를 돕는 역할', () => {
     expect(readLedger(s.ch).people.find((p) => p.id === c.victim)!.npcId).toBe(victimNpc);
   });
 
-  it('성범죄 지원 대상은 성인뿐: 미성년 친구에게는 사건이 열리지 않는다', () => {
+  it('성인 성범죄 지원 대상은 성인뿐: 미성년 친구에게는 사건이 열리지 않는다', () => {
     const s = personAt('SUPPORT-3', 30);
     const f = addFriend(s, rngFor('t', 'f4'));
     f.birthYear = s.year - 17;
+    const ev = getEvent('crime_sa_support_friend');
+    expect(triggerOk(ev, buildScope(s), s)).toBe(false);
     s.phase = 'event';
     presentCard(s, { eventId: 'crime_sa_support_friend', ctx: { 친구: f.name, friendId: f.id } });
     expect(readLedger(s.ch).cases.length).toBe(0);
+    // 성인 친구가 있으면 그 친구로 묶어 연다 (카드 문장과 기록이 같은 사람)
+    const adult = addFriend(s, rngFor('t', 'f5'));
+    adult.birthYear = s.ch.birthYear;
+    dismissCard(s);
+    s.phase = 'event';
+    expect(triggerOk(ev, buildScope(s), s)).toBe(true);
+    presentCard(s, { eventId: 'crime_sa_support_friend', ctx: { 친구: f.name, friendId: f.id } });
+    const c = findCase(s.ch, s.card!.ctx.caseId)!;
+    expect(readLedger(s.ch).people.find((p) => p.id === c.victim)?.npcId).toBe(adult.id);
+    expect(s.card!.ctx.friendId).toBe(adult.id);
+    expect(s.card!.title).toContain(adult.name);
+  });
+
+  it('보호자인 주인공: 미성년 자녀의 피해를 듣고, 보호자로서 신고할 수 있다. 자녀가 성년이 되면 본인이 정한다', () => {
+    const s = personAt('GUARDIAN-1', 40);
+    const scene = CRIME_SCENES.find((x) => x.id === 'crime_minor_support_child')!;
+    prepare(s, scene);
+    const c = open(s, scene.id);
+    const kid = readLedger(s.ch).people.find((p) => p.id === c.victim)!;
+    expect(kid.npcId).toBeDefined();
+    expect(c.role).toBe('supporter');
+    expect(c.minor).toBe(true);
+    expect(c.guardian).toBe('self');
+    expect(canGuardianReport(s, c)).toBe(true);
+    // 보호자가 이끄는 길: 해바라기센터에 같이 가면 아이의 상담·치료가 시작되고 기관 id가 남는다
+    respond(s, 'accompany');
+    expect(c.care).toBe('active');
+    expect(institutionsOf(c)).toContain('sunflower');
+    expect(c.report).toBe('none');
+    // 1년 뒤 소식 카드에서 보호자로서 신고한다
+    crimeYear(s, ['guardian_report']);
+    expect(c.report).not.toBe('none');
+    expect(c.reportedBy).toBe('guardian');
+    expect(institutionsOf(c)).toContain('police');
+    // 자녀가 성년이 된 뒤에는 보호자 신고가 없다
+    const t = personAt('GUARDIAN-2', 40);
+    prepare(t, scene);
+    const c2 = open(t, scene.id);
+    respond(t, 'listen');
+    const kidNpc = t.ch.npcs.find((n) => n.id === readLedger(t.ch).people.find((p) => p.id === c2.victim)!.npcId)!;
+    kidNpc.birthYear = t.year - 19;
+    expect(canGuardianReport(t, c2)).toBe(false);
   });
 });
 
-// ── 미성년자 보호 ────────────────────────────────────────
+// ── 아동·청소년 보호 ────────────────────────────────────
 
-describe('미성년자에게는 성범죄·성희롱 사건이 없다', () => {
-  it('처리 단계에서도 막는다: 16세에게 성범죄 장면을 열어도 사건이 생기지 않는다', () => {
-    for (const scene of CRIME_SCENES.filter((x) => CATEGORY[x.cat].sexual)) {
+/** 보호 장면을 연다: 장면에 맞는 나이·조건을 갖춘 시험 인물 */
+function minorStart(seed: string, sceneId: string, age?: number): { s: GameState; scene: SceneRow } {
+  const scene = CRIME_SCENES.find((x) => x.id === sceneId)!;
+  const s = personAt(seed, age ?? (scene.minor === 'guardian' ? 40 : Math.min(scene.age[1], Math.max(scene.age[0], 14))));
+  s.ch.sex = 'F';
+  s.ch.family.livesWithParents = true;
+  prepare(s, scene);
+  if (scene.victim === 'friend' && scene.minor) {
+    const f = addFriend(s, rngFor('t', seed, 'minor-friend'));
+    f.birthYear = s.year - s.ch.age;
+  }
+  return { s, scene };
+}
+
+/** 대기열을 비우며 뜬 카드의 화면 문장을 모은다 (고른 대응은 prefer 순서, 없으면 신고·대면이 아닌 첫 선택지) */
+function drainTexts(state: GameState, prefer: string[], out: string[], acts: string[]): void {
+  for (let guard = 0; guard < 100; guard++) {
+    if (state.card) {
+      const before = state.card.choices.length;
+      const ev = getEvent(state.card.eventId);
+      if (state.ch.age < CRIME_ADULT_AGE) for (const c of state.card.choices) acts.push(...choiceActs(ev.choices![c.index]));
+      if (before > 0) answer(state, prefer);
+      out.push(...cardTexts(state.card));
+      dismissCard(state);
+      continue;
+    }
+    const next = state.queue.shift();
+    if (!next) break;
+    const logBefore = state.log.length;
+    presentCard(state, next);
+    for (const l of state.log.slice(logBefore)) out.push(l.title ?? '', l.text);
+  }
+  state.phase = 'action';
+}
+
+describe('아동·청소년: 일반 성범죄 장면은 막고, 피해는 보호 장면으로 다룬다', () => {
+  it('처리 단계: 성인 대상 성범죄 장면은 16세에게 열리지 않고, 보호 장면은 나이가 맞을 때만 열린다', () => {
+    for (const scene of CRIME_SCENES.filter((x) => CATEGORY[x.cat].sexual && !x.minor)) {
       expect(sceneAllowed(16, scene), scene.id).toBe(false);
       const s = personAt(`MINOR-${scene.id}`, 16);
       applyEffects(s, { do: [{ type: 'crime', op: 'open', scene: scene.id }] }, { ctx: {}, rng: new Rng('x'), changes: [] });
@@ -501,9 +649,20 @@ describe('미성년자에게는 성범죄·성희롱 사건이 없다', () => {
       // 이벤트 자체도 미성년자에게는 조건이 맞지 않는다
       expect(triggerOk(getEvent(scene.id), buildScope(s), s), scene.id).toBe(false);
     }
+    for (const scene of CRIME_SCENES.filter((x) => x.minor === 'self')) {
+      expect(sceneAllowed(14, scene), scene.id).toBe(true);
+      expect(sceneAllowed(25, scene), scene.id).toBe(false);
+      const s = personAt(`ADULT-${scene.id}`, 25);
+      applyEffects(s, { do: [{ type: 'crime', op: 'open', scene: scene.id }] }, { ctx: {}, rng: new Rng('x'), changes: [] });
+      expect(readLedger(s.ch).cases.length, scene.id).toBe(0);
+    }
+    for (const scene of CRIME_SCENES.filter((x) => x.minor === 'guardian')) {
+      expect(sceneAllowed(40, scene), scene.id).toBe(true);
+      expect(sceneAllowed(16, scene), scene.id).toBe(false);
+    }
   });
 
-  it('실제 진행: 여러 모드의 인생을 18세까지 살아도 성범죄·성희롱 사건이 없고, 미성년 사건은 허용된 범주뿐이다', () => {
+  it('실제 진행: 18세까지 살아도 미성년 사건의 성범죄 범주는 보호 장면에서만 생기고, 일반 장면은 허용된 역할뿐이다', () => {
     const minorCats = new Set<string>();
     for (const mode of ['reality', 'drama', 'makjang'] as const) {
       for (let i = 0; i < 60; i++) {
@@ -514,16 +673,228 @@ describe('미성년자에게는 성범죄·성희롱 사건이 없다', () => {
           else proceed(s);
         }
         for (const c of readLedger(s.ch).cases) {
-          if (c.age < CRIME_ADULT_AGE) {
-            minorCats.add(`${c.cat}/${c.role}`);
-            expect(CATEGORY[c.cat].sexual, `${mode} ${c.scene}`).toBe(false);
-            expect(CATEGORY[c.cat].minorRoles, c.scene).toContain(c.role);
-          }
+          if (c.age >= CRIME_ADULT_AGE) continue;
+          const scene = CRIME_SCENES.find((x) => x.id === c.scene)!;
+          minorCats.add(`${c.cat}/${c.role}`);
+          if (CATEGORY[c.cat].sexual) expect(scene.minor, `${mode} ${c.scene}`).toBe('self');
+          else if (!scene.minor) expect(CATEGORY[c.cat].minorRoles, c.scene).toContain(c.role);
+          // 피해자 본인의 미성년 사건은 보호 경로 표시가 있다
+          if (c.role === 'victim') expect(c.minor, c.scene).toBe(true);
         }
       }
     }
     // 보호·신고 경로가 붙은 미성년 사건이 실제로 생긴다 (도달성)
     expect(minorCats.size).toBeGreaterThan(0);
+  });
+
+  it('발생 → 선생님에게 털어놓기 → 학교의 신고·보호자 연락 → 수사·재판 → 회복: 사건·보호자·기관 id로 이어진다', () => {
+    const { s } = minorStart('MINOR-FLOW-1', 'crime_minor_known_adult', 13);
+    const c = open(s, 'crime_minor_known_adult');
+    expect(c.minor).toBe(true);
+    expect(c.clockFrom).toBe(CRIME_ADULT_AGE);
+    expect(c.civilFrom).toBe(CRIME_ADULT_AGE);
+    expect(c.noLimit).toBeUndefined();
+    respond(s, 'teacher');
+    // 선생님은 신고 의무자: 학교가 신고하고 보호자에게 알린다
+    expect(c.report).toBe('immediate');
+    expect(c.reportedBy).toBe('school');
+    expect(institutionsOf(c).slice(0, 2)).toEqual(['school', 'police']);
+    const guardian = readLedger(s.ch).people.find((p) => p.id === c.guardian)!;
+    expect(guardian.kind).toBe('guardian');
+    const parent = s.ch.npcs.find((n) => n.id === guardian.npcId)!;
+    expect(['mother', 'father']).toContain(parent.role);
+    expect(c.log.find((l) => l.step === 'guardian')?.by).toBe(guardian.id);
+    // 같은 사건 번호로 기관 단계가 이어진다
+    for (let i = 0; i < 6; i++) crimeYear(s, ['statement', 'accept']);
+    expect(c.log.filter((l) => l.inst === 'police').length).toBeGreaterThan(1);
+    expect(['referred', 'no_suspect', 'not_sent']).toContain(c.police);
+    if (c.police === 'referred') expect(c.prosecution).not.toBe('none');
+    if (c.prosecution === 'indicted') expect(institutionsOf(c)).toContain('court');
+    // 평생 고정된 파국이 아니다
+    expect(recoveryAt(c, c.age + 30)).toBeGreaterThanOrEqual(85);
+  });
+
+  it('보호자에게 털어놓기: 보호자(부모 NPC)가 묶이고, 함께 지원 기관을 찾거나 상담부터 하거나 대수롭지 않게 넘긴다', () => {
+    const paths = new Set<string>();
+    for (let i = 0; i < 16; i++) {
+      const { s } = minorStart(`MINOR-HELP-${i}`, 'crime_minor_known_adult', 14);
+      const c = open(s, 'crime_minor_known_adult');
+      respond(s, 'help');
+      const guardian = readLedger(s.ch).people.find((p) => p.id === c.guardian);
+      expect(guardian?.npcId, `${i}`).toBeDefined();
+      const by = c.log.filter((l) => l.by === c.guardian).map((l) => l.step);
+      if (c.report !== 'none') {
+        expect(c.reportedBy).toBe('guardian');
+        expect(institutionsOf(c)).toEqual(expect.arrayContaining(['sunflower', 'police']));
+        paths.add('report');
+      } else if (by.includes('care')) paths.add('care');
+      else {
+        expect(by).toContain('guardian');
+        paths.add('dismissed');
+        // 믿어 주지 않은 경우에도 다시 돌아보는 카드가 있다 (다른 어른에게 말할 수 있다)
+        expect(scheduledFor(s, c).some((x) => x.startsWith(stepEventId('revisit')))).toBe(true);
+      }
+    }
+    expect(paths.has('report')).toBe(true);
+    expect(paths.size).toBeGreaterThanOrEqual(2);
+  });
+
+  it('말하지 않은 아이: 다시 돌아볼 때 선생님에게 말할 수 있고, 어른이 된 뒤에도 늦은 신고가 된다 (시효는 성년부터, 13세 미만은 시효 없음)', () => {
+    const { s } = minorStart('MINOR-LATE-1', 'crime_minor_known_adult', 12);
+    const c = open(s, 'crime_minor_known_adult');
+    expect(c.noLimit).toBe(true);
+    respond(s, 'postpone');
+    expect(c.report).toBe('none');
+    let told = false;
+    for (let i = 0; i < 3 && !told; i++) {
+      crimeYear(s, ['teacher']);
+      told = c.report !== 'none';
+    }
+    expect(told).toBe(true);
+    expect(c.reportedBy).toBe('school');
+    expect(c.report).toBe('delayed');
+    // 15세 피해: 시효는 19세부터 10년 (과학적 증거가 있으면 20년)
+    const { s: t } = minorStart('MINOR-LATE-2', 'crime_minor_known_adult', 15);
+    const c2 = open(t, 'crime_minor_known_adult');
+    respond(t, 'postpone');
+    expect(c2.noLimit).toBeUndefined();
+    t.ch.age = 29;
+    expect(canReport(t, c2)).toBe(true);
+    t.ch.age = 30;
+    expect(canReport(t, c2)).toBe(false);
+    c2.evidence = 2;
+    expect(canReport(t, c2)).toBe(true);
+    // 성인이 되어 직접 늦은 신고: 접수되고, 시효가 성년부터라는 안내가 붙는다
+    t.ch.age = 27;
+    t.year = 2000 + 27;
+    t.world.year = t.year;
+    const ctx: Record<string, string> = { caseId: c2.id };
+    applyEffects(t, { do: [{ type: 'crime', op: 'respond', act: 'report' }] }, { ctx, rng: new Rng('late'), changes: [] });
+    expect(c2.report).toBe('delayed');
+    expect(c2.reportAge).toBe(27);
+    expect(ctx.결과).toContain('성년');
+    // 13세 미만 피해는 시효가 없다
+    s.ch.age = 70;
+    c.report = 'none';
+    expect(canReport(s, c)).toBe(true);
+    // 성적 침해의 민사 시효도 성년부터 (민법 766조 3항)
+    const { s: u } = minorStart('MINOR-LATE-3', 'crime_minor_known_adult', 15);
+    const c3 = open(u, 'crime_minor_known_adult');
+    respond(u, 'postpone');
+    u.ch.age = 21;
+    expect(canCivil(u, c3)).toBe(true);
+    u.ch.age = 23;
+    expect(canCivil(u, c3)).toBe(false);
+  });
+
+  it('어릴 때 상담만 받은 일: 어른이 된 뒤 한 번 더 돌아보는 카드에서 처음으로 신고할 수 있다', () => {
+    const { s } = minorStart('MINOR-ADULT-REVISIT', 'crime_minor_known_adult', 14);
+    const c = open(s, 'crime_minor_known_adult');
+    respond(s, 'counsel');
+    expect(institutionsOf(c)).toEqual(['youth1388']);
+    // 미성년인 동안: 기록만 남기며 돌아본다
+    while (s.ch.age < CRIME_ADULT_AGE) crimeYear(s, ['record']);
+    expect(c.report).toBe('none');
+    expect(c.adultRevisit).toBe(true);
+    expect(scheduledFor(s, c)).toContain(`${stepEventId('revisit')}@${CRIME_ADULT_AGE + 1}`);
+    crimeYear(s, ['report']);
+    expect(c.report).toBe('delayed');
+    expect(c.reportAge).toBe(CRIME_ADULT_AGE + 1);
+    expect(c.reportedBy).toBe('self');
+  });
+
+  it('아동학대: 학교의 신고 의무, 가해 부모와 다른 보호자, 보호조치, 가해 부모 사망 뒤 재검사, 집을 떠나면 위협이 끝난다', () => {
+    const { s } = minorStart('MINOR-ABUSE-1', 'crime_child_abuse', 11);
+    const parents = s.ch.npcs.filter((n) => n.role === 'mother' || n.role === 'father');
+    expect(parents.length).toBe(2);
+    const closenessBefore = new Map(parents.map((n) => [n.id, n.closeness]));
+    const c = open(s, 'crime_child_abuse');
+    expect(c.minor).toBe(true);
+    expect(c.clockFrom).toBe(CRIME_ADULT_AGE);
+    const offender = readLedger(s.ch).people.find((p) => p.id === c.offender)!;
+    const offenderNpc = s.ch.npcs.find((n) => n.id === offender.npcId)!;
+    expect(offenderNpc.closeness).toBeLessThan(closenessBefore.get(offenderNpc.id)!);
+    expect(s.card!.ctx.혐의).toBe('아동학대');
+    respond(s, 'teacher');
+    expect(c.reportedBy).toBe('school');
+    expect(institutionsOf(c)).toEqual(expect.arrayContaining(['school', 'child_protection']));
+    // 보호자는 가해자가 아닌 다른 부모
+    const guardian = readLedger(s.ch).people.find((p) => p.id === c.guardian)!;
+    expect(guardian.npcId).toBeDefined();
+    expect(guardian.npcId).not.toBe(offenderNpc.id);
+    expect(['granted', 'denied']).toContain(c.protection);
+    // 미성년자가 함께 사는 부모를 상대로 민사 소송을 내는 길은 없다
+    expect(canCivil(s, c)).toBe(false);
+    // 가해 부모가 사건 도중 숨지면 형사 절차는 공소권 없음으로 끝난다 (다른 사람으로 바꾸지 않는다)
+    offenderNpc.alive = false;
+    crimeYear(s, ['accept']);
+    expect(c.prosecution).toBe('no_right');
+    expect(c.log.some((l) => l.step === 'recheck')).toBe(true);
+    expect(readLedger(s.ch).people.find((p) => p.id === c.offender)!.npcId).toBe(offenderNpc.id);
+    // 다른 집: 집을 떠나면(같이 살지 않으면) 위협이 이어지지 않는다
+    const { s: t } = minorStart('MINOR-ABUSE-2', 'crime_child_abuse', 12);
+    const c2 = open(t, 'crime_child_abuse');
+    respond(t, 'postpone');
+    const before = (crimeScope(t, { caseId: c2.id }) as { case: Record<string, unknown> }).case;
+    expect(before.relationEnded).toBe(false);
+    t.ch.family.livesWithParents = false;
+    const after = (crimeScope(t, { caseId: c2.id }) as { case: Record<string, unknown> }).case;
+    expect(after.relationEnded).toBe(true);
+  });
+
+  it('미성년 친구를 돕는 청소년: 함께 상담 선생님을 찾으면 학교가 신고하고, 친구(NPC)가 피해자로 남는다', () => {
+    const { s } = minorStart('MINOR-FRIEND-1', 'crime_minor_support_friend', 15);
+    const ev = getEvent('crime_minor_support_friend');
+    expect(triggerOk(ev, buildScope(s), s)).toBe(true);
+    const c = open(s, 'crime_minor_support_friend');
+    const victim = readLedger(s.ch).people.find((p) => p.id === c.victim)!;
+    const friend = s.ch.npcs.find((n) => n.id === victim.npcId)!;
+    expect(friend.role).toBe('friend');
+    expect(s.year - friend.birthYear).toBeLessThan(CRIME_ADULT_AGE);
+    expect(c.minor).toBe(true);
+    respond(s, 'accompany');
+    expect(c.report).toBe('immediate');
+    expect(c.reportedBy).toBe('school');
+    expect(institutionsOf(c)).toEqual(['school', 'police']);
+    crimeYear(s, ['listen']);
+    expect(c.log.some((l) => l.step === 'police')).toBe(true);
+  });
+
+  it('보호 경로의 실제 카드 문장: 모든 보호 장면의 모든 선택지와 이어지는 단계 카드에 성적 행동 선택지·행위 묘사가 없다', () => {
+    const texts: string[] = [];
+    const acts: string[] = [];
+    for (const scene of CRIME_SCENES.filter((x) => x.minor)) {
+      const n = getEvent(scene.id).choices!.length;
+      for (let i = 0; i < n; i++) {
+        for (const prefer of [['teacher', 'statement', 'accept'], ['help', 'guardian_report', 'postpone']]) {
+          const { s } = minorStart(`SCAN-${scene.id}-${i}-${prefer[0]}`, scene.id);
+          s.phase = 'event';
+          expect(presentCard(s, { eventId: scene.id, ctx: {} }), scene.id).toBe(true);
+          const shown = s.card!.choices.findIndex((c) => c.index === i);
+          if (shown < 0) continue;
+          chooseOption(s, shown);
+          texts.push(...cardTexts(s.card!));
+          dismissCard(s);
+          drainTexts(s, prefer, texts, acts);
+          for (let y = 0; y < 8; y++) {
+            s.ch.age += 1;
+            s.year += 1;
+            s.world.year = s.year;
+            const due = s.scheduled.filter((x) => x.atAge <= s.ch.age && x.eventId.startsWith('crime_'));
+            s.scheduled = s.scheduled.filter((x) => !due.includes(x));
+            s.queue.push(...due.map((d) => ({ eventId: d.eventId, ctx: d.ctx })));
+            drainTexts(s, prefer, texts, acts);
+          }
+        }
+      }
+    }
+    expect(texts.length).toBeGreaterThan(100);
+    const bad = texts.flatMap((t) => explicitWordsIn(t).map((w) => `${w}: ${t}`));
+    expect(bad).toEqual([]);
+    // 미성년인 동안 뜬 카드의 선택지: 돈을 보내기·대면·합의·퇴사·이사·촬영 같은 길이 없다
+    for (const a of acts) expect(['pay', 'confront', 'settle', 'quit', 'move', 'film', 'transfer', 'refuse'], a).not.toContain(a);
+    // 데이터 쪽 결과 문장(보호 경로 키)도 같은 검사를 통과한다
+    for (const k of minorOutcomeKeys()) for (const t of OUTCOMES[k]) expect(explicitWordsIn(t), k).toEqual([]);
   });
 
   it('미성년 피해자가 보호자에게 말하면 보호자가 학교나 경찰에 알릴 수 있다', () => {
@@ -537,6 +908,39 @@ describe('미성년자에게는 성범죄·성희롱 사건이 없다', () => {
       guardianActed = c.internal === 'raised' || c.report !== 'none';
     }
     expect(guardianActed).toBe(true);
+  });
+
+  it('보호 경로도 같은 시드·선택이면 같고, 저장·불러오기 뒤에도 보호자·기관 id와 이어지는 단계가 같다', () => {
+    const run = (seed: string) => {
+      const { s } = minorStart(seed, 'crime_minor_known_adult', 13);
+      open(s, 'crime_minor_known_adult');
+      respond(s, 'help');
+      for (let i = 0; i < 5; i++) crimeYear(s, ['statement', 'teacher', 'accept']);
+      return s;
+    };
+    const a = run('MINOR-DET');
+    const b = run('MINOR-DET');
+    expect(JSON.stringify(a.ch.crime)).toBe(JSON.stringify(b.ch.crime));
+    expect(JSON.stringify(a.scheduled)).toBe(JSON.stringify(b.scheduled));
+    // 저장·불러오기
+    const { s: base } = minorStart('MINOR-SAVE', 'crime_child_abuse', 11);
+    const c = open(base, 'crime_child_abuse');
+    respond(base, 'teacher');
+    base.phase = 'action';
+    const storage = memoryStorage();
+    expect(saveGame(base, storage)).toBe(true);
+    const loaded = loadGame(storage)!;
+    const lc = findCase(loaded.ch, c.id)!;
+    expect(lc.guardian).toBe(c.guardian);
+    expect(lc.minor).toBe(true);
+    expect(institutionsOf(lc)).toEqual(institutionsOf(c));
+    expect(readLedger(loaded.ch).people).toEqual(readLedger(base.ch).people);
+    const direct = structuredClone(base);
+    for (let i = 0; i < 5; i++) {
+      crimeYear(direct, ['statement', 'accept']);
+      crimeYear(loaded, ['statement', 'accept']);
+    }
+    expect(JSON.stringify(loaded.ch.crime)).toBe(JSON.stringify(direct.ch.crime));
   });
 });
 

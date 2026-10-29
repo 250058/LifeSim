@@ -1,5 +1,5 @@
 {
-  "about": "범죄 피해·목격·지원 사건 (Codex U-002). 장면 한 줄은 범주 × 맥락 × 역할 하나이고, 현실 모드의 연간 확률(base)은 그 조건에 있는 사람 1인당 값이다. 기관 처리 비율(검거·처분·선고·조직 조치)은 src/engine/catalog/crime.ts의 범주 표에 있고 대부분 추정값이다. 행위를 묘사하지 않고 대응과 그 뒤를 다룬다. 성범죄·성희롱 장면은 본인이 만 19세 이상일 때만 생긴다.",
+  "about": "범죄 피해·목격·지원 사건 (Codex U-002). 장면 한 줄은 범주 × 맥락 × 역할 하나이고, 현실 모드의 연간 확률(base)은 그 조건에 있는 사람 1인당 값이다. 기관 처리 비율(검거·처분·선고·조직 조치)은 src/engine/catalog/crime.ts의 범주 표에 있고 대부분 추정값이다. 행위를 묘사하지 않고 대응과 그 뒤를 다룬다. 성인 대상 성범죄·성희롱 장면은 본인이 만 19세 이상일 때만 생긴다. 아동·청소년의 피해(성범죄 피해 포함)는 보호 장면(minor)으로만 다룬다: 믿을 만한 어른에게 털어놓기, 보호자·학교·지원 기관·신고, 상담과 회복이 있고 성적 행동 선택지와 행위 묘사는 없다. institutions는 사건 기록에 남는 기관 id다.",
   "sources": {
     "kcvs2020": "전국범죄피해조사 2020 (한국형사·법무정책연구원). 지속가능발전목표 국가 보고 16.1.3: 지난 1년 폭력 피해 0.88% (성폭력 0.37, 폭행 0.36, 괴롭힘 0.11, 강도 0.04%); 16.3.1 신고율: 폭력 18.95%, 재산 20.44%",
     "sh2024": "여성가족부 2024 성희롱 실태조사 (공공기관·민간 사업체 16,338명): 최근 3년 직장 내 성희롱 경험 4.3% (여 6.1, 남 3.0%; 공공 11.1, 민간 2.9%), 온라인 7.8%, 장소 사무실 46.8%·회식 28.6%",
@@ -12,7 +12,11 @@
     "cyberfraud2024": "경찰청 사이버사기 2023년 167,688건(피해자 212,960명)·2024년 208,920건(279,416명), 검거율 58.0%→53.8% (국회 제출 자료 보도)",
     "fraud2022": "사기 발생 2021년 약 29.4만 건, 2022년 약 32.6만 건 (보도된 경찰 통계)",
     "sv2025": "여성가족부 2025 성폭력 안전실태조사 (19~64세 10,151명, 2026년 6월 보도, 2022 조사와 비교): 평생 통신매체 이용 성폭력 9.8→7.6%, 성희롱 3.9→2.4%, 강간(미수 포함) 0.2→0.1%; 디지털 성범죄 가해자 중 연인 10.3→18.1%·배우자 6→13.4%, 촬영물 제작·유포 피해 여성 중 전 연인 가해 13.8→42.5%. 보정에는 더 높은 2022 값을 썼다",
-    "estimate": "추정: 원표를 대조하지 못한 게임 보정값. 위 자료의 비율과 신고율로 어림했다"
+    "estimate": "추정: 원표를 대조하지 못한 게임 보정값. 위 자료의 비율과 신고율로 어림했다",
+    "cm2023": "보건복지부 2023 아동학대 주요통계(2024 발표): 아동학대 판단 25,739건(2021년 37,605건, 2022년 27,971건), 학대행위자 중 부모 85.9%(22,106건)",
+    "school2024": "교육부 2024년 1차 학교폭력 실태조사(전수, 초4~고3): 피해응답률 2.1%(초 4.2·중 1.6·고 0.5%), 피해 유형 언어폭력 39.4%·신체폭력 15.5%·집단따돌림 15.5%·사이버폭력 7.4%·성폭력 5.9%",
+    "deepfake2024": "교육부 집계(17개 시도교육청): 2024.1.1~10.18 학교 딥페이크 피해 신고 533건, 피해 학생 841명·교원 33명·직원 3명, 수사 의뢰 448건 (보도 기준)",
+    "csa2020": "여성가족부 아동·청소년 대상 성범죄 동향 분석: 2020년 유죄 확정 피해 아동·청소년 3,397명(2019년 3,622명), 가해자 중 아는 사람 66.4%; 2023년 분석에서 가족·친척 밖의 아는 사람 64.1%, 모르는 사람 29.3% (보도 기준)"
   },
   "contexts": {
     "street": {"label": "길거리"},
@@ -746,7 +750,7 @@
         {"act": "avoid", "text": "방문을 잠그고 안전한 곳에 있는다", "result": "방문을 잠그고 숨을 죽였다. 소리가 잦아들 때까지 기다렸다."},
         {"act": "report", "text": "112에 전화한다"},
         {"act": "counsel", "text": "청소년 상담 1388에 연락한다"},
-        {"act": "internal", "text": "다음 날 담임 선생님께 말씀드린다"}
+        {"act": "teacher", "text": "다음 날 담임 선생님께 말씀드린다"}
       ]
     },
     {
@@ -1120,7 +1124,7 @@
       "victim": "friend",
       "who": ["친구가 알던 사람", "친구의 직장 상사"],
       "age": [21, 60],
-      "if": "family.friends > 0",
+      "if": "crime.adultFriends > 0",
       "ago": [1, 6],
       "base": 0.001,
       "src": "sv2022 경찰 신고 여 2.8%: 대부분은 주변 사람에게만 털어놓는다 → 친구의 늦은 고백을 듣는 경험 어림",
@@ -1532,7 +1536,7 @@
       "victim": "friend",
       "who": ["친구의 전 연인"],
       "age": [21, 55],
-      "if": "family.friends > 0",
+      "if": "crime.adultFriends > 0",
       "base": 0.0003,
       "src": "디지털 성범죄 피해 지원 연간 규모를 가까운 친구 수로 어림 (estimate)",
       "harm": [2, 3],
@@ -1932,6 +1936,175 @@
         {"act": "film", "text": "증거가 되게 화면을 캡처해 둔다"},
         {"act": "leave", "text": "모른 척 창을 닫는다"}
       ]
+    },
+    {
+      "id": "crime_minor_school_sh",
+      "cat": "sexual_harassment",
+      "ctx": "school",
+      "role": "victim",
+      "offender": "peer",
+      "minorOffender": true,
+      "minor": "self",
+      "who": ["같은 반 아이들", "같은 학년 아이 몇 명", "동아리 선배들"],
+      "age": [12, 18],
+      "if": "edu.status == 'elementary' || edu.status == 'middle' || edu.status == 'high'",
+      "base": 0.0012,
+      "mods": [{"if": "sex == 'F'", "x": 1.5}, {"if": "sex == 'M'", "x": 0.6}],
+      "src": "school2024: 학교폭력 피해응답률 2.1% × 성폭력 유형 5.9% ≈ 연 0.12% (조사 기간은 약 한 학년). 성별 배수는 어림 (estimate)",
+      "harm": [0, 1],
+      "title": "쉬는 시간",
+      "text": "쉬는 시간마다 {상대}이/가 내 외모를 두고 성적인 농담을 하며 웃었다. 그만하라고 해도 반 단톡방에서까지 이어졌다.",
+      "choices": [
+        {"act": "teacher", "text": "담임 선생님이나 상담 선생님에게 말한다"},
+        {"act": "help", "text": "{보호자}에게 말한다"},
+        {"act": "counsel", "text": "청소년상담 1388에 이름을 말하지 않고 상담한다", "inst": "youth1388"},
+        {"act": "postpone", "text": "아직은 아무에게도 말하지 않는다"}
+      ]
+    },
+    {
+      "id": "crime_minor_known_adult",
+      "cat": "sexual_assault",
+      "ctx": "acquaintance",
+      "role": "victim",
+      "offender": "acquaintance",
+      "minor": "self",
+      "who": ["학원 강사", "운동부 코치", "동네에서 알던 어른", "부모님의 지인"],
+      "age": [10, 18],
+      "base": 0.0005,
+      "ageCurve": {"10": 0.6, "13": 1, "16": 1.2, "18": 1},
+      "mods": [{"if": "sex == 'F'", "x": 1.7}, {"if": "sex == 'M'", "x": 0.3}],
+      "cooldown": 5,
+      "src": "csa2020: 유죄 확정 피해 아동·청소년 연 3,397명 중 가족·친척 밖의 아는 사람 몫(64%)을 10~18세 약 430만 명으로 나누면 연 약 0.05%. 신고되지 않는 피해가 많지만 장면은 대응이 필요한 무거운 피해만 다뤄 이 값을 그대로 쓴다 (estimate)",
+      "harm": [2, 3],
+      "title": "말하기 어려운 일",
+      "text": "{상대}이/가 단둘이 있을 때 해서는 안 되는 일을 했다. 싫다고 했는데도 멈추지 않았다. 그 뒤로 그 사람 이야기만 나와도 숨이 막힌다. 내 탓인 것만 같아 아무에게도 말하지 못했다.",
+      "choices": [
+        {"act": "help", "text": "{보호자}에게 털어놓는다"},
+        {"act": "teacher", "text": "믿을 만한 선생님에게 말한다"},
+        {"act": "counsel", "text": "청소년상담 1388에 이름을 말하지 않고 전화한다", "inst": "youth1388"},
+        {"act": "postpone", "text": "아직은 아무에게도 말하지 않는다"}
+      ]
+    },
+    {
+      "id": "crime_minor_grooming",
+      "cat": "grooming",
+      "ctx": "game",
+      "role": "victim",
+      "offender": "online",
+      "minor": "self",
+      "who": ["또래라던 사람", "자기도 학생이라던 사람", "같은 게임을 하던 사람"],
+      "age": [11, 18],
+      "base": 0.0006,
+      "mods": [{"if": "sex == 'F'", "x": 1.5}, {"if": "sex == 'M'", "x": 0.5}],
+      "cooldown": 4,
+      "src": "온라인 그루밍(아청법 15조의2, 2021.9 시행)의 피해율 공식 통계는 찾지 못했다. school2024 사이버폭력 7.4%·성폭력 5.9%와 경찰의 아동·청소년 디지털 성범죄 단속 보도에서 연 0.06%로 어림 (estimate)",
+      "harm": [1, 2],
+      "title": "친절했던 사람",
+      "text": "게임에서 알게 된 {상대}이/가 한동안 내 고민을 잘 들어 줬다. 그런데 점점 불편한 질문과 요구가 늘었다. 거절하자 지금까지 나눈 대화를 부모님과 학교에 보내겠다며 겁을 주기 시작했다.",
+      "choices": [
+        {"act": "help", "text": "{보호자}에게 대화를 보여 준다"},
+        {"act": "report", "text": "117에 신고한다", "inst": "report117"},
+        {"act": "counsel", "text": "디지털성범죄피해자지원센터에 상담한다", "inst": "digital_center"},
+        {"act": "postpone", "text": "무섭지만 아직 아무에게도 말하지 않는다"}
+      ]
+    },
+    {
+      "id": "crime_minor_deepfake_school",
+      "cat": "deepfake",
+      "ctx": "school",
+      "role": "victim",
+      "offender": "peer",
+      "minorOffender": true,
+      "minor": "self",
+      "who": ["같은 학교 학생", "같은 학년 아이"],
+      "age": [13, 18],
+      "if": "edu.status == 'middle' || edu.status == 'high'",
+      "base": 0.0004,
+      "mods": [{"if": "sex == 'F'", "x": 1.8}, {"if": "sex == 'M'", "x": 0.2}],
+      "cooldown": 5,
+      "src": "deepfake2024: 피해 학생 841명(2024.1~10월) ÷ 중·고등학생 약 260만 명 → 연 약 0.04%. 미신고는 더하지 않았다",
+      "harm": [1, 2],
+      "title": "합성물",
+      "text": "내가 SNS에 올린 얼굴 사진으로 {상대}이/가 합성물을 만들어 단톡방에 올렸다는 이야기를 친구에게서 들었다. 잘못한 건 하나도 없는데 교실에 들어가기가 무섭다.",
+      "choices": [
+        {"act": "teacher", "text": "담임 선생님에게 알린다"},
+        {"act": "takedown", "text": "디지털성범죄피해자지원센터에 삭제 지원을 요청한다"},
+        {"act": "help", "text": "{보호자}에게 말한다"},
+        {"act": "postpone", "text": "아직은 모르는 척 지낸다"}
+      ]
+    },
+    {
+      "id": "crime_child_abuse",
+      "cat": "domestic",
+      "ctx": "family",
+      "role": "victim",
+      "offender": "parent",
+      "minor": "self",
+      "label": "아동학대",
+      "age": [7, 17],
+      "if": "family.livesWithParents && (family.motherAlive || family.fatherAlive)",
+      "base": 0.0012,
+      "mods": [{"if": "family.style == 'authoritarian'", "x": 1.6}],
+      "cooldown": 3,
+      "src": "cm2023: 아동학대 판단 25,739건 ÷ 아동 인구 약 700만 명 → 연 0.37%, 학대행위자 부모 85.9%. 그 가운데 부모의 신체 학대(중복 학대 포함)를 연 0.12%로 어림 (estimate)",
+      "harm": [1, 2],
+      "hurt": [3, 8],
+      "title": "긴소매",
+      "text": "{상대}은/는 화가 나면 손부터 올라갔다. 오늘은 팔에 멍이 남았다. 다음 날 학교에 긴소매를 입고 갔다.",
+      "choices": [
+        {"act": "help", "text": "믿을 만한 어른에게 말한다"},
+        {"act": "teacher", "text": "담임 선생님에게 말한다"},
+        {"act": "counsel", "text": "1388에 전화한다", "inst": "youth1388"},
+        {"act": "postpone", "text": "오늘 일은 아무에게도 말하지 않는다"}
+      ]
+    },
+    {
+      "id": "crime_minor_support_child",
+      "cat": "sexual_assault",
+      "ctx": "acquaintance",
+      "role": "supporter",
+      "offender": "acquaintance",
+      "victim": "child",
+      "minor": "guardian",
+      "who": ["학원 강사", "운동부 코치", "아는 어른"],
+      "age": [28, 70],
+      "childAge": [6, 18],
+      "base": 0.0003,
+      "cooldown": 5,
+      "src": "csa2020과 같은 피해율을 자녀 1명 기준으로 두고, 피해 아동·청소년이 부모에게 털어놓는 몫을 어림 (estimate)",
+      "harm": [2, 3],
+      "title": "{자녀}의 고백",
+      "text": "며칠째 말수가 줄었던 {자녀}이/가 한참을 망설이다, {상대}이/가 자기에게 해서는 안 되는 일을 했다고 털어놓았다. 혼날까 봐 지금까지 말을 못 했다고 했다.",
+      "choices": [
+        {"act": "listen", "text": "\"네 잘못이 아니야\"라고 말하고 끝까지 들어 준다"},
+        {"act": "accompany", "text": "해바라기센터에 같이 간다", "inst": "sunflower"},
+        {"act": "guardian_report", "text": "보호자로서 경찰에 신고한다"},
+        {"act": "advise", "text": "학교 상담 선생님과 함께 도울 방법을 찾는다", "inst": "school"}
+      ]
+    },
+    {
+      "id": "crime_minor_support_friend",
+      "cat": "sexual_assault",
+      "ctx": "acquaintance",
+      "role": "supporter",
+      "offender": "acquaintance",
+      "victim": "friend",
+      "minor": "self",
+      "who": ["친구가 다니던 학원의 어른", "친구가 알던 어른"],
+      "age": [13, 18],
+      "if": "crime.minorFriends > 0",
+      "base": 0.0006,
+      "cooldown": 5,
+      "src": "csa2020 피해율에 가까운 친구 수와 또래에게 먼저 털어놓는 비율을 곱해 어림 (estimate)",
+      "harm": [2, 3],
+      "title": "{친구}의 비밀",
+      "text": "{친구}이/가 아무에게도 말하지 말라며, 아는 어른에게 해서는 안 되는 일을 당했다고 털어놓았다. 어떻게 해야 할지 모르겠다며 한참을 울었다.",
+      "choices": [
+        {"act": "listen", "text": "\"네 잘못이 아니야\"라고 말하고 끝까지 들어 준다"},
+        {"act": "advise", "text": "믿을 만한 어른이나 1388에 같이 말해 보자고 한다", "inst": "youth1388"},
+        {"act": "accompany", "text": "상담 선생님에게 같이 가 주겠다고 한다", "inst": "school"},
+        {"act": "respect", "text": "비밀을 지켜 달라는 말을 듣고, 곁에 있겠다고만 한다"}
+      ]
     }
   ],
   "steps": [
@@ -1961,8 +2134,18 @@
       "zoom": "형사 법정",
       "text": "{상대}의 재판이 열렸다. {결과}",
       "choices": [
-        {"act": "testify", "if": "crime.case.trialOpen", "text": "증인으로 나가 직접 말한다"},
-        {"act": "statement", "if": "crime.case.trialOpen", "text": "피해자 의견서만 낸다"},
+        {"act": "testify", "if": "crime.case.trialOpen && !(crime.case.minor && age < 19)", "text": "증인으로 나가 직접 말한다"},
+        {"act": "statement", "if": "crime.case.trialOpen && !(crime.case.minor && age < 19)", "text": "피해자 의견서만 낸다"},
+        {
+          "act": "testify",
+          "text": "보호자와 함께 법정 밖에서 화상으로 증언한다",
+          "if": "crime.case.trialOpen && crime.case.minor && age < 19"
+        },
+        {
+          "act": "statement",
+          "text": "녹화해 둔 진술과 보호자 의견서로 대신한다",
+          "if": "crime.case.trialOpen && crime.case.minor && age < 19"
+        },
         {"act": "settle", "if": "crime.case.settleOffer", "text": "합의를 받아들인다"},
         {"act": "absent", "if": "crime.case.trialOpen", "text": "재판에는 나가지 않는다"}
       ]
@@ -1999,6 +2182,11 @@
           "text": "민사 소송을 낸다"
         },
         {"act": "quit", "if": "crime.case.retaliation && crime.case.org == 'work'", "text": "회사를 그만둔다"},
+        {
+          "act": "report",
+          "text": "학교와 별개로 경찰에 신고한다",
+          "if": "(crime.case.noAction || crime.case.retaliation) && crime.case.org == 'school' && crime.case.canReport"
+        },
         {"act": "accept", "if": "crime.case.noAction || crime.case.retaliation", "text": "더 문제 삼지 않는다"}
       ]
     },
@@ -2027,7 +2215,7 @@
       "tone": "drama",
       "impact": 10,
       "choices": [
-        {"act": "avoid", "if": "crime.case.repeatNow", "text": "연락을 끊고 동선을 바꾼다"},
+        {"act": "avoid", "if": "crime.case.repeatNow && !(crime.case.minor && age < 19)", "text": "연락을 끊고 동선을 바꾼다"},
         {"act": "help", "if": "crime.case.repeatNow", "text": "가족과 친구에게 알린다"},
         {"act": "record", "if": "crime.case.repeatNow && crime.case.canEvidence", "text": "이번 일도 날짜별로 기록해 둔다"},
         {"act": "report", "if": "crime.case.repeatNow && crime.case.canReport", "text": "이번에는 신고한다"},
@@ -2037,7 +2225,12 @@
           "if": "crime.case.repeatNow && crime.case.canProtect && crime.case.reported && !crime.case.violated",
           "text": "경찰에 신변보호를 요청한다"
         },
-        {"act": "internal", "if": "crime.case.repeatNow && crime.case.canInternal", "text": "회사에 정식으로 알린다"}
+        {
+          "act": "internal",
+          "if": "crime.case.repeatNow && crime.case.canInternal && crime.case.org == 'work'",
+          "text": "회사에 정식으로 알린다"
+        },
+        {"act": "teacher", "text": "이번에는 선생님에게 말한다", "if": "crime.case.repeatNow && crime.case.minor && age < 19"}
       ]
     },
     {
@@ -2049,6 +2242,7 @@
         {"act": "postpone", "text": "아직은 아니다"},
         {"act": "close", "text": "이제는 내려놓는다"},
         {"act": "care", "if": "crime.case.noCare", "text": "상담을 받아 본다"},
+        {"act": "teacher", "text": "이제라도 믿을 만한 선생님에게 말한다", "if": "crime.case.minor && age < 19"},
         {
           "act": "record",
           "if": "crime.case.canEvidence && (crime.case.canReport || crime.case.canCivil)",
@@ -2076,7 +2270,8 @@
       "choices": [
         {"act": "accompany", "if": "crime.case.open", "text": "필요한 곳에 같이 가 준다"},
         {"act": "listen", "if": "crime.case.open", "text": "계속 곁에 있어 준다"},
-        {"act": "respect", "if": "crime.case.open", "text": "재촉하지 않고 기다린다"}
+        {"act": "respect", "if": "crime.case.open", "text": "재촉하지 않고 기다린다"},
+        {"act": "guardian_report", "text": "보호자로서 경찰에 신고한다", "if": "crime.case.canGuardianReport"}
       ]
     },
     {"step": "news", "title": "그 사건의 소식", "text": "{결과}"},
@@ -2285,13 +2480,9 @@
     "pay.crime_extortion_minor": ["있는 돈을 건넸다. 다음 날도 같은 자리에 그 형들이 있었다."],
     "pay.crime_extortion_staged": ["현금으로 합의해 줬다. 나중에 같은 수법으로 합의금을 받아 간 사람이 여럿이라는 기사를 봤다."],
     "block.crime_threat_online": ["차단하고 계정을 비공개로 바꿨다."],
-    "internal.action.disciplined.crime_dv_witness_child": ["담임 선생님이 아동보호전문기관에 신고했다. 상담 선생님이 일주일에 한 번씩 이야기를 들어 주기로 했다."],
-    "internal.action.not_disciplined.crime_dv_witness_child": ["선생님이 아동보호전문기관과 연결해 주셨다. 집에도 상담 연락이 갔다."],
-    "internal.no_action.crime_dv_witness_child": ["선생님은 걱정해 주셨지만 따로 연락이 오지는 않았다."],
     "internal.action.disciplined.crime_theft_school": ["학교가 사안을 조사해 물건을 가져간 학생을 찾아냈다. 지갑은 돌아왔다."],
     "internal.action.not_disciplined.crime_theft_school": ["범인은 찾지 못했지만 학교가 사물함 자물쇠를 바꾸고 주의를 줬다."],
     "internal.no_action.crime_theft_school": ["학교에서는 더 확인할 방법이 없다고 했다."],
-    "internal.retaliation.crime_dv_witness_child": ["선생님이 집에 전화한 뒤로 집 분위기가 더 무거워졌다. 그래도 상담 선생님은 계속 이야기를 들어 줬다."],
     "internal.retaliation.crime_theft_school": ["선생님께 말한 뒤로 몇몇 아이들이 나를 고자질쟁이라고 불렀다."],
     "internal.action.disciplined.crime_sh_univ": ["인권센터 조사 끝에 {상대}은/는 징계위원회에 넘겨져 징계를 받았다."],
     "internal.action.not_disciplined.crime_sh_univ": ["징계까지는 가지 않았지만 지도 교수가 바뀌었다."],
@@ -2307,6 +2498,89 @@
     "internal.retaliation.crime_theft_workplace": ["문제를 키운다는 눈총을 받았다."],
     "internal.action.disciplined.crime_spycam_workplace": ["회사가 탈의실을 전수 점검했고, 카메라를 단 직원은 해고됐다."],
     "internal.action.not_disciplined.crime_spycam_workplace": ["회사가 탈의실 점검을 정기적으로 하기로 했다."],
-    "internal.no_action.crime_spycam_workplace": ["회사는 경찰 수사를 기다리자며 아무 조치도 하지 않았다."]
+    "internal.no_action.crime_spycam_workplace": ["회사는 경찰 수사를 기다리자며 아무 조치도 하지 않았다."],
+    "teacher": ["선생님이 끝까지 들어 주셨다. 상담 선생님과 매주 이야기할 시간도 잡아 주셨다."],
+    "teacher.school": ["선생님이 학교폭력 사안으로 확인하겠다고 했다. 그동안 상담 선생님과 이야기하며 지내기로 했다."],
+    "teacher.reported": ["선생님은 '네 잘못이 아니야'라고 말한 뒤, 이런 일은 학교가 법에 따라 신고해야 한다고 차분히 설명해 주셨다. 보호자에게도 학교가 함께 알리기로 했다."],
+    "teacher.reported.minor.domestic": ["담임 선생님이 아동보호전문기관과 경찰에 신고했다. 신고는 어른들이 할 일이고, 내 잘못은 하나도 없다고 했다."],
+    "teacher.reported.crime_dv_witness_child": ["담임 선생님이 아동보호전문기관에 알렸다. 상담 선생님이 일주일에 한 번씩 이야기를 들어 주기로 했다."],
+    "teacher.crime_dv_witness_child": ["선생님은 걱정해 주셨다. 상담 선생님과 이야기할 시간을 잡아 주셨다."],
+    "guardian.report": ["{지인}은/는 끝까지 듣고 나를 꼭 안아 줬다. 다음 날 함께 해바라기센터에 갔고, 진술은 상담사가 곁에 있는 방에서 영상으로 남겼다."],
+    "guardian.report.minor.grooming": ["{지인}이/가 대화 캡처를 챙겨 함께 경찰서에 갔다. 디지털성범죄피해자지원센터는 대화가 퍼지지 않는지 지켜봐 주기로 했다."],
+    "guardian.report.minor.deepfake": ["{지인}이/가 학교와 경찰에 알렸다. 디지털성범죄피해자지원센터가 합성물 삭제를 돕기로 했다."],
+    "guardian.report.minor.domestic": ["{지인}이/가 아동보호전문기관과 112에 알렸다. 상담원이 찾아와 내 이야기를 따로 들었다."],
+    "guardian.care": ["{지인}은/는 내 말을 믿어 줬다. 신고는 내가 준비될 때까지 기다리기로 하고, 상담부터 함께 다니기로 했다."],
+    "guardian.care.minor.domestic": ["{지인}이/가 아동보호전문기관에 상담을 청했다. 집 안의 일을 어떻게 할지 어른들이 함께 의논하기로 했다."],
+    "guardian.dismissed": ["{지인}은/는 '별일 아니야, 잊어버려'라고 했다. 믿어 주지 않는 것 같아 더 말하지 못했다. 그래도 그건 내 잘못이 아니었다."],
+    "guardian.dismissed.minor.domestic": ["{지인}은/는 '집안일은 밖에 말하는 게 아니야'라고 했다. 더 말하지 못했다. 그래도 그건 내 잘못이 아니었다."],
+    "counsel@youth1388": ["1388 상담 선생님이 이름을 묻지 않고 이야기를 들어 줬다. 혼자 해결하지 않아도 되고, 원하면 믿을 만한 어른과 함께 다음 걸음을 정하자고 했다."],
+    "counsel@digital_center": ["디지털성범죄피해자지원센터 상담원이 증거를 남기는 법과 삭제·유포 감시 지원을 차근차근 알려 줬다. 잘못은 상대에게 있다고 했다."],
+    "counsel@sunflower": ["해바라기센터에서 진료와 상담을 한 번에 받았다. 신고는 지금 정하지 않아도 된다고 했다."],
+    "report.filed@report117": ["117 상담원이 차분하게 듣고 경찰에 이어 줬다. 보호자에게도 함께 알리겠다고 했다."],
+    "report.filed.child": ["경찰이 사건을 접수했다. 보호자에게도 연락이 갔고, 진술할 때 믿는 어른이 곁에 있을 수 있다고 했다."],
+    "report.delayed.minor": ["어릴 때 일이었지만 사건은 접수됐다. 미성년 때 입은 피해는 성년이 된 날부터 공소시효를 센다고 했다."],
+    "report.delayed.minor.sexual_assault": ["몇 년이 지났지만 사건은 접수됐다. 미성년 때 입은 성폭력은 성년이 된 날부터 공소시효를 세고, 그때 13세 미만이었다면 시효가 없다고 했다."],
+    "report.delayed.minor.domestic": ["어릴 때 일이었지만 사건은 접수됐다. 아동학대 범죄의 공소시효는 성년이 된 날부터 흐른다고 했다."],
+    "postpone.child": ["오늘은 말하지 않기로 했다. 말할 수 있을 때 말해도 된다. 그때도 늦지 않다."],
+    "witness.call.child": ["경찰이 보호자와 함께 본 것을 이야기해 줄 수 있냐고 물었다. 말하기 싫으면 하지 않아도 된다고 했다."],
+    "trial.open.minor": ["피해 당시 미성년이었던 사건이라 재판은 비공개로 열린다고 했다. 녹화해 둔 진술을 쓸 수 있고, 진술조력인이 곁에 있을 수 있다고 했다."],
+    "testify.child": ["보호자와 함께 법정 옆 증인지원실에서 화상으로 증언했다. 끝나고 한참을 울었지만, 할 말은 했다."],
+    "statement.child": ["녹화해 둔 진술과 보호자의 의견서로 대신했다. 법정에는 가지 않았다."],
+    "guardian_report": ["{지인}의 보호자로서 경찰에 신고했다. 진술은 해바라기센터에서 상담사가 곁에 있는 채로 영상으로 남기기로 했다."],
+    "guardian_report.unavailable": ["지금은 보호자로서 신고할 수 없었다. 기한이 지났거나, {지인}이/가 스스로 정할 나이가 됐다."],
+    "support.guardian": ["{지인}이/가 조금씩 말수가 돌아왔다. 신고를 할지는 아직 함께 정하지 못했다."],
+    "support.reported.minor.supporter": ["{지인}이/가 결국 상담 선생님에게 이야기했고, 학교가 경찰과 보호자에게 알렸다. 그날 {지인}은/는 내게 고맙다고 했다."],
+    "support.not_reported.minor.supporter": ["{지인}은/는 아직 어른들에게 말하지 못했다. 1388 번호만 휴대폰에 저장해 뒀다고 했다."],
+    "support.care.minor.supporter": ["{지인}이/가 상담 선생님을 만나기 시작했다고 했다."],
+    "accompany@sunflower": ["{지인}의 손을 잡고 해바라기센터에 갔다. 진료와 상담을 한 번에 받았고, 신고는 천천히 정해도 된다고 했다."],
+    "accompany@school": ["{지인}와/과 함께 상담 선생님을 찾아갔다. 선생님은 끝까지 들은 뒤, 이런 일은 학교가 법에 따라 신고해야 한다고 차분히 설명했다."],
+    "advise@youth1388": ["1388 번호를 같이 찾아 저장했다. 믿을 만한 어른에게 말할 때 옆에 있겠다고 했다."],
+    "advise@school": ["학교 상담 선생님과 마주 앉았다. 선생님은 학교가 법에 따라 신고해야 한다고 설명하고, {지인}이/가 학교에서 지낼 방법을 함께 찾자고 했다."],
+    "internal.action.disciplined.school": ["교육지원청 학교폭력대책심의위원회가 가해 학생에게 조치를 내렸다. 마주치지 않도록 반도 바뀌었다."],
+    "internal.action.not_disciplined.school": ["학교가 가해 학생과 나를 떼어 놓고 사과를 받게 했다. 징계까지는 가지 않았다."],
+    "internal.no_action.school": ["학교는 확인이 어렵다며 사안을 종결했다. 그래도 상담 선생님은 계속 이야기를 들어 줬다."],
+    "internal.retaliation.school": ["학교에 알린 뒤로 몇몇 아이들이 나를 피했다. 상담 선생님에게 그 일도 이야기했다."],
+    "protect.granted.domestic.crime_child_abuse": ["법원이 임시조치로 {상대}이/가 당분간 집에 오지 못하게 했다. 아동보호전문기관 상담원이 정기적으로 찾아오기로 했다."],
+    "protect.denied.domestic.crime_child_abuse": ["임시조치는 내려지지 않았다. 대신 아동보호전문기관이 집을 계속 살피기로 했다."],
+    "protect.kept.crime_child_abuse": ["임시조치 기간이 끝났다. 그동안 상담원이 꾸준히 찾아왔고, 집 안은 전보다 조용해졌다."],
+    "protect.violated.crime_child_abuse": ["임시조치 중인데도 {상대}이/가 집에 찾아왔다. 바로 상담원에게 알렸다."],
+    "repeat.again.minor.domestic": ["또 손이 올라왔다. 이번에도 이유는 사소했다."],
+    "repeat.again.minor.grooming": ["{상대}이/가 다른 계정으로 다시 연락해 왔다."],
+    "repeat.quiet.crime_child_abuse": ["한동안 집 안이 조용했다."],
+    "recovered.minor": ["그 일 이후 처음으로, 아무렇지 않은 하루가 이어졌다. 곁을 지켜 준 어른들이 있었다."],
+    "recovered.minor.supporter": ["{지인}이/가 많이 괜찮아졌다고 했다. 둘이 떡볶이를 먹으며 오랜만에 크게 웃었다."],
+    "takedown.removed.minor": ["지원센터가 찾아낸 게시물들이 삭제됐다. 다시 올라오지 않는지 계속 지켜봐 주기로 했다."],
+    "help.minor": ["용기를 내서 말했다."],
+    "civil.filed.child": ["보호자가 법정대리인으로 손해배상 소송을 냈다. 판결은 1~2년 뒤에 나온다."],
+    "prosecution.deferred.crime_child_abuse": ["검찰은 상담조건부 기소유예를 내렸다. {상대}은/는 아동학대 재발 방지 상담을 받아야 한다."],
+    "report.filed.crime_dv_witness_child": ["떨리는 목소리로 주소를 말했다. 경찰이 금방 도착했다."]
+  },
+  "institutions": {
+    "police": {"label": "경찰", "about": "112·사이버범죄 신고, 수사와 송치·불송치 (형사소송법 245조의5), 스토킹 긴급응급조치·가정폭력 응급조치·신변보호"},
+    "report117": {"label": "117 신고센터", "about": "학교폭력·여성폭력·아동·청소년 피해 신고와 상담을 경찰로 잇는다"},
+    "prosecution": {"label": "검찰", "about": "기소·약식기소·기소유예·불기소, 항고 (검찰청법 10조)"},
+    "court": {"label": "법원(형사)", "about": "재판·판결, 잠정조치(스토킹처벌법 9조)·임시조치(가정폭력처벌법 29조, 아동학대처벌법 19조)"},
+    "civil_court": {"label": "법원(민사)", "about": "손해배상 소송·조정 (민법 750조·766조)"},
+    "juvenile_court": {"label": "가정법원 소년부", "about": "미성년 가해자의 보호처분 (소년법 32조)"},
+    "employer": {"label": "회사 고충처리·인사", "about": "직장 내 성희롱 조사·조치 의무 (남녀고용평등법 14조), 직장 내 괴롭힘 (근로기준법 76조의3)"},
+    "school": {
+      "label": "학교(담임·Wee클래스·학교폭력 전담기구)",
+      "about": "학교폭력 사안 접수와 확인 (학교폭력예방법 14조), 아동학대·아동·청소년 성범죄 신고 의무 (아동학대처벌법 10조, 아청법 34조)"
+    },
+    "edu_office": {"label": "교육지원청 학교폭력대책심의위원회", "about": "가해 학생 조치와 피해 학생 보호 (학교폭력예방법 12조·16조·17조)"},
+    "univ_center": {"label": "대학 인권센터", "about": "대학 내 성희롱·성폭력 신고 조사와 징계 요구"},
+    "platform": {"label": "플랫폼 신고 창구", "about": "게시물·계정 신고와 차단, 불법촬영물 삭제 의무 (전기통신사업법 22조의5)"},
+    "labor": {"label": "고용노동부", "about": "직장 내 성희롱 사업주 조치 의무 위반 진정·과태료 (남녀고용평등법 39조)"},
+    "nhrck": {"label": "국가인권위원회", "about": "성희롱 진정과 시정 권고 (국가인권위원회법 30조·32조)"},
+    "commission": {"label": "노동위원회", "about": "성희롱 신고 뒤 불리한 처우 시정 신청 (남녀고용평등법 26조)"},
+    "legal_aid": {"label": "대한법률구조공단", "about": "132 법률 상담과 소송 구조"},
+    "sunflower": {"label": "해바라기센터", "about": "성폭력·가정폭력 피해자 통합 지원: 24시간 의료·상담·수사·법률 지원, 아동·청소년 진술 영상녹화"},
+    "digital_center": {"label": "디지털성범죄피해자지원센터", "about": "상담·삭제 지원·유포 감시 (성폭력방지법 7조의3)"},
+    "hotline1366": {"label": "여성긴급전화 1366", "about": "가정폭력·성폭력·교제폭력·스토킹 24시간 상담과 보호시설 연계"},
+    "youth1388": {"label": "청소년상담 1388", "about": "청소년 익명 상담과 청소년상담복지센터 연계"},
+    "child_protection": {"label": "아동보호전문기관", "about": "아동학대 현장 조사와 피해 아동 보호·상담 (아동복지법 45조)"},
+    "elder_protection": {"label": "노인보호전문기관", "about": "노인 학대 신고 1577-1389와 상담"},
+    "victim_support": {"label": "범죄피해자지원센터·스마일센터", "about": "1577-1295 상담, 치료비·심리 지원 (범죄피해자 보호법)"},
+    "counseling": {"label": "상담소", "about": "성폭력·가정폭력 상담소와 정신건강복지센터"}
   }
 }

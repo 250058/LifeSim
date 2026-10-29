@@ -2,7 +2,7 @@
 // 생애 단계별 사건 수를 잡아낸다. 사건 작성 도구와 테스트가 함께 쓴다.
 
 import { referencedPaths } from './conditions';
-import { CRIME_SYSTEM_EVENTS, crimeActionProblem } from './crime';
+import { CRIME_SYSTEM_EVENTS, crimeActionProblem, crimeDataProblems } from './crime';
 import { CRIMES } from './justice';
 import { ACTIVITIES, EVENT_FILES, EVENTS, JOB_BY_ID, TAG_BY_ID, TAGS } from './data';
 import { STAGES } from './format';
@@ -410,6 +410,9 @@ export function validateData(): Issue[] {
       warn(`${ev.id}`, '어느 사건도 이 연속 사건으로 이어지지 않는다');
     }
   }
+
+  // 범죄 피해·목격·지원 사건표: 신고 강요 없음, 성인 장면과 아동·청소년 보호 장면의 나이·대응·표현 규칙 (crime.ts)
+  for (const problem of crimeDataProblems()) err('catalog/crime.json', problem);
 
   // 대상 인물: 새로 생기는 사람을 대상으로 삼는 사건, 물려받은 자녀의 나이가 맞지 않는 연속·예약 사건
   const fileOf = new Map<string, string>();
