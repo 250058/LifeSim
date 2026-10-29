@@ -1,0 +1,27 @@
+{
+  "schema_version": 1,
+  "repository": "250058/LifeSim",
+  "current_plan_path": "docs/PLAN.md",
+  "latest_report_path": "docs/reviews/2026-10-29-plan-review.md",
+  "handoff_issue_number": 1,
+  "initial_full_review_pending": true,
+  "last_completed_review_at": null,
+  "reviewed_refs": {},
+  "observed_refs_at_handoff": {
+    "main": "b3261626f03b692f53b4161b7dfdec10f1dcc229",
+    "ccr-d37c47c4-qxyoxr": "6c980725139e8dd3f9ccd219a8589df40910cde6"
+  },
+  "partial_baseline": {
+    "commit": "4ba09342a9a8880739405a67b811031e11757362",
+    "files": [
+      "대한민국_인생_시뮬레이터_기획서.md",
+      "package.json",
+      "src/engine/eventEngine.ts",
+      "src/engine/director.ts",
+      "src/engine/scope.ts",
+      "tools/simulator/run.ts"
+    ],
+    "validation": "static_read_only"
+  },
+  "note": "observed_refs_at_handoff records discovery, not completed code review; replace with actual reviewed ranges only after publishing a report."
+}
