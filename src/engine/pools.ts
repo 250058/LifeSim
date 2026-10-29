@@ -1,7 +1,10 @@
 // 생활 사건 풀: 병원, 몸, 밥상, 연애, 육아.
 // 풀마다 사건이 수백~수천 개라 하나하나 확률을 굴리면 해마다 카드가 쏟아진다.
-// 그래서 디렉터가 고르고 남은 자리가 있을 때 해마다 한 번 풀 추첨을 하고,
-// 뽑힌 풀 안에서 조건이 맞는 사건 하나를 가중치대로 고른다.
+// 그래서 풀 사건은 독립된 연간 확률로 모델링하지 않고 '그해의 작은 장면 한 장'으로 다룬다(표시·표본 추상화).
+// 해마다 YEAR_CHANCE 확률로 한 번 풀 추첨을 하고, 풀은 poolWeights 비율로, 뽑힌 풀 안에서는
+// 조건이 맞는 사건 전체에서 가중치대로 하나를 고른다 (eventEngine.ts의 drawPool).
+// 이 추첨은 그해 다른 사건이 몇 개 일어났는지와 무관하고, 일반 사건의 발생 확률에도 영향이 없다.
+// 풀 사건의 weight.base는 연간 확률이 아니라 풀 안의 상대 가중치다.
 
 import type { PoolId } from './schema';
 import type { GameState, Mode } from './types';
@@ -17,7 +20,7 @@ export const POOL_LABEL: Record<PoolId, string> = {
   parenting: '육아',
 };
 
-/** 한 해에 생활 사건 카드가 나올 확률 (빈자리가 있을 때) */
+/** 한 해에 생활 사건 카드가 나올 확률 (그해 나올 수 있는 풀 사건이 하나라도 있을 때) */
 const YEAR_CHANCE: Record<Mode, number> = { reality: 0.6, drama: 0.7, makjang: 0.8 };
 
 export function poolYearChance(mode: Mode): number {

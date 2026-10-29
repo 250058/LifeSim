@@ -1,40 +1,157 @@
-// 이벤트 엔진: 조건 평가, 확률 계산, 추첨, 카드 만들기, 선택 처리.
+// 이벤트 엔진: 조건 평가, 확률 계산, 추첨, 사건 일으키기(카드 또는 일기), 선택 처리.
 //
 //   P = p₀ × A(나이) × Πmᵢ × W × D × M
 //
 // p₀ 실제 통계의 기본 확률, A 나이 곡선, m 능력치·태그·지역·형편 보정(세계 보정 W 포함),
-// D 디렉터 보정, M 모드 배수. 모든 사건은 확률 바닥값을 가져 절대 0이 되지 않는다.
+// D 디렉터 보정, M 모드 배수. 인수 중 하나라도 0이면 불가능한 조건이라 P = 0이다.
+// 바닥값(1e-6)은 양수인 희귀 확률에만 쓴다 (R-004).
+//
+// 발생과 표시를 나눈다 (R-001):
+//  - 확률대로 일어난 사건은 개수 상한 때문에 지우지 않는다. 모두 대기열에 들어가 효과가 적용되고 기록된다.
+//  - 결정이 필요한 사건(보이는 선택지가 있다)은 카드로 올리고 플레이어를 기다린다. 엔진이 대신 고르지 않는다.
+//  - 결정할 것이 없는 작은 사건은 카드 없이 효과를 적용하고 일기 한 줄로 남긴다 (recordsAsDiary).
+//  - 디렉터는 확률 배수 D와 조용한 해를 일상 사건으로 채우는 최소 개수로만 완급을 조절한다.
 
-import { evaluate } from './conditions';
+import { evaluate, type Scope } from './conditions';
 import { EVENTS, getEvent } from './data';
-import { addImpact, countRange, directorFactor, updatePace } from './director';
+import { addImpact, BIG_IMPACT, directorFactor, fillerMinimum, updatePace } from './director';
 import { applyEffects } from './effects';
-import { stageOf } from './format';
+import { STAGES, stageOf } from './format';
 import { rngFor, type Rng } from './rng';
 import { buildScope } from './scope';
-import type { CheckDef, EventDef, NextRef } from './schema';
+import type { CheckDef, EventDef, NextRef, PoolId } from './schema';
 import { generateCtx, render } from './text';
-import type { ActiveCard, Change, GameState, LogEntry, PendingCard } from './types';
+import type { ActiveCard, Change, GameState, LogEntry, PendingCard, Sex } from './types';
 import { modeMultiplier } from './world';
 import { POOL_IDS, poolWeights, poolYearChance } from './pools';
 import { alive } from './relations';
 
-/** 확률 바닥값: 현실에서 10만 분의 1인 사건도 언젠가는 일어난다 */
+/** 확률 바닥값: 현실에서 10만 분의 1인 사건도 언젠가는 일어난다 (가능한 사건에만) */
 export const P_FLOOR = 1e-6;
 export const P_CAP = 0.95;
 
 /** 매년 추첨 대상이 되는 종류. 마일스톤은 조건만 맞으면 일어나고, chain은 앞 사건이 부른다 */
 const DRAWN_TYPES = new Set(['random', 'chain_start', 'consequence', 'npc', 'world']);
-/** 디렉터의 연간 개수 제한을 받지 않는 종류 (행동의 대가, 세계 사건) */
-const UNCAPPED_TYPES = new Set(['consequence', 'world']);
+/** 그해 먼저 처리하는 종류 (행동의 대가, 세계 사건) */
+const FIRST_TYPES = new Set(['consequence', 'world']);
 /** 조용한 해를 채울 때 쓰는 일상 사건의 최대 충격량 */
 const FILLER_MAX_IMPACT = 12;
 
+// ── 사건 색인 ────────────────────────────────────────────
+// 해마다 사건 수천 개를 전부 훑지 않도록 종류별로 나눠 둔다.
+
+/** 풀 사건 하나 (색인을 만들 때 한 번 만든다) */
+interface PoolEntry {
+  ev: EventDef;
+  base: number;
+  curve?: Record<string, number>;
+  /** 보정 배수 (없으면 비워 둔다) */
+  mods?: { if: string; x: number }[];
+  /** 같은 묶음 쿨다운을 찾는 열쇠 ('@묶음') */
+  groupKey?: string;
+}
+
+/**
+ * 풀 하나의 색인. 나이 조건·성인·생애 단계 경계(cuts)로 나이를 구간으로 나누면
+ * 한 구간 안에서는 나이·성별로 정해지는 후보가 같다. 구간·성별마다 후보 목록을 한 번만 만든다.
+ */
+interface PoolTable {
+  entries: PoolEntry[];
+  /** 후보가 바뀔 수 있는 나이들 (오름차순) */
+  cuts: number[];
+  buckets: Map<string, PoolEntry[]>;
+}
+
+interface EventIndex {
+  /** 만들 때의 사건 수. 테스트·도구가 EVENTS를 바꾸면 다시 만든다 */
+  size: number;
+  /** 해마다 하나하나 굴리는 사건 (풀 밖) */
+  drawn: EventDef[];
+  /** 관문 (같은 해 순서대로) */
+  milestones: EventDef[];
+  /** 풀별 추첨 사건 */
+  pools: Map<string, PoolTable>;
+}
+
+let index: EventIndex | null = null;
+
+function eventIndex(): EventIndex {
+  if (index && index.size === EVENTS.length) return index;
+  const drawn: EventDef[] = [];
+  const pools = new Map<string, PoolTable>();
+  for (const ev of EVENTS) {
+    if (!DRAWN_TYPES.has(ev.type) || !ev.weight) continue;
+    if (!ev.pool) {
+      drawn.push(ev);
+      continue;
+    }
+    let table = pools.get(ev.pool);
+    if (!table) {
+      table = { entries: [], cuts: [], buckets: new Map() };
+      pools.set(ev.pool, table);
+    }
+    const w = ev.weight;
+    table.entries.push({
+      ev,
+      base: w.base,
+      curve: w.ageCurve,
+      mods: w.modifiers?.length ? w.modifiers : undefined,
+      groupKey: ev.group ? `@${ev.group}` : undefined,
+    });
+  }
+  for (const table of pools.values()) table.cuts = ageCuts(table.entries);
+  const milestones = EVENTS.filter((ev) => ev.type === 'milestone').sort((a, b) => (a.order ?? 10) - (b.order ?? 10));
+  index = { size: EVENTS.length, drawn, milestones, pools };
+  return index;
+}
+
+/** 나이·성인(19세)·생애 단계 조건이 바뀌는 나이들 */
+function ageCuts(entries: PoolEntry[]): number[] {
+  const cuts = new Set<number>([0, 19, ...STAGES.map((s) => s.from)]);
+  for (const { ev } of entries) {
+    const age = ev.trigger?.age;
+    if (age) {
+      cuts.add(age[0]);
+      cuts.add(age[1] + 1);
+    }
+  }
+  return [...cuts].sort((a, b) => a - b);
+}
+
+/** 이 나이가 속한 구간의 시작 (cuts 중 나이 이하에서 가장 큰 값) */
+function segmentOf(cuts: number[], age: number): number {
+  let lo = 0;
+  let hi = cuts.length - 1;
+  while (lo < hi) {
+    const mid = (lo + hi + 1) >> 1;
+    if (cuts[mid] <= age) lo = mid;
+    else hi = mid - 1;
+  }
+  return cuts[lo];
+}
+
+/** 테스트·도구가 EVENTS를 고친 뒤 색인을 버린다 (사건 수가 바뀌면 저절로 다시 만든다) */
+export function resetEventIndex(): void {
+  index = null;
+}
+
+/** 나이 곡선의 점들 (곡선마다 한 번만 정렬한다) */
+const curvePoints = new WeakMap<Record<string, number>, [number, number][]>();
+
+function pointsOf(curve: Record<string, number>): [number, number][] {
+  let pts = curvePoints.get(curve);
+  if (!pts) {
+    pts = Object.entries(curve)
+      .map(([k, v]) => [Number(k), v] as [number, number])
+      .sort((a, b) => a[0] - b[0]);
+    curvePoints.set(curve, pts);
+  }
+  return pts;
+}
+
 export function ageFactor(curve: Record<string, number> | undefined, age: number): number {
   if (!curve) return 1;
-  const pts = Object.entries(curve)
-    .map(([k, v]) => [Number(k), v] as [number, number])
-    .sort((a, b) => a[0] - b[0]);
+  const pts = pointsOf(curve);
   if (pts.length === 0) return 1;
   if (age <= pts[0][0]) return pts[0][1];
   for (let i = 1; i < pts.length; i++) {
@@ -45,24 +162,63 @@ export function ageFactor(curve: Record<string, number> | undefined, age: number
   return pts[pts.length - 1][1];
 }
 
-export function triggerOk(ev: EventDef, scope: ReturnType<typeof buildScope>, state: GameState): boolean {
+/**
+ * 같은 상태에서 되풀이되는 판정을 한 번만 계산해 둔다. 풀 사건은 수천 개지만
+ * 서로 다른 조건식은 백여 개뿐이라 풀 추첨 한 번 동안 결과를 재사용한다.
+ */
+interface Memo {
+  cond: Map<string, boolean>;
+  kidAges: number[];
+}
+
+function makeMemo(state: GameState): Memo {
+  return { cond: new Map(), kidAges: kidAges(state) };
+}
+
+function kidAges(state: GameState): number[] {
+  return alive(state.ch, 'child').map((k) => state.year - k.birthYear);
+}
+
+function condOk(src: string, scope: Scope, memo?: Memo): boolean {
+  if (!memo) return evaluate(src, scope);
+  let v = memo.cond.get(src);
+  if (v === undefined) {
+    v = evaluate(src, scope);
+    memo.cond.set(src, v);
+  }
+  return v;
+}
+
+/** 나이·성별만으로 정해지는 조건 (풀 후보를 나이·성별 칸으로 나눌 때도 쓴다) */
+function staticTriggerOk(ev: EventDef, age: number, sex: Sex): boolean {
+  if (ev.adult && age < 19) return false;
   const t = ev.trigger;
   if (!t) return true;
-  const ch = state.ch;
-  if (t.age && (ch.age < t.age[0] || ch.age > t.age[1])) return false;
-  if (t.sex && ch.sex !== t.sex) return false;
-  if (ev.adult && ch.age < 19) return false;
+  if (t.age && (age < t.age[0] || age > t.age[1])) return false;
+  if (t.sex && sex !== t.sex) return false;
+  if (t.stage && !t.stage.includes(stageOf(age))) return false;
+  return true;
+}
+
+/** 그때그때 상태로 정해지는 조건: 자녀 나이, 모드, 태그, 조건식 */
+function stateTriggerOk(ev: EventDef, scope: Scope, state: GameState, memo?: Memo): boolean {
+  const t = ev.trigger;
+  if (!t) return true;
+  const flags = state.ch.flags;
   if (t.childAge) {
     const [lo, hi] = t.childAge;
-    if (!alive(ch, 'child').some((k) => state.year - k.birthYear >= lo && state.year - k.birthYear <= hi)) return false;
+    if (!(memo?.kidAges ?? kidAges(state)).some((a) => a >= lo && a <= hi)) return false;
   }
-  if (t.stage && !t.stage.includes(stageOf(ch.age))) return false;
   if (t.modes && !t.modes.includes(state.mode)) return false;
-  if (t.flags && !t.flags.every((f) => ch.flags[f])) return false;
-  if (t.anyFlags && !t.anyFlags.some((f) => ch.flags[f])) return false;
-  if (t.notFlags && t.notFlags.some((f) => ch.flags[f])) return false;
-  if (t.if && !evaluate(t.if, scope)) return false;
+  if (t.flags && !t.flags.every((f) => flags[f])) return false;
+  if (t.anyFlags && !t.anyFlags.some((f) => flags[f])) return false;
+  if (t.notFlags && t.notFlags.some((f) => flags[f])) return false;
+  if (t.if && !condOk(t.if, scope, memo)) return false;
   return true;
+}
+
+export function triggerOk(ev: EventDef, scope: Scope, state: GameState): boolean {
+  return staticTriggerOk(ev, state.ch.age, state.ch.sex) && stateTriggerOk(ev, scope, state);
 }
 
 export function limitOk(ev: EventDef, state: GameState): boolean {
@@ -71,8 +227,10 @@ export function limitOk(ev: EventDef, state: GameState): boolean {
   const n = state.counts[ev.id] ?? 0;
   if (l.oncePerLife && n > 0) return false;
   if (l.max !== undefined && n >= l.max) return false;
-  const last = state.lastAge[ev.id];
-  if (l.cooldown !== undefined && last !== undefined && state.ch.age - last < l.cooldown) return false;
+  if (l.cooldown !== undefined) {
+    const last = state.lastAge[ev.id];
+    if (last !== undefined && state.ch.age - last < l.cooldown) return false;
+  }
   return true;
 }
 
@@ -100,7 +258,9 @@ export function eventProbability(ev: EventDef, state: GameState, scope = buildSc
   for (const mod of w.modifiers ?? []) if (evaluate(mod.if, scope)) m *= mod.x;
   const D = directorFactor(state, ev);
   const M = w.noMode ? 1 : modeMultiplier(state.mode, p0, eligibleYears(ev));
-  const P = Math.min(P_CAP, Math.max(P_FLOOR, p0 * A * m * D * M));
+  // 인수 하나가 0이면 '희귀'가 아니라 '불가능'이다. 바닥값으로 끌어올리지 않는다
+  const impossible = !(p0 > 0 && A > 0 && m > 0 && D > 0 && M > 0);
+  const P = impossible ? 0 : Math.min(P_CAP, Math.max(P_FLOOR, p0 * A * m * D * M));
   return { p0, A, m, D, M, P };
 }
 
@@ -117,117 +277,134 @@ function pickWeighted<T extends { P: number }>(items: T[], n: number, rng: Rng):
   return out;
 }
 
-/** 4단계 랜덤 사건: 조건 맞는 후보를 모아 확률대로 굴리고, 디렉터가 정한 개수만큼 고른다 */
+/**
+ * 4단계 사건 추첨: 조건 맞는 후보를 하나하나 확률대로 굴린다. 일어난 사건은 개수와 상관없이
+ * 전부 대기열에 들어간다. 조용한 해에는 디렉터가 정한 최소 개수까지 일상 사건으로 채우고,
+ * 마지막으로 생활 사건 풀에서 한 장까지 뽑는다.
+ */
 export function drawYearEvents(state: GameState): PendingCard[] {
   updatePace(state);
   const scope = buildScope(state);
   const rng = rngFor(state.seed, 'events', state.ch.age);
   const fired: { ev: EventDef; P: number }[] = [];
   const missed: { ev: EventDef; P: number }[] = [];
-  for (const ev of EVENTS) {
-    if (!DRAWN_TYPES.has(ev.type) || !ev.weight || ev.pool) continue;
+  for (const ev of eventIndex().drawn) {
     if (!limitOk(ev, state) || !triggerOk(ev, scope, state)) continue;
     const { P } = eventProbability(ev, state, scope);
     if (rng.next() < P) fired.push({ ev, P });
     else missed.push({ ev, P });
   }
-  const uncapped = fired.filter((f) => UNCAPPED_TYPES.has(f.ev.type));
-  let capped = fired.filter((f) => !UNCAPPED_TYPES.has(f.ev.type));
-  const [min, max] = countRange(state);
-  if (capped.length > max) capped = pickWeighted(capped, max, rng);
-  const total = capped.length + uncapped.length;
-  if (total < min) {
+  const first = fired.filter((f) => FIRST_TYPES.has(f.ev.type));
+  const rest = fired.filter((f) => !FIRST_TYPES.has(f.ev.type));
+  const lack = fillerMinimum(state) - fired.length;
+  if (lack > 0) {
     // 일상 사건으로만 채운다. 출산·결혼 같은 인구학적 사건은 실제 확률을 지킨다
-    const fillers = missed.filter((m) => m.ev.filler && (m.ev.impact ?? 0) <= FILLER_MAX_IMPACT);
-    capped.push(...pickWeighted(fillers, min - total, rng));
+    const fillers = missed.filter((m) => m.ev.filler && m.P > 0 && (m.ev.impact ?? 0) <= FILLER_MAX_IMPACT);
+    rest.push(...pickWeighted(fillers, lack, rng));
   }
-  // 생활 사건 풀: 디렉터가 고르고 남은 자리가 있으면 한 장 (난수 스트림을 따로 써서 위 추첨에 영향이 없다)
-  if (capped.length < max) {
-    const pooled = drawPool(state, scope);
-    if (pooled) capped.push({ ev: pooled, P: 0 });
-  }
-  return [...uncapped, ...capped].map((f) => ({ eventId: f.ev.id, ctx: {} }));
+  const out = [...first, ...rest].map((f) => ({ eventId: f.ev.id, ctx: {} }));
+  // 생활 사건 풀: 위에서 몇 개가 일어났든 따로 한 장까지 (난수 줄기도 따로 써서 서로 영향이 없다)
+  const pooled = drawPool(state, scope);
+  if (pooled) out.push({ eventId: pooled.id, ctx: {} });
+  return out;
 }
+
+// ── 생활 사건 풀 ─────────────────────────────────────────
+// 풀 사건의 weight.base는 연간 확률이 아니라 풀 안의 상대 가중치다. 풀 카드는 '그해의 작은 장면 한 장'이라는
+// 표시·표본 추상화로 둔다: 해마다 poolYearChance 확률로 한 장, 풀은 poolWeights 비율로 고르고,
+// 풀 안에서는 조건이 맞는 사건 전체를 가중치(base × 나이 곡선 × 보정, 1에서 자르지 않음)대로 정확히 뽑는다.
+//  - 조건이 맞지 않는 후보는 몇 개를 더해도 뽑힐 확률이 그대로다 (같은 시드면 같은 사건).
+//  - 같은 풀에 조건이 맞는 사건을 더하면 그 풀의 몫을 나눠 갖는다. 다른 풀과 일반 사건의 확률은 그대로다.
+//  - 그해 일반 사건이 몇 개 일어났는지와 무관하다.
 
 /** 같은 묶음의 생활 사건이 다시 나오기까지 최소 햇수 */
 const GROUP_COOLDOWN = 6;
 
-/** 풀별 사건과 누적 기본 가중치 (모듈을 처음 쓸 때 한 번 만든다) */
-interface PoolTable {
-  events: EventDef[];
-  cumulative: number[];
-}
-let poolIndex: Map<string, PoolTable> | null = null;
-
-function poolTable(pool: string): PoolTable {
-  if (!poolIndex) {
-    poolIndex = new Map();
-    for (const ev of EVENTS) {
-      if (!ev.pool || !DRAWN_TYPES.has(ev.type) || !ev.weight) continue;
-      const t = poolIndex.get(ev.pool) ?? { events: [], cumulative: [] };
-      const prev = t.cumulative.length ? t.cumulative[t.cumulative.length - 1] : 0;
-      t.events.push(ev);
-      t.cumulative.push(prev + ev.weight.base);
-      poolIndex.set(ev.pool, t);
-    }
-  }
-  return poolIndex.get(pool) ?? { events: [], cumulative: [] };
-}
-
 export function poolEvents(pool: string): EventDef[] {
-  return poolTable(pool).events;
+  return (eventIndex().pools.get(pool)?.entries ?? []).map((e) => e.ev);
 }
 
-/** 풀 하나에서 몇 번 뽑아 보고 조건이 맞는 사건이 없으면 다른 풀로 넘어간다 */
-const POOL_TRIES = 80;
+/** 나이·성별만으로 정해지는 후보. 태그·조건식·제한·가중치는 해마다 따로 본다 */
+function poolBucket(pool: PoolId, sex: Sex, age: number): PoolEntry[] {
+  const table = eventIndex().pools.get(pool);
+  if (!table) return [];
+  const key = `${sex}|${segmentOf(table.cuts, age)}`;
+  let bucket = table.buckets.get(key);
+  if (!bucket) {
+    bucket = table.entries.filter((e) => staticTriggerOk(e.ev, age, sex));
+    table.buckets.set(key, bucket);
+  }
+  return bucket;
+}
+
+/** 풀 하나에서 지금 나올 수 있는 사건들과 가중치 (가중치가 0인 사건은 빠진다) */
+interface Eligible {
+  events: EventDef[];
+  weights: number[];
+  total: number;
+}
+
+function eligibleInPool(state: GameState, pool: PoolId, scope: Scope): Eligible {
+  const age = state.ch.age;
+  const memo = makeMemo(state);
+  const out: Eligible = { events: [], weights: [], total: 0 };
+  const bucket = poolBucket(pool, state.ch.sex, age);
+  for (let i = 0; i < bucket.length; i++) {
+    const e = bucket[i];
+    if (e.groupKey !== undefined) {
+      const last = state.lastAge[e.groupKey];
+      if (last !== undefined && age - last < GROUP_COOLDOWN) continue;
+    }
+    if (!limitOk(e.ev, state) || !stateTriggerOk(e.ev, scope, state, memo)) continue;
+    // 가중치 = base × 나이 곡선 × 보정. 1에서 자르지 않는다
+    let w = e.curve ? e.base * ageFactor(e.curve, age) : e.base;
+    if (e.mods) for (const mod of e.mods) if (condOk(mod.if, scope, memo)) w *= mod.x;
+    if (!(w > 0)) continue;
+    out.events.push(e.ev);
+    out.weights.push(w);
+    out.total += w;
+  }
+  return out;
+}
+
+/** 검증·테스트용: 풀 하나의 후보와 가중치 */
+export function poolCandidates(state: GameState, pool: PoolId, scope = buildScope(state)): { ev: EventDef; w: number }[] {
+  const e = eligibleInPool(state, pool, scope);
+  return e.events.map((ev, i) => ({ ev, w: e.weights[i] }));
+}
 
 /**
- * 풀 추첨. 사건이 수천 개라 전부 조건을 따지면 느리므로 기본 가중치로 하나를 뽑고
- * 조건(나이·태그·제한)이 맞는지 본다. 나이 곡선·보정 배수는 받아들일 확률로 쓴다.
+ * 풀 추첨 (한 해 한 장까지). 풀을 비율대로 고르고 그 풀의 후보 전체에서 가중치대로 하나를 뽑는다.
+ * 고른 풀에 나올 사건이 없으면 그 풀을 빼고 다시 고른다: 결과는 '나올 사건이 있는 풀'만 놓고
+ * 비율대로 고른 것과 같다.
  */
-function drawPool(state: GameState, scope: ReturnType<typeof buildScope>): EventDef | null {
+export function drawPool(state: GameState, scope = buildScope(state)): EventDef | null {
   const rng = rngFor(state.seed, 'pool', state.ch.age);
   if (!rng.chance(poolYearChance(state.mode))) return null;
   const weights = poolWeights(state);
   for (let round = 0; round < POOL_IDS.length; round++) {
     const pool = rng.weighted(POOL_IDS, (p) => weights[p]);
     if (!pool) return null;
-    const table = poolTable(pool);
-    const total = table.cumulative[table.cumulative.length - 1] ?? 0;
-    for (let tries = 0; total > 0 && tries < POOL_TRIES; tries++) {
-      const ev = table.events[lowerBound(table.cumulative, rng.next() * total)];
-      if (ev.group) {
-        const last = state.lastAge[`@${ev.group}`];
-        if (last !== undefined && state.ch.age - last < GROUP_COOLDOWN) continue;
+    const e = eligibleInPool(state, pool, scope);
+    if (e.total > 0) {
+      // 누적 가중치를 따라가며 u × 합계 자리의 사건을 고른다
+      let r = rng.next() * e.total;
+      for (let i = 0; i < e.events.length; i++) {
+        r -= e.weights[i];
+        if (r < 0) return e.events[i];
       }
-      if (!limitOk(ev, state) || !triggerOk(ev, scope, state)) continue;
-      const w = ev.weight!;
-      let x = ageFactor(w.ageCurve, state.ch.age);
-      for (const mod of w.modifiers ?? []) if (evaluate(mod.if, scope)) x *= mod.x;
-      if (rng.next() < Math.min(1, x)) return ev;
+      return e.events[e.events.length - 1];
     }
     weights[pool] = 0;
   }
   return null;
 }
 
-/** 누적 배열에서 value보다 큰 첫 자리 */
-function lowerBound(cumulative: number[], value: number): number {
-  let lo = 0;
-  let hi = cumulative.length - 1;
-  while (lo < hi) {
-    const mid = (lo + hi) >> 1;
-    if (cumulative[mid] > value) hi = mid;
-    else lo = mid + 1;
-  }
-  return lo;
-}
-
 /** 1단계 관문: 조건을 채운 마일스톤은 반드시 일어난다 */
 export function milestonesFor(state: GameState): PendingCard[] {
   const scope = buildScope(state);
-  return EVENTS.filter((ev) => ev.type === 'milestone' && limitOk(ev, state) && triggerOk(ev, scope, state))
-    .sort((a, b) => (a.order ?? 10) - (b.order ?? 10))
+  return eventIndex()
+    .milestones.filter((ev) => limitOk(ev, state) && triggerOk(ev, scope, state))
     .map((ev) => ({ eventId: ev.id, ctx: {} }));
 }
 
@@ -297,8 +474,22 @@ function logEntry(state: GameState, ev: EventDef, title: string, text: string): 
 }
 
 /**
- * 대기 카드를 화면에 올린다. 그사이 조건이 깨졌으면 건너뛴다(false).
- * 사건 자체의 효과는 이때 적용된다.
+ * 카드 없이 일기 한 줄로 남기는 사건: 보이는 선택지가 없고(결정할 것이 없다), 충격량이 '큰 사건'보다 작고,
+ * 비극·사망이 아니며, 작가가 장면(zoom)으로 연출하지 않은 것. 나머지는 선택지가 없어도 카드로 보여 준다.
+ */
+export function recordsAsDiary(ev: EventDef, shownChoices: number): boolean {
+  return shownChoices === 0 && (ev.impact ?? 0) < BIG_IMPACT && ev.tone !== 'tragedy' && !ev.effects?.death && !ev.zoom;
+}
+
+/** 일기 한 줄에 바뀐 수치를 덧붙인다 (카드가 없으니 변화를 보여 줄 곳이 여기뿐이다) */
+function diaryText(text: string, changes: Change[]): string {
+  return changes.length > 0 ? `${text} (${changes.map((c) => c.text).join(', ')})` : text;
+}
+
+/**
+ * 대기 사건을 일으킨다. 그사이 조건이 깨졌으면 건너뛴다. 사건 자체의 효과는 이때 적용되고 기록된다.
+ * 결정이 필요하면 카드로 올리고 true(플레이어를 기다린다). 결정할 것이 없는 작은 사건은
+ * 일기 한 줄만 남기고 false(대기열의 다음 사건으로 넘어간다). 건너뛴 사건도 false.
  */
 export function presentCard(state: GameState, pending: PendingCard): boolean {
   const ev = getEvent(pending.eventId);
@@ -328,12 +519,21 @@ export function presentCard(state: GameState, pending: PendingCard): boolean {
       text: render(c.text, state, ctx),
       check: c.check ? checkLabel(c.check) : undefined,
     }));
+  const title = render(ev.title, state, ctx);
+  const text = render(ev.text, state, ctx);
+
+  if (recordsAsDiary(ev, choices.length)) {
+    state.log.push(logEntry(state, ev, title, diaryText(text, intro)));
+    const next = resolveNext(ev.next, rngFor(state.seed, 'card', serial, 'next'));
+    if (next && state.ch.alive) state.queue.unshift({ eventId: next, ctx });
+    return false;
+  }
 
   const card: ActiveCard = {
     eventId: ev.id,
     serial,
-    title: render(ev.title, state, ctx),
-    text: render(ev.text, state, ctx),
+    title,
+    text,
     zoom: ev.zoom ? render(ev.zoom, state, ctx) : undefined,
     tone: ev.tone ?? 'neutral',
     arcLabel: ev.arc,
@@ -390,7 +590,8 @@ export function dismissCard(state: GameState): void {
   if (!card) return;
   const ev = getEvent(card.eventId);
   let next = card.result?.next;
-  if (!card.result && (ev.choices ?? []).length === 0) {
+  // 보이는 선택지가 없던 카드(조건 때문에 모두 숨은 경우 포함)는 사건의 next로 이어진다
+  if (!card.result && card.choices.length === 0) {
     next = resolveNext(ev.next, rngFor(state.seed, 'card', card.serial, 'next'));
   }
   state.card = undefined;
