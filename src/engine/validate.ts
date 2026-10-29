@@ -48,6 +48,80 @@ function choiceCausesUse(c: ChoiceDef): boolean {
   return causesUse(c.effects) || causesUse(c.onSuccess?.effects) || causesUse(c.onFail?.effects);
 }
 
+/** 맨 바깥을 감싼 괄호를 걷어 낸다: '((a && b))' → 'a && b'. '(a) && (b)'처럼 처음 괄호가 중간에 닫히면 그대로 */
+function unwrap(expr: string): string {
+  let t = expr.trim();
+  while (t.startsWith('(') && closingParen(t) === t.length - 1) t = t.slice(1, -1).trim();
+  return t;
+}
+
+/** 맨 앞 여는 괄호와 짝이 되는 닫는 괄호의 위치 */
+function closingParen(s: string): number {
+  let depth = 0;
+  for (let i = 0; i < s.length; i++) {
+    if (s[i] === '(') depth++;
+    else if (s[i] === ')' && --depth === 0) return i;
+  }
+  return -1;
+}
+
+/** 조건식을 &&로 이어진 조각들로 나눈다: '(a) && (b && c)' → [a, b, c]. 공백은 하나로 맞춘다 */
+function conjuncts(expr: string): string[] {
+  const s = unwrap(expr);
+  const parts: string[] = [];
+  let depth = 0;
+  let start = 0;
+  for (let i = 0; i < s.length; i++) {
+    if (s[i] === '(') depth++;
+    else if (s[i] === ')') depth--;
+    else if (depth === 0 && s.startsWith('&&', i)) {
+      parts.push(s.slice(start, i));
+      start = i + 2;
+      i++;
+    }
+  }
+  if (parts.length === 0) return [s.replace(/\s+/g, ' ')];
+  parts.push(s.slice(start));
+  return parts.flatMap(conjuncts);
+}
+
+/**
+ * 사용 선택지 u를 볼 수 있는 사람은 비사용 선택지 n도 늘 보는가.
+ * n에 조건이 없거나 같거나, n의 조건 조각이 모두 u의 조건 조각에 들어 있으면(u의 조건이 n의 조건을 품으면) 그렇다
+ */
+function alwaysShownWith(n: ChoiceDef, u: ChoiceDef): boolean {
+  if (!n.if || n.if === u.if) return true;
+  if (!u.if) return false;
+  const have = new Set(conjuncts(u.if));
+  return conjuncts(n.if).every((c) => have.has(c));
+}
+
+/**
+ * 비사용 규칙 (검토 R-014, tests/nonuse.test.ts와 같은 규칙):
+ *  - 카드가 뜨는 것만으로 술·담배·약물을 쓰게 하는 사건은 없다 (오류).
+ *  - 사용 선택지가 있는 카드에는 그 선택지를 볼 수 있는 사람이 함께 보는 비사용 선택지가 있어야 한다 (오류).
+ *    판정이 있으면 성공·실패 어느 쪽이든 쓰면 '사용' 선택지다. 새 데이터가 이 규칙을 어기면 검증이 실패한다
+ */
+export function nonUseIssues(events: EventDef[], whereOf: (ev: EventDef) => string = (ev) => ev.id): Issue[] {
+  const issues: Issue[] = [];
+  for (const ev of events) {
+    if (causesUse(ev.effects)) {
+      issues.push({ level: 'error', where: whereOf(ev), message: '카드가 뜨는 것만으로 술·담배·약물 사용이 생긴다 (사용은 고른 선택지에서만)' });
+    }
+    const choices = ev.choices ?? [];
+    const free = choices.filter((c) => !choiceCausesUse(c));
+    choices.forEach((u, i) => {
+      if (!choiceCausesUse(u) || free.some((n) => alwaysShownWith(n, u))) return;
+      issues.push({
+        level: 'error',
+        where: `${whereOf(ev)} › 선택지 ${i + 1}`,
+        message: `술·담배·약물을 쓰는 선택지(${u.text})를 볼 수 있는 사람이 늘 함께 보는 비사용 선택지가 없다 (거절·대체·자리 뜨기 등)`,
+      });
+    });
+  }
+  return issues;
+}
+
 /** 경로 첫 부분이 이 중 하나면 동적 키라서 하위 키를 검사하지 않는다 */
 const DYNAMIC_ROOTS = new Set(['flags', 'ctx', 'traits']);
 
@@ -405,6 +479,8 @@ export function validateData(): Issue[] {
   const fileOf = new Map<string, string>();
   for (const [file, events] of Object.entries(EVENT_FILES)) for (const ev of events) fileOf.set(ev.id, file);
   issues.push(...targetIssues(EVENTS, (ev) => `${fileOf.get(ev.id) ?? '?'} › ${ev.id}`));
+  // 술·담배·약물: 사용 선택지 옆에는 늘 비사용 선택지가 있다
+  issues.push(...nonUseIssues(EVENTS, (ev) => `${fileOf.get(ev.id) ?? '?'} › ${ev.id}`));
 
   for (const a of ACTIVITIES) {
     const where = `activities.json › ${a.id}`;

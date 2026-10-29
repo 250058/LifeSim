@@ -1875,7 +1875,7 @@
         "text": "계단을 오르면 숨이 차고 눈앞이 핑 돌았다. 아침 조회 시간에 주저앉을 뻔했다. 손톱이 숟가락처럼 얇아졌다.",
         "choices": [
           { "text": "내과에서 피검사를 받는다", "result": "피를 한 통 뽑았다. 그것만으로도 어질했다.", "next": "dx" },
-          { "text": "선지해장국과 시금치를 챙겨 먹는다", "result": "먹는 걸로는 한참 모자랐다.", "fx": { "health": 1 }, "worse": 1 }
+          { "text": "선짓국과 시금치를 챙겨 먹는다", "result": "먹는 걸로는 한참 모자랐다.", "fx": { "health": 1 }, "worse": 1 }
         ]
       },
       "dx": {
@@ -2316,7 +2316,7 @@
             "worse": 2
           },
           {
-            "text": "술과 커피부터 줄인다",
+            "text": "커피와 매운 음식부터 줄인다",
             "check": ["personality.conscientiousness", 50],
             "result": "두 달 만에 속이 편해졌다.",
             "fx": { "health": 2 },
@@ -2678,12 +2678,19 @@
       "mods": [{ "if": "flags.heavy_drinker", "x": 5 }],
       "sx": {
         "title": "등을 뚫는 통증",
-        "text": "술자리 다음 날, 명치에서 시작된 통증이 등까지 뚫고 나갔다. 똑바로 누울 수가 없어 새우처럼 웅크렸다. 물만 마셔도 토했다.",
+        "text": "새벽, 명치에서 시작된 통증이 등까지 뚫고 나갔다. 똑바로 누울 수가 없어 새우처럼 웅크렸다. 물만 마셔도 토했다.",
         "choices": [
           { "text": "응급실에 간다", "result": "피검사 결과를 본 의사의 표정이 바뀌었다.", "next": "dx" },
           {
             "text": "숙취라며 해장국을 먹는다",
+            "if": "substance.alcohol.usedThisYear",
             "result": "한 숟가락 먹고 다 토했다. 새벽에 결국 응급실로 갔다.",
+            "fx": { "health": -3 },
+            "next": "dx"
+          },
+          {
+            "text": "체한 거라며 소화제를 먹는다",
+            "result": "한 알 삼키고 다 토했다. 새벽에 결국 응급실로 갔다.",
             "fx": { "health": -3 },
             "next": "dx"
           }
@@ -2691,22 +2698,29 @@
       },
       "dx": {
         "title": "급성 췌장염",
-        "text": "췌장 효소 수치가 정상의 열 배였다. 금식하고 수액만 맞으며 입원해야 한다고 했다. 의사가 술 때문이라고 못 박았다.",
+        "text": "췌장 효소 수치가 정상의 열 배였다. 금식하고 수액만 맞으며 입원해야 한다고 했다. 의사가 원인부터 물었다. 술과 담석이 가장 흔하다고 했다.",
         "choices": [
           {
             "text": "금식 입원하고 술을 끊는다",
+            "if": "substance.alcohol.current && !substance.alcohol.quitting",
             "check": ["personality.conscientiousness", 50],
             "result": "일주일 금식 끝에 미음을 먹었다. 그 뒤로 술잔을 엎어 두었다.",
-            "fx": { "health": -1, "cost": 1200000, "remove": ["heavy_drinker"] },
-            "fail": "퇴원하고 석 달 만에 다시 마셨다.",
+            "fx": { "health": -1, "cost": 1200000, "do": [{ "type": "substance", "substance": "alcohol", "act": "quit" }] },
+            "fail": "퇴원하고 석 달 만에 결심이 흐지부지됐다.",
             "failFx": { "health": -2, "cost": 1200000 },
             "worse": 1
           },
           {
             "text": "퇴원하자마자 술자리에 간다",
+            "if": "substance.alcohol.ever",
             "result": "의사의 경고는 소주 첫 잔에 잊혔다.",
-            "fx": { "health": -2, "cost": 1200000 },
+            "fx": { "health": -2, "cost": 1200000, "do": [{ "type": "substance", "substance": "alcohol", "act": "use", "amount": 1 }] },
             "worse": 1
+          },
+          {
+            "text": "금식 입원하고 원인을 찾는다",
+            "result": "일주일 금식 끝에 미음을 먹었다. 초음파에 쓸개의 작은 돌이 보였다. 기름진 음식부터 줄이기로 했다.",
+            "fx": { "health": -1, "cost": 1200000 }
           }
         ]
       },
@@ -2716,13 +2730,20 @@
         "choices": [
           {
             "text": "이번엔 정말 끊는다",
+            "if": "substance.alcohol.ever",
             "result": "알코올 상담을 함께 받았다. 1년 동안 한 방울도 마시지 않았다.",
-            "fx": { "health": -2, "stress": 3, "cost": 1500000, "remove": ["heavy_drinker"] }
+            "fx": { "health": -2, "stress": 3, "cost": 1500000, "do": [{ "type": "substance", "substance": "alcohol", "act": "treat" }] }
           },
           {
             "text": "양만 줄인다",
+            "if": "substance.alcohol.current && !substance.alcohol.quitting",
             "result": "몇 년 뒤 혈당약까지 먹게 됐다. 췌장이 인슐린을 덜 만든다고 했다.",
-            "fx": { "health": -4, "cost": 1500000, "add": ["med_dm"] }
+            "fx": { "health": -4, "cost": 1500000, "add": ["med_dm"], "do": [{ "type": "substance", "substance": "alcohol", "act": "cutDown" }] }
+          },
+          {
+            "text": "입원 치료를 받고 식단을 바꾼다",
+            "result": "열흘 금식했다. 퇴원한 뒤로 기름진 음식은 입에 대지 않았다. 다행히 더 나빠지지 않았다.",
+            "fx": { "health": -2, "stress": 2, "cost": 1500000 }
           }
         ]
       }
@@ -2924,7 +2945,7 @@
       },
       "worse": {
         "title": "소변이 나오지 않는다",
-        "text": "추운 날 술을 한잔한 밤, 소변이 아예 나오지 않았다. 아랫배가 터질 듯 부풀었다.",
+        "text": "추운 날 종합감기약을 먹고 잔 밤, 소변이 아예 나오지 않았다. 아랫배가 터질 듯 부풀었다.",
         "choices": [
           {
             "text": "응급실에서 소변줄을 꽂는다",
@@ -3261,13 +3282,19 @@
         "choices": [
           {
             "text": "약을 먹고 혈압을 매일 잰다",
-            "result": "아침마다 혈압 수첩을 채웠다. 담배도 끊었다.",
-            "fx": { "health": 2, "stress": 2, "cost": 300000, "remove": ["smoker"] }
+            "result": "아침마다 혈압 수첩을 채웠다.",
+            "fx": { "health": 2, "stress": 2, "cost": 300000 }
           },
           {
             "text": "목 혈관 스텐트 시술까지 받는다",
             "result": "목의 좁아진 혈관을 넓혔다. 이틀 입원했다.",
             "fx": { "health": 2, "stress": 3, "cost": 2500000 }
+          },
+          {
+            "text": "약을 먹고 담배도 끊는다",
+            "if": "substance.tobacco.current && !substance.tobacco.quitting",
+            "result": "아침마다 혈압 수첩을 채웠다. 담배는 그날로 끊었다.",
+            "fx": { "health": 2, "stress": 3, "cost": 300000, "do": [{ "type": "substance", "substance": "tobacco", "act": "quit" }] }
           }
         ]
       },
@@ -3859,10 +3886,11 @@
           },
           {
             "text": "맥주부터 끊는다",
+            "if": "substance.alcohol.current && !substance.alcohol.quitting",
             "check": ["personality.conscientiousness", 55],
             "result": "맥주 대신 탄산수. 요산이 6대로 떨어졌다.",
-            "fx": { "health": 2, "cost": 30000, "add": ["med_gout_ok"] },
-            "fail": "월드컵 시즌에 무너졌다.",
+            "fx": { "health": 2, "cost": 30000, "add": ["med_gout_ok"], "do": [{ "type": "substance", "substance": "alcohol", "act": "quit" }] },
+            "fail": "월드컵 시즌에 결심이 무너졌다.",
             "failFx": { "cost": 30000, "add": ["med_gout"] }
           }
         ]
@@ -4125,13 +4153,26 @@
           },
           {
             "text": "심장 재활까지 마친다",
-            "result": "시술 뒤 석 달 동안 심장 재활실에서 걸었다. 담배도 끊었다.",
+            "result": "시술 뒤 석 달 동안 심장 재활실에서 걸었다.",
             "fx": {
               "health": -4,
               "stress": 5,
               "cost": 2500000,
-              "remove": ["med_angina", "smoker"],
+              "remove": ["med_angina"],
               "add": ["med_angina_ok"]
+            }
+          },
+          {
+            "text": "심장 재활을 마치고 담배도 끊는다",
+            "if": "substance.tobacco.current && !substance.tobacco.quitting",
+            "result": "시술 뒤 석 달 동안 심장 재활실에서 걸었다. 담배도 끊었다.",
+            "fx": {
+              "health": -4,
+              "stress": 6,
+              "cost": 2500000,
+              "remove": ["med_angina"],
+              "add": ["med_angina_ok"],
+              "do": [{ "type": "substance", "substance": "tobacco", "act": "quit" }]
             }
           }
         ]
@@ -4350,9 +4391,9 @@
         "choices": [
           {
             "text": "보건소 금연클리닉에 등록한다",
-            "if": "flags.smoker",
+            "if": "substance.tobacco.current && !substance.tobacco.quitting",
             "result": "패치와 상담으로 석 달을 버텼다. 아침 가래가 줄었다.",
-            "fx": { "health": 2, "remove": ["smoker"], "add": ["med_copd_ok"] }
+            "fx": { "health": 2, "add": ["med_copd_ok"], "do": [{ "type": "substance", "substance": "tobacco", "act": "treat" }] }
           },
           {
             "text": "흡입기를 꼬박꼬박 쓴다",
@@ -4881,8 +4922,9 @@
           { "text": "수면 유도제를 사 먹는다", "result": "잠은 왔지만 낮에 머리가 멍했다.", "fx": { "cost": 15000 }, "worse": 1 },
           {
             "text": "잠이 안 오면 술 한잔을 한다",
+            "if": "substance.adult",
             "result": "술기운에 잠들었다가 새벽 네 시에 어김없이 깼다.",
-            "fx": { "health": -1 },
+            "fx": { "health": -1, "do": [{ "type": "substance", "substance": "alcohol", "act": "use", "amount": 0.5 }] },
             "worse": 1
           }
         ]
@@ -5299,14 +5341,14 @@
             "text": "약을 먹고 단주 모임에 나간다",
             "check": ["personality.conscientiousness", 45],
             "result": "단주 1년 기념 칩을 받았다. 아침에 손이 떨리지 않았다.",
-            "fx": { "health": 4, "stress": -3, "remove": ["heavy_drinker"] },
-            "fail": "넉 달 만에 다시 마셨다. 그래도 모임에는 계속 나갔다.",
-            "failFx": { "health": 1, "stress": 1 }
+            "fx": { "health": 4, "stress": -3, "do": [{ "type": "substance", "substance": "alcohol", "act": "treat" }] },
+            "fail": "넉 달 만에 술 생각이 크게 흔들렸다. 그래도 모임에는 계속 나갔다.",
+            "failFx": { "health": 1, "stress": 1, "do": [{ "type": "substance", "substance": "alcohol", "act": "treat" }] }
           },
           {
             "text": "입원 치료를 받는다",
             "result": "한 달 입원했다. 퇴원하는 날 바깥 공기가 낯설었다.",
-            "fx": { "health": 3, "stress": -2, "cost": 2000000, "remove": ["heavy_drinker"] }
+            "fx": { "health": 3, "stress": -2, "cost": 2000000, "do": [{ "type": "substance", "substance": "alcohol", "act": "treat" }] }
           }
         ]
       },
@@ -5317,12 +5359,12 @@
           {
             "text": "지혈을 받고 술을 끊는다",
             "result": "의사가 다음은 없다고 했다. 그 말이 처음으로 들렸다.",
-            "fx": { "health": -6, "stress": 5, "cost": 1500000, "remove": ["heavy_drinker"] }
+            "fx": { "health": -6, "stress": 5, "cost": 1500000, "do": [{ "type": "substance", "substance": "alcohol", "act": "quit" }] }
           },
           {
             "text": "퇴원하고 다시 마신다",
             "result": "간 수치는 내려오지 않았다.",
-            "fx": { "health": -6, "stress": 3, "cost": 1500000 }
+            "fx": { "health": -6, "stress": 3, "cost": 1500000, "do": [{ "type": "substance", "substance": "alcohol", "act": "use", "amount": 1 }] }
           }
         ]
       }
@@ -6684,7 +6726,11 @@
             "fail": "헬스장 회원권만 남았다.",
             "failFx": { "cost": 300000 }
           },
-          { "text": "나이 탓이라며 술로 푼다", "result": "술은 잠을 더 망쳤다.", "fx": { "health": -2, "stress": 1 } }
+          {
+            "text": "나이 탓이라며 술로 푼다",
+            "result": "술은 잠을 더 망쳤다.",
+            "fx": { "health": -2, "stress": 1, "do": [{ "type": "substance", "substance": "alcohol", "act": "use", "amount": 1 }] }
+          }
         ]
       },
       "dx": {
@@ -6693,7 +6739,7 @@
         "choices": [
           {
             "text": "생활 습관부터 바꾼다",
-            "result": "아침 걷기와 금주. 반년 뒤 수치가 조금 올랐다.",
+            "result": "아침 걷기와 일정한 잠. 반년 뒤 수치가 조금 올랐다.",
             "fx": { "health": 2, "stress": -2 }
           },
           {
@@ -9556,7 +9602,7 @@
             "result": "석 달 뒤, 다리가 조용한 밤이 늘었다.",
             "fx": { "health": 1, "stress": -1, "cost": 50000 }
           },
-          { "text": "저녁 커피와 술을 끊는다", "result": "저녁 커피를 끊자 증상이 한결 덜했다.", "fx": { "health": 1, "stress": -1 } },
+          { "text": "저녁 커피를 끊는다", "result": "저녁 커피를 끊자 증상이 한결 덜했다.", "fx": { "health": 1, "stress": -1 } },
           { "text": "약을 처방받는다", "result": "약을 먹은 첫날부터 푹 잤다.", "fx": { "stress": -2, "cost": 100000 } }
         ]
       }
@@ -9647,7 +9693,7 @@
           {
             "text": "저녁마다 반주로 달랜다",
             "result": "술잔을 들면 손이 잠잠해졌다. 술잔은 점점 늘었다.",
-            "fx": { "health": -2, "stress": -1 }
+            "fx": { "health": -2, "stress": -1, "do": [{ "type": "substance", "substance": "alcohol", "act": "use", "amount": 1 }] }
           }
         ]
       }
@@ -10324,13 +10370,14 @@
       "care": [
         {
           "title": "하얗게 빛나는 간",
-          "text": "간 수치가 정상의 두 배였다. 초음파에서 간이 하얗게 빛났다. 의사가 술보다 뱃살이 문제라며 몸무게의 7%를 빼 오라고 했다.",
+          "text": "간 수치가 정상의 두 배였다. 초음파에서 간이 하얗게 빛났다. 의사가 술을 안 마셔도 지방간은 생긴다며, 뱃살부터 빼야 한다고 몸무게의 7%를 빼 오라고 했다.",
           "choices": [
             {
               "text": "야식과 술을 끊는다",
+              "if": "substance.alcohol.current && !substance.alcohol.quitting",
               "check": ["personality.conscientiousness", 50],
               "result": "석 달 동안 저녁 8시 이후 금식. 간 수치가 정상이 됐다.",
-              "fx": { "health": 3, "remove": ["med_fatty_liver"] },
+              "fx": { "health": 3, "remove": ["med_fatty_liver"], "do": [{ "type": "substance", "substance": "alcohol", "act": "quit" }] },
               "fail": "2주 만에 배달 앱을 다시 깔았다.",
               "failFx": { "health": -1 }
             },
@@ -10339,6 +10386,14 @@
               "text": "운동을 시작한다",
               "result": "주 3회 땀을 뺐다. 반년 뒤 초음파에서 간이 맑아졌다.",
               "fx": { "health": 2, "stamina": 2, "remove": ["med_fatty_liver"] }
+            },
+            {
+              "text": "야식을 끊는다",
+              "check": ["personality.conscientiousness", 50],
+              "result": "석 달 동안 저녁 8시 이후 금식. 간 수치가 정상이 됐다.",
+              "fx": { "health": 3, "remove": ["med_fatty_liver"] },
+              "fail": "2주 만에 배달 앱을 다시 깔았다.",
+              "failFx": { "health": -1 }
             }
           ]
         }
@@ -10363,7 +10418,7 @@
             },
             { "text": "필요할 때만 약을 먹는다", "result": "약 봉투가 서랍에 늘 있었다.", "fx": { "cost": 50000 } },
             {
-              "text": "커피와 술을 줄인다",
+              "text": "커피를 줄인다",
               "result": "아침 커피를 반 잔으로 줄였다. 확실히 덜했다.",
               "fx": { "health": 1, "remove": ["med_gerd"] }
             }
@@ -10423,8 +10478,8 @@
       ],
       "slip": [
         {
-          "title": "매운 음식과 술",
-          "text": "몇 년 잠잠하던 장이 매운 음식과 술에 다시 뒤집혔다. 혈변이 비쳤다.",
+          "title": "매운 음식과 밤샘",
+          "text": "몇 년 잠잠하던 장이 매운 음식과 밤샘 끝에 다시 뒤집혔다. 혈변이 비쳤다.",
           "choices": [
             {
               "text": "바로 주치의에게 간다",
@@ -10457,20 +10512,29 @@
             },
             {
               "text": "맥주와 내장을 끊는다",
+              "if": "substance.alcohol.current && !substance.alcohol.quitting",
               "check": ["personality.conscientiousness", 55],
               "result": "곱창집 앞을 돌아서 갔다. 요산이 내려왔다.",
-              "fx": { "health": 1, "remove": ["med_gout"], "add": ["med_gout_ok"] },
-              "fail": "치맥의 유혹을 이기지 못했다.",
+              "fx": { "health": 1, "remove": ["med_gout"], "add": ["med_gout_ok"], "do": [{ "type": "substance", "substance": "alcohol", "act": "quit" }] },
+              "fail": "치맥 앞에서 결심이 무너졌다.",
               "failFx": { "health": -1 }
             },
-            { "text": "아플 때만 약을 먹는다", "result": "발가락 관절에 하얀 덩어리가 만져졌다.", "fx": { "health": -1 } }
+            { "text": "아플 때만 약을 먹는다", "result": "발가락 관절에 하얀 덩어리가 만져졌다.", "fx": { "health": -1 } },
+            {
+              "text": "내장과 단 음료를 끊는다",
+              "check": ["personality.conscientiousness", 55],
+              "result": "곱창 대신 생선구이, 콜라 대신 물. 요산이 내려왔다.",
+              "fx": { "health": 1, "remove": ["med_gout"], "add": ["med_gout_ok"] },
+              "fail": "곱창집 앞에서 번번이 발길을 돌리지 못했다.",
+              "failFx": { "health": -1 }
+            }
           ]
         }
       ],
       "slip": [
         {
-          "title": "휴가지의 맥주",
-          "text": "1년 넘게 멀쩡하자 요산약을 끊었다. 여름 휴가지에서 맥주를 마신 밤, 엄지발가락이 터졌다.",
+          "title": "휴가지의 밤",
+          "text": "1년 넘게 멀쩡하자 요산약을 끊었다. 여름 휴가지에서 회와 조개구이를 실컷 먹은 밤, 엄지발가락이 터졌다.",
           "choices": [
             {
               "text": "다시 약을 먹는다",
@@ -10612,9 +10676,9 @@
             },
             {
               "text": "담배부터 끊는다",
-              "if": "flags.smoker",
+              "if": "substance.tobacco.current && !substance.tobacco.quitting",
               "result": "보건소 금연클리닉에 등록했다. 가래가 줄었다.",
-              "fx": { "health": 2, "remove": ["smoker", "med_copd"], "add": ["med_copd_ok"] }
+              "fx": { "health": 2, "remove": ["med_copd"], "add": ["med_copd_ok"], "do": [{ "type": "substance", "substance": "tobacco", "act": "treat" }] }
             },
             {
               "text": "덜 움직이며 산다",
@@ -10945,7 +11009,12 @@
               "result": "6개월마다 초음파를 봤다. 아직 약은 필요 없다고 했다.",
               "fx": { "health": 1, "cost": 100000 }
             },
-            { "text": "술자리를 끊지 못한다", "result": "간 수치는 내려오지 않았다.", "fx": { "health": -2 } }
+            {
+              "text": "술자리를 끊지 못한다",
+              "if": "substance.alcohol.current && !substance.alcohol.quitting",
+              "result": "간 수치는 내려오지 않았다.",
+              "fx": { "health": -2, "do": [{ "type": "substance", "substance": "alcohol", "act": "use", "amount": 0.5 }] }
+            }
           ]
         }
       ],
@@ -11305,7 +11374,7 @@
             },
             {
               "text": "두통 일기로 방아쇠를 찾는다",
-              "result": "잠 부족과 와인이 범인이었다. 피하자 횟수가 줄었다.",
+              "result": "잠 부족과 끼니를 거르는 버릇이 범인이었다. 피하자 횟수가 줄었다.",
               "fx": { "stress": -2, "remove": ["med_migraine"] }
             },
             { "text": "진통제로 버틴다", "result": "진통제가 늘었다.", "fx": { "stress": 2, "health": -1 } }
@@ -14237,10 +14306,11 @@
         "choices": [
           {
             "text": "술과 야식을 줄인다",
+            "if": "substance.alcohol.current && !substance.alcohol.quitting",
             "check": ["personality.conscientiousness", 50],
             "result": "석 달 뒤 간 수치가 정상이 됐다.",
-            "fx": { "health": 2 },
-            "fail": "결과지를 받은 그 주에만 술자리가 세 번이었다.",
+            "fx": { "health": 2, "do": [{ "type": "substance", "substance": "alcohol", "act": "cutDown" }] },
+            "fail": "줄이겠다는 다짐은 일주일을 못 갔다.",
             "failFx": { "add": ["med_fatty_liver"] }
           },
           { "text": "주 3회 운동을 시작한다", "result": "뱃살이 빠지자 간 수치도 떨어졌다.", "fx": { "health": 2, "stamina": 1 } },
@@ -14248,6 +14318,14 @@
             "text": "간 영양제를 산다",
             "result": "영양제를 먹으며 마음을 놓았다. 간은 그대로였다.",
             "fx": { "cost": 100000, "add": ["med_fatty_liver"] }
+          },
+          {
+            "text": "야식과 단 음료를 줄인다",
+            "check": ["personality.conscientiousness", 50],
+            "result": "석 달 뒤 간 수치가 정상이 됐다.",
+            "fx": { "health": 2 },
+            "fail": "결과지를 받은 그 주에만 야식을 세 번 시켰다.",
+            "failFx": { "add": ["med_fatty_liver"] }
           }
         ]
       },
@@ -14325,7 +14403,7 @@
                 "fx": { "health": 2, "gain": 200000 }
               },
               {
-                "text": "고기와 술을 줄인다",
+                "text": "붉은 고기를 줄인다",
                 "result": "붉은 고기를 일주일에 한 번으로 줄였다.",
                 "fx": { "health": 2, "cost": 300000 }
               }
@@ -14523,7 +14601,7 @@
           {
             "text": "이참에 담배를 끊는다",
             "result": "금연 치료 지원을 받았다. 석 달 뒤 다시 CT를 찍었다.",
-            "fx": { "health": 2, "stress": 2, "remove": ["smoker"] },
+            "fx": { "health": 2, "stress": 2, "do": [{ "type": "substance", "substance": "tobacco", "act": "treat" }] },
             "next": "result"
           }
         ],
@@ -14540,11 +14618,11 @@
               },
               {
                 "text": "담배를 쓰레기통에 버린다",
-                "if": "flags.smoker",
+                "if": "substance.tobacco.current && !substance.tobacco.quitting",
                 "check": ["personality.conscientiousness", 55],
                 "result": "이번엔 정말 끊었다.",
-                "fx": { "health": 2, "stress": -2, "remove": ["smoker"] },
-                "fail": "일주일 만에 편의점에 갔다.",
+                "fx": { "health": 2, "stress": -2, "do": [{ "type": "substance", "substance": "tobacco", "act": "quit" }] },
+                "fail": "일주일 만에 결심이 무너졌다.",
                 "failFx": { "stress": 2 }
               }
             ]
@@ -15847,19 +15925,23 @@
           "text": "금연클리닉에 등록한다",
           "check": ["personality.conscientiousness", 50],
           "result": "패치를 붙이고 매주 일산화탄소 수치를 쟀다. 여섯 달을 버텼다. 담배 냄새가 역해졌다.",
-          "fx": { "health": 3, "stress": 2, "remove": ["smoker"] },
-          "fail": "한 달 만에 술자리에서 다시 피웠다.",
+          "fx": { "health": 3, "stress": 2, "do": [{ "type": "substance", "substance": "tobacco", "act": "treat" }] },
+          "fail": "한 달을 못 갔다. 패치 상자만 서랍에 남았다.",
           "failFx": { "stress": 2 }
         },
         {
           "text": "병원에서 금연 약을 처방받는다",
           "check": ["personality.conscientiousness", 45],
           "result": "약을 먹자 담배 생각이 줄었다. 석 달 만에 끊었다.",
-          "fx": { "health": 3, "cost": 50000, "remove": ["smoker"] },
-          "fail": "약을 먹으며 몰래 피웠다.",
+          "fx": { "health": 3, "cost": 50000, "do": [{ "type": "substance", "substance": "tobacco", "act": "treat" }] },
+          "fail": "약을 먹으면서도 담배를 놓지 못했다.",
           "failFx": { "cost": 50000 }
         },
-        { "text": "전자담배로 바꾼다", "result": "냄새는 덜했다. 끊은 건 아니었다.", "fx": { "stress": -1, "cost": 300000 } }
+        {
+          "text": "전자담배로 바꾼다",
+          "result": "냄새는 덜했다. 끊은 건 아니었다.",
+          "fx": { "stress": -1, "cost": 300000, "do": [{ "type": "substance", "substance": "tobacco", "act": "use", "amount": 0.25, "product": "ecig" }] }
+        }
       ]
     },
     {

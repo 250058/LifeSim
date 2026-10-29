@@ -120,6 +120,38 @@
       "choices": [
         {
           "text": "잃은 만큼만 다시 찾는다",
+          "if": "age < 19",
+          "result": "찾지 못했다. 잃은 돈이 300만 원이 됐다. '대리 입금' 업자의 독촉 문자가 {보호자}에게까지 갔다. 모아 둔 돈부터 털어 넣었고, 모자란 만큼은 {보호자}이/가 메웠다.",
+          "effects": {
+            "addFlags": ["gambling_addict"],
+            "money": { "cash": -3000000 },
+            "stats": { "stress": 15, "happiness": -10, "morality": -5 }
+          }
+        },
+        {
+          "text": "{보호자}에게 털어놓는다",
+          "if": "age < 19",
+          "check": { "stat": "family.support", "dc": 45 },
+          "onSuccess": {
+            "text": "한참을 혼났다. 그래도 빚은 같이 갚았고, 휴대폰은 공기계로 바뀌었다.",
+            "effects": { "removeFlags": ["gambling_exposed"], "stats": { "stress": -8, "happiness": -2 } }
+          },
+          "onFail": {
+            "text": "\"네가 알아서 해.\" 모아 둔 돈을 다 털어 넣었다. 모자란 만큼은 {보호자}이/가 말없이 메웠다. 그 침묵이 더 무서웠다.",
+            "effects": {
+              "money": { "cash": -1000000 },
+              "stats": { "stress": 10 }
+            }
+          }
+        },
+        {
+          "text": "1336에 전화한다",
+          "result": "상담사가 같은 처지의 청소년이 얼마나 많은지 알려 줬다. 사이트 접속을 막는 앱을 깔았다.",
+          "effects": { "removeFlags": ["gambling_exposed"], "stats": { "mental": 5, "stress": -6 } }
+        },
+        {
+          "text": "잃은 만큼만 다시 찾는다",
+          "if": "age >= 19",
           "result": "찾지 못했다. 빚은 300만 원이 됐다. '대리 입금' 업자가 일주일에 이자를 수십 퍼센트씩 붙인다.",
           "effects": {
             "addFlags": ["gambling_addict", "gambling_debt"],
@@ -129,6 +161,7 @@
         },
         {
           "text": "{보호자}에게 털어놓는다",
+          "if": "age >= 19",
           "check": { "stat": "family.support", "dc": 45 },
           "onSuccess": {
             "text": "한참을 혼났다. 그래도 빚은 같이 갚았고, 휴대폰은 공기계로 바뀌었다.",
@@ -142,11 +175,6 @@
               "stats": { "stress": 10 }
             }
           }
-        },
-        {
-          "text": "1336에 전화한다",
-          "result": "상담사가 같은 처지의 청소년이 얼마나 많은지 알려 줬다. 사이트 접속을 막는 앱을 깔았다.",
-          "effects": { "removeFlags": ["gambling_exposed"], "stats": { "mental": 5, "stress": -6 } }
         }
       ]
     },

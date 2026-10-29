@@ -156,12 +156,19 @@
       "choices": [
         {
           "text": "술과 담배를 끊고 걷는다",
+          "if": "(substance.alcohol.current && !substance.alcohol.quitting) && (substance.tobacco.current && !substance.tobacco.quitting)",
           "check": { "stat": "personality.conscientiousness", "dc": 50 },
           "onSuccess": {
             "text": "1년 뒤 재검. 수치가 정상 범위로 돌아왔다.",
-            "effects": { "stats": { "health": 8, "stamina": 3 }, "removeFlags": ["smoker", "heavy_drinker"] }
+            "effects": {
+              "stats": { "health": 8, "stamina": 3 },
+              "do": [
+                { "type": "substance", "substance": "alcohol", "act": "quit" },
+                { "type": "substance", "substance": "tobacco", "act": "quit" }
+              ]
+            }
           },
-          "onFail": { "text": "석 달 만에 다시 손을 댔다.", "effects": { "stats": { "health": -2 } } }
+          "onFail": { "text": "결심은 석 달을 못 갔다.", "effects": { "stats": { "health": -2 } } }
         },
         {
           "text": "약으로 관리한다",
@@ -172,6 +179,35 @@
           "text": "다들 이 정도는 있다며 넘긴다",
           "result": "결과지는 서랍 속으로 들어갔다.",
           "effects": { "stats": { "health": -5 } }
+        },
+        {
+          "text": "술을 끊고 걷는다",
+          "if": "(substance.alcohol.current && !substance.alcohol.quitting) && !(substance.tobacco.current && !substance.tobacco.quitting)",
+          "check": { "stat": "personality.conscientiousness", "dc": 50 },
+          "onSuccess": {
+            "text": "1년 뒤 재검. 수치가 정상 범위로 돌아왔다.",
+            "effects": { "stats": { "health": 8, "stamina": 3 }, "do": [{ "type": "substance", "substance": "alcohol", "act": "quit" }] }
+          },
+          "onFail": { "text": "결심은 석 달을 못 갔다.", "effects": { "stats": { "health": -2 } } }
+        },
+        {
+          "text": "담배를 끊고 걷는다",
+          "if": "(substance.tobacco.current && !substance.tobacco.quitting) && !(substance.alcohol.current && !substance.alcohol.quitting)",
+          "check": { "stat": "personality.conscientiousness", "dc": 50 },
+          "onSuccess": {
+            "text": "1년 뒤 재검. 수치가 정상 범위로 돌아왔다.",
+            "effects": { "stats": { "health": 8, "stamina": 3 }, "do": [{ "type": "substance", "substance": "tobacco", "act": "quit" }] }
+          },
+          "onFail": { "text": "결심은 석 달을 못 갔다.", "effects": { "stats": { "health": -2 } } }
+        },
+        {
+          "text": "식단을 바꾸고 매일 걷는다",
+          "check": { "stat": "personality.conscientiousness", "dc": 50 },
+          "onSuccess": {
+            "text": "1년 뒤 재검. 수치가 정상 범위로 돌아왔다.",
+            "effects": { "stats": { "health": 6, "stamina": 3 } }
+          },
+          "onFail": { "text": "석 달 만에 야식이 돌아왔다.", "effects": { "stats": { "health": -2 } } }
         }
       ],
       "filler": true
