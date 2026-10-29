@@ -1,12 +1,12 @@
 // 조건식이 읽는 값들. 사건 JSON의 trigger.if, modifiers, choices.if 에서
 // 'stats.intelligence', 'family.siblings', 'world.economy' 처럼 쓴다.
 
-import { JOB_BY_ID, REGION_BY_ID } from './data';
+import { REGION_BY_ID } from './data';
 import { familySupport, alive, npcAge, partnerOf, spouseOf } from './relations';
 import { ELITE_HIGH, stageOf } from './format';
 import { electionBarred, publicSectorBarred } from './records';
 import { substanceScope } from './substances';
-import { layoffExposed, orgRetirement, workScope } from './work';
+import { jobScope } from './work';
 import { isPresidentialYear } from './world';
 import type { Scope } from './conditions';
 import type { GameState } from './types';
@@ -55,6 +55,7 @@ export function inPrison(state: GameState): boolean {
 }
 
 export function buildScope(state: GameState, ctx: Record<string, string> = {}): Scope {
+  ((globalThis as any).__cnt ??= {})['scope'] = (((globalThis as any).__cnt['scope']) ?? 0) + 1; // TEMPCOUNT
   const ch = state.ch;
   const year = state.year;
   const flags: Record<string, boolean> = {};
@@ -81,7 +82,6 @@ export function buildScope(state: GameState, ctx: Record<string, string> = {}): 
   const spouse = spouseOf(ch);
   const childAges = alive(ch, 'child').map((k) => npcAge(k, year));
   const femaleAge = ch.sex === 'F' ? ch.age : spouse ? npcAge(spouse, year) : 99;
-  const job = ch.career.jobId ? JOB_BY_ID.get(ch.career.jobId) : undefined;
   const region = REGION_BY_ID.get(ch.region);
   const csat = ch.edu.csat;
   const mil = ch.military;
@@ -155,22 +155,8 @@ export function buildScope(state: GameState, ctx: Record<string, string> = {}): 
         ch.edu.status === 'university' && ch.edu.univ && ch.age >= ch.edu.univ.startAge + ch.edu.univ.years && !ch.edu.onLeave,
       ),
     },
-    job: {
-      id: ch.career.jobId ?? 'none',
-      employed: Boolean(ch.career.jobId),
-      salary: ch.career.salary,
-      years: ch.career.years,
-      business: Boolean(ch.career.business),
-      retired: ch.career.retired,
-      // 희망퇴직·구조조정은 정규직·계약직 일자리만 (플랫폼·프리랜서·자영업에는 고용주가 내보낼 자리가 없다)
-      layoffRisk: job && layoffExposed(state) ? job.layoffRisk : 0,
-      stress: job ? job.stress : 0,
-      retireAge: job ? job.retireAge : 0,
-      // 정년퇴직 카드는 조직에 속한 일만. 자영업·프리랜서는 work.ts가 그 직업의 은퇴 나이에 스스로 접는다
-      atRetireAge: Boolean(job && !ch.career.business && ch.age >= job.retireAge && orgRetirement(state)),
-      // 고용 형태·근무 형태·산재 등급·계약·부업·면허 (work.ts): job.type, job.shift, job.injury, job.contractEnding …
-      ...workScope(state),
-    },
+    // 직업·고용 형태·근무 형태·산재 등급·계약·부업·면허 (work.ts): job.id, job.type, job.shift, job.injury, job.contractEnding …
+    job: jobScope(state),
     military: {
       status: mil.status,
       grade: mil.grade ?? 0,

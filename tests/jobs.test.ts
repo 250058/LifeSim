@@ -1,17 +1,33 @@
 // 직업 확장 (U-001): 직업 정의·분류, 고용 형태별 소득과 계약, 실직→구직급여→복귀, 부업 충돌, 자격 재응시·갱신,
-// 산재·체불, 저장/불러오기와 옛 저장의 직업 ID
+// 산재·체불, 저장/불러오기와 옛 저장의 직업 ID. R-018: 모든 임용 경로의 공통 자격 (결격 기간 안·종료 직전·종료 뒤)
 
 import { describe, expect, it } from 'vitest';
 import { timePointsFor } from '../src/engine/activities';
 import { referencedPaths } from '../src/engine/conditions';
-import { hireChance, jobOpenings, jobSalary, leaveJob, meetsJob, takeJob, yearlyEarnings } from '../src/engine/career';
+import {
+  appointIssues,
+  canAppoint,
+  hireChance,
+  jobBarred,
+  jobOpenings,
+  jobSalary,
+  leaveJob,
+  meetsJob,
+  startBusiness,
+  takeJob,
+  yearlyEarnings,
+} from '../src/engine/career';
 import { EVENT_BY_ID, JOB_BY_ID, JOBS } from '../src/engine/data';
+import { applyEffects } from '../src/engine/effects';
 import { milestonesFor, presentCard } from '../src/engine/eventEngine';
 import { applyForJob, choose, newGame, proceed, quitJob, syncDerivedFlags } from '../src/engine/game';
+import { continueAsChild, heirJobCandidates } from '../src/engine/heir';
+import { addSentence, BARRED_JOBS } from '../src/engine/records';
+import { haveChild } from '../src/engine/relations';
 import { rngFor } from '../src/engine/rng';
 import { loadGame, saveGame, type KeyValueStorage } from '../src/engine/save';
 import { buildScope } from '../src/engine/scope';
-import type { Degree, EmploymentType, GameState } from '../src/engine/types';
+import type { Change, Degree, EmploymentType, GameState } from '../src/engine/types';
 import { EMPLOYMENT_TYPES, WORK_SCHEDULES } from '../src/engine/types';
 import { validateData } from '../src/engine/validate';
 import {
@@ -209,7 +225,7 @@ describe('고용 형태가 소득·계약·시간에 실제로 다르게 작동�
       const out: number[] = [];
       for (let i = 0; i < 120; i++) {
         const s = seedWithOffer(`DAY-${crew}-${i}`, 'construction_laborer', 'daily');
-        takeJob(s, 'construction_laborer');
+        expect(takeJob(s, 'construction_laborer')).not.toBeNull();
         if (crew) s.ch.flags.work_crew = { since: s.ch.age, until: s.ch.age + 3 };
         yearEnd(s);
         out.push(ledgerOf(s.ch)[0].days!);
@@ -229,8 +245,9 @@ describe('고용 형태가 소득·계약·시간에 실제로 다르게 작동�
     const spread = (jobId: string, type: EmploymentType) => {
       const ratios: number[] = [];
       for (let i = 0; i < 80; i++) {
-        const s = seedWithOffer(`VAR-${jobId}-${i}`, jobId, type);
-        takeJob(s, jobId);
+        // 번역가·공기업 사무직은 대졸이어야 임용된다
+        const s = seedWithOffer(`VAR-${jobId}-${i}`, jobId, type, (x) => void (x.ch.edu.degree = 'university'));
+        expect(takeJob(s, jobId)).not.toBeNull();
         yearEnd(s);
         const job = JOB_BY_ID.get(jobId)!;
         const base = jobSalary(job, 1, 1, 1) * payFactor(job, type);
@@ -245,7 +262,7 @@ describe('고용 형태가 소득·계약·시간에 실제로 다르게 작동�
 
   it('무급 가족종사는 생활비 몫만 받고, 나머지 일의 값 일부가 가업에 쌓이며, 부모가 떠나면 가업을 잇는다', () => {
     const s = adult('FAMILY-1', 28);
-    takeJob(s, 'family_store_helper');
+    expect(takeJob(s, 'family_store_helper')).not.toBeNull();
     expect(currentType(s)).toBe('family');
     const estate = s.ch.family.estate;
     yearEnd(s);
@@ -259,17 +276,17 @@ describe('고용 형태가 소득·계약·시간에 실제로 다르게 작동�
 
   it('근로시간이 한 해의 시간 포인트를 바꾼다: 주 25시간 이하 3, 보통 2, 주 52시간 이상 1', () => {
     const part = seedWithOffer('PT', 'nanny', 'parttime');
-    takeJob(part, 'nanny');
+    expect(takeJob(part, 'nanny')).not.toBeNull();
     expect(timePointsFor(part)).toBe(3);
     // 시간제라도 주 35시간 카페 일은 보통 일과 같다
     const barista = seedWithOffer('PT-CAFE', 'cafe_barista', 'parttime');
-    takeJob(barista, 'cafe_barista');
+    expect(takeJob(barista, 'cafe_barista')).not.toBeNull();
     expect(timePointsFor(barista)).toBe(2);
     const office = adult('PT-OFFICE');
-    takeJob(office, 'sme_office');
+    expect(takeJob(office, 'sme_office')).not.toBeNull();
     expect(timePointsFor(office)).toBe(2);
-    const long = adult('PT-LONG');
-    takeJob(long, 'executive');
+    const long = adult('PT-LONG', 45, 'university');
+    expect(takeJob(long, 'executive')).not.toBeNull();
     expect(timePointsFor(long)).toBe(1);
   });
 });
@@ -281,7 +298,7 @@ describe('취업 → 일 → 계약 만료 → 실직·구직급여 → 경력 �
   function endingContract(): GameState {
     for (let i = 0; i < 300; i++) {
       const s = seedWithOffer(`CONTRACT-${i}`, 'sme_office', 'contract');
-      takeJob(s, 'sme_office');
+      expect(takeJob(s, 'sme_office')).not.toBeNull();
       yearEnd(s);
       yearEnd(s);
       if (s.ch.career.work?.ending) return s;
@@ -346,7 +363,7 @@ describe('취업 → 일 → 계약 만료 → 실직·구직급여 → 경력 �
 
   it('스스로 그만두면 구직급여가 없고, 다시 지원해 들어갈 수 있다', () => {
     const s = adult('QUIT-1');
-    takeJob(s, 'factory');
+    expect(takeJob(s, 'factory')).not.toBeNull();
     yearEnd(s);
     yearEnd(s);
     s.phase = 'action';
@@ -387,9 +404,16 @@ describe('취업 → 일 → 계약 만료 → 실직·구직급여 → 경력 �
     grantLicense(people[1], 'driver_1');
     grantLicense(people[1], 'driver_large');
     grantLicense(people[1], 'bus_cert');
+    // 판결 결격 중인 사람과 정년을 넘긴 사람도 (임용 자격의 빠른 판정과 문장 목록이 같아야 한다)
+    const barred = adult('REQ-5', 31, 'university');
+    addSentence(barred.ch, { age: 30, crime: 'theft', kind: 'probation', months: 12, until: 32 });
+    people.push(barred, adult('REQ-6', 63, 'university'));
     for (const s of people) {
       const scope = buildScope(s);
-      for (const job of JOBS) expect(jobRequirements(s, job, scope).every((r) => r.ok), `${job.id} @${s.ch.age}`).toBe(meetsJob(s, job));
+      for (const job of JOBS) {
+        expect(jobRequirements(s, job, scope).every((r) => r.ok), `${job.id} @${s.ch.age}`).toBe(meetsJob(s, job));
+        expect(appointIssues(s, job).length === 0, `${job.id} @${s.ch.age}`).toBe(canAppoint(s, job));
+      }
     }
   });
 
@@ -444,23 +468,23 @@ describe('부업: 시간·피로·겸직 금지·일정 충돌', () => {
     const taxi = adult('SIDE-TAXI');
     grantLicense(taxi, 'driver_1');
     grantLicense(taxi, 'taxi_cert');
-    takeJob(taxi, 'taxi_driver');
+    expect(takeJob(taxi, 'taxi_driver')).not.toBeNull();
     expect(sideJobBlock(taxi, JOB_BY_ID.get('designated_driver')!)).toContain('겹친다');
 
     const official = adult('SIDE-CIVIL');
-    takeJob(official, 'civil_servant');
+    expect(takeJob(official, 'civil_servant')).not.toBeNull();
     expect(sideJobBlock(official, JOB_BY_ID.get('translator')!)).toContain('겸직');
 
     const long = adult('SIDE-LONG');
     grantLicense(long, 'driver_1');
-    takeJob(long, 'restaurant_owner');
+    expect(takeJob(long, 'restaurant_owner')).not.toBeNull();
     expect(sideJobBlock(long, JOB_BY_ID.get('designated_driver')!)).toContain('72시간');
   });
 
   it('사무직이 밤에 대리운전을 하면 시간 한 칸이 줄고, 연말에 부업 소득과 피로가 남는다. 겸직 금지 직업으로 옮기면 부업은 접힌다', () => {
     const s = adult('SIDE-OK');
     grantLicense(s, 'driver_1');
-    takeJob(s, 'sme_office');
+    expect(takeJob(s, 'sme_office')).not.toBeNull();
     s.phase = 'action';
     const before = timePointsFor(s);
     const r = takeSideJob(s, 'designated_driver');
@@ -472,7 +496,7 @@ describe('부업: 시간·피로·겸직 금지·일정 충돌', () => {
     const y = ledgerOf(s.ch).at(-1)!;
     expect(y.side).toBeGreaterThan(0);
     expect(s.ch.state.stress).toBeGreaterThan(stress);
-    takeJob(s, 'civil_servant');
+    expect(takeJob(s, 'civil_servant')).not.toBeNull();
     expect(s.ch.career.work!.side).toBeUndefined();
   });
 });
@@ -508,7 +532,7 @@ describe('자격·면허: 떨어져도 다시 응시하고, 갱신을 놓치면 
   it('운전면허: 갱신 기한을 1년 넘기면 효력을 잃고 그 면허가 필요한 일을 계속할 수 없다. 갱신하면 이어진다', () => {
     const lapse = adult('LIC-LAPSE', 40);
     grantLicense(lapse, 'driver_1', 30); // 40세 갱신
-    takeJob(lapse, 'designated_driver');
+    expect(takeJob(lapse, 'designated_driver')).not.toBeNull();
     expect(lapse.ch.career.work!.licenses!.driver_1.renewAt).toBe(40);
     yearEnd(lapse); // 40세 말: 유예 중
     expect(lapse.ch.career.jobId).toBe('designated_driver');
@@ -519,7 +543,7 @@ describe('자격·면허: 떨어져도 다시 응시하고, 갱신을 놓치면 
 
     const renew = adult('LIC-RENEW', 40);
     grantLicense(renew, 'driver_1', 30);
-    takeJob(renew, 'designated_driver');
+    expect(takeJob(renew, 'designated_driver')).not.toBeNull();
     renew.phase = 'action';
     expect(studyLicense(renew, 'driver_1').ok).toBe(true);
     expect(renew.ch.career.work!.licenses!.driver_1.renewAt).toBe(50);
@@ -546,7 +570,7 @@ describe('자격·면허: 떨어져도 다시 응시하고, 갱신을 놓치면 
 describe('산재와 체불: 고른 처리에 따라 소득과 받을 돈이 달라진다', () => {
   function injured(choice: number): GameState {
     const s = seedWithOffer('INJ', 'welder', 'regular', (x) => grantLicense(x, 'welder'));
-    takeJob(s, 'welder');
+    expect(takeJob(s, 'welder')).not.toBeNull();
     s.step = 'yearStart';
     expect(presentCard(s, { eventId: 'work_injury', ctx: {} })).toBe(true);
     choose(s, choice);
@@ -572,7 +596,7 @@ describe('산재와 체불: 고른 처리에 따라 소득과 받을 돈이 달�
   it('체불 진정을 넣으면 받을 돈이 남고, 회수되면 그해 소득에 들어오며 태그가 사라진다', () => {
     for (let i = 0; i < 60; i++) {
       const s = adult(`ARREARS-${i}`);
-      takeJob(s, 'shipyard_worker');
+      expect(takeJob(s, 'shipyard_worker')).not.toBeNull();
       s.step = 'yearStart';
       expect(presentCard(s, { eventId: 'work_wage_arrears', ctx: {} })).toBe(true);
       choose(s, 0); // 진정
@@ -600,7 +624,7 @@ describe('산재와 체불: 고른 처리에 따라 소득과 받을 돈이 달�
 describe('저장·불러오기와 옛 저장', () => {
   it('계약·부업·면허·체불·원장이 있는 상태를 저장·재개해도 같은 결과로 이어진다', () => {
     const s = seedWithOffer('SAVE-WORK', 'sme_office', 'contract', (x) => grantLicense(x, 'driver_1'));
-    takeJob(s, 'sme_office');
+    expect(takeJob(s, 'sme_office')).not.toBeNull();
     s.phase = 'action';
     takeSideJob(s, 'designated_driver');
     workOf(s.ch).arrears = { amount: 3_000_000, since: s.ch.age };
@@ -618,10 +642,16 @@ describe('저장·불러오기와 옛 저장', () => {
   it('career.work가 없는 옛 저장의 기존 직업 ID: 표준 형태로 읽고, 연봉은 그대로이며, 모르는 계약 만료일을 만들지 않는다', () => {
     for (const id of Object.keys(LEGACY)) {
       if (id === 'self_employed') continue;
+      // 직업 확장 전 저장: 그때 이미 다니던 일 (지금 나이에 새로 임용될 수 있는지와 상관없다. 부사관 27세 상한 등)
       const s = adult(`OLD-${id}`, 40, 'university');
-      takeJob(s, id);
-      s.ch.career.years = 5;
-      delete s.ch.career.work; // 직업 확장 전 저장
+      const def = JOB_BY_ID.get(id)!;
+      const c = s.ch.career;
+      c.jobId = id;
+      c.title = def.title;
+      c.years = 5;
+      c.salary = jobSalary(def, 5, 1, 1);
+      c.history = [{ jobId: id, title: def.title, fromAge: 35 }];
+      delete c.work;
       const storage = memoryStorage();
       saveGame(s, storage);
       const old = loadGame(storage)!;
@@ -638,15 +668,221 @@ describe('저장·불러오기와 옛 저장', () => {
   });
 
   it('직업을 잃게 만드는 기존 경로(사건 loseJob)는 까닭을 짐작해 남긴다: 위로금이 붙으면 권고사직', () => {
-    const s = adult('LOSE-1');
-    takeJob(s, 'large_corp');
+    const s = adult('LOSE-1', 30, 'university');
+    expect(takeJob(s, 'large_corp')).not.toBeNull();
     s.ch.career.years = 10;
     leaveJob(s, 12);
     expect(s.ch.career.work!.exit!.reason).toBe('layoff');
     const q = adult('LOSE-2');
-    takeJob(q, 'delivery_rider');
+    expect(takeJob(q, 'delivery_rider')).not.toBeNull();
     q.ch.career.years = 5;
     // 플랫폼 노동은 퇴직금이 없다
     expect(leaveJob(q, 0)).toBe(0);
+  });
+});
+
+// ── R-018: 임용 직전 공통 자격 ──────────────────────────────
+
+describe('R-018: 공고·시험 사건·직접 효과·후계자 생성이 같은 임용 자격을 본다', () => {
+  // 30세 절도로 징역 1년·집행유예 2년(유예 종료 32세) → 공공 부문 결격은 유예가 끝나고 2년, 34세가 되면 풀린다
+  const BAR_END = 34;
+  const TIMINGS = [
+    { age: 31, barred: true, label: '결격 기간 안' },
+    { age: BAR_END - 1, barred: true, label: '종료 직전' },
+    { age: BAR_END, barred: false, label: '종료 뒤' },
+  ];
+
+  function reload(s: GameState): GameState {
+    const storage = memoryStorage();
+    expect(saveGame(s, storage)).toBe(true);
+    return loadGame(storage)!;
+  }
+
+  /** 판결 기록이 있는 대졸 직장인을 그 나이로 만들고, 저장했다 불러온 상태를 돌려준다 */
+  function convicted(seed: string, age: number): GameState {
+    const s = adult(seed, 30, 'university');
+    s.ch.edu.univ = { name: '가상대학교', tier: 'B', startAge: 19, years: 4 };
+    s.ch.stats.intelligence = 100;
+    s.ch.stats.stamina = 80;
+    s.ch.legal.convictions = 1;
+    s.ch.legal.probationUntil = 32;
+    addSentence(s.ch, { age: 30, crime: 'theft', kind: 'probation', months: 12, until: 32 });
+    // 결격과 상관없는 민간 일자리에 다니고 있다 (임용이 막히면 이 일이 그대로 남아야 한다)
+    expect(takeJob(s, 'sme_office')).not.toBeNull();
+    s.ch.age = age;
+    s.year = s.ch.birthYear + age;
+    s.world.year = s.year;
+    s.phase = 'action';
+    s.card = undefined;
+    s.queue = [];
+    s.scheduled = [];
+    return reload(s);
+  }
+
+  /** 직업·이력·연봉·고용 형태가 그대로인지 비교할 지문 */
+  const careerPrint = (s: GameState) =>
+    JSON.stringify([s.ch.career.jobId, s.ch.career.title, s.ch.career.salary, s.ch.career.history, s.ch.career.work?.type]);
+
+  for (const t of TIMINGS) {
+    it(`${t.label}(${t.age}세): 공통 판정·takeJob·직접 효과(getJob)·공고·직접 지원이 같은 결론이고, 막히면 기존 직업이 그대로다`, () => {
+      const s = convicted(`R018-${t.age}`, t.age);
+      const civil = JOB_BY_ID.get('civil_servant')!;
+      const police = JOB_BY_ID.get('police_officer')!;
+      const teacher = JOB_BY_ID.get('teacher')!;
+      for (const job of [civil, police, teacher]) {
+        expect(jobBarred(s.ch, job), job.id).toBe(t.barred);
+        expect(canAppoint(s, job), job.id).toBe(!t.barred);
+        expect(meetsJob(s, job), job.id).toBe(!t.barred);
+        expect(jobRequirements(s, job).some((r) => r.label === '결격 기간 (판결)'), job.id).toBe(t.barred);
+      }
+      // 같은 사람이 결격과 무관한 직업에는 언제나 임용될 수 있다
+      expect(canAppoint(s, JOB_BY_ID.get('large_corp')!)).toBe(true);
+
+      // 1) takeJob 자체
+      const before = careerPrint(s);
+      const direct = reload(s);
+      const got = takeJob(direct, 'civil_servant');
+      if (t.barred) {
+        expect(got).toBeNull();
+        expect(careerPrint(direct)).toBe(before);
+      } else {
+        expect(got?.id).toBe('civil_servant');
+        expect(direct.ch.career.history.map((h) => h.jobId)).toEqual(['sme_office', 'civil_servant']);
+      }
+
+      // 2) 사건의 직접 효과 getJob (선택지 조건이 결격을 거르지 못한 사건이라도)
+      const fx = reload(s);
+      const changes: Change[] = [];
+      applyEffects(fx, { do: [{ type: 'getJob', job: 'civil_servant' }] }, { ctx: {}, rng: rngFor('R018-FX', t.age), changes });
+      expect(fx.ch.career.jobId).toBe(t.barred ? 'sme_office' : 'civil_servant');
+      if (t.barred) {
+        expect(careerPrint(fx)).toBe(before);
+        expect(changes.map((c) => c.text).join()).toContain('임용 결격');
+        expect(fx.log.at(-1)?.title).toBe('임용 취소');
+      }
+      // 저장·재개 뒤에도 같은 결론
+      expect(reload(fx).ch.career.jobId).toBe(fx.ch.career.jobId);
+
+      // 3) 공고와 직접 지원: 결격 중에는 공공 부문 공고가 없고, 지원은 시간·지원 기록을 쓰지 않고 거절된다
+      const post = reload(s);
+      expect(jobOpenings(post).filter((o) => jobBarred(post.ch, o.job))).toEqual([]);
+      const left = post.points.left;
+      const r = applyForJob(post, 'police_officer');
+      if (t.barred) {
+        expect(r.ok).toBe(false);
+        expect(r.text).toContain('결격 기간');
+        expect(post.points.left).toBe(left);
+        expect(post.ch.career.appliedThisYear).not.toContain('police_officer');
+        expect(careerPrint(post)).toBe(before);
+      } else {
+        // 결격이 끝나면 지원 자체는 받아 준다 (붙는지는 합격 가능성이 정한다)
+        expect(post.ch.career.appliedThisYear).toContain('police_officer');
+        expect(r.ok ? post.ch.career.jobId === 'police_officer' : r.text.includes('불합격')).toBe(true);
+      }
+    });
+  }
+
+  it('9급 공채: 결격 중에도 응시는 할 수 있고 합격해도 임용되지 않는다. 종료 뒤에는 같은 시험이 임용으로 이어진다 (저장·재개 포함)', () => {
+    for (const t of TIMINGS) {
+      let passed = 0;
+      for (let i = 0; i < 12; i++) {
+        const s = convicted(`R018-EXAM-${t.age}-${i}`, t.age);
+        s.ch.flags.gongsi = { since: t.age - 1 };
+        const before = careerPrint(s);
+        // 응시: 결격이어도 시험 카드와 '답안지를 제출한다'가 있다
+        expect(presentCard(s, { eventId: 'gongsi_exam', ctx: {} }), t.label).toBe(true);
+        const submit = s.card!.choices.findIndex((c) => c.text === '답안지를 제출한다');
+        expect(submit, t.label).toBeGreaterThanOrEqual(0);
+        choose(s, submit);
+        const success = s.card!.result!.success;
+        proceed(s);
+        const after = reload(s);
+        if (!success) {
+          expect(careerPrint(after)).toBe(before);
+          continue;
+        }
+        passed++;
+        // 합격: 결격이면 임용 취소(기존 직업 그대로), 아니면 임용
+        expect(after.ch.career.jobId, t.label).toBe(t.barred ? 'sme_office' : 'civil_servant');
+        if (t.barred) expect(careerPrint(after)).toBe(before);
+        expect(after.ch.flags.gongsi).toBeUndefined();
+      }
+      expect(passed, t.label).toBeGreaterThan(0);
+    }
+  });
+
+  it('후계자 생성: 결격 기간에는 공공 부문 직업이 후보에 없고 끝나면 들어온다. 실제 후계자의 직업은 모두 임용 자격을 갖췄다', () => {
+    const publicJobs = (s: GameState) => heirJobCandidates(s).filter((j) => j.publicBar || BARRED_JOBS.includes(j.id));
+    for (const t of TIMINGS) {
+      const s = convicted(`R018-HEIR-${t.age}`, t.age);
+      const pub = publicJobs(s);
+      if (t.barred) expect(pub, t.label).toEqual([]);
+      else expect(pub.map((j) => j.id), t.label).toContain('police_officer');
+      for (const j of heirJobCandidates(s)) expect(canAppoint(s, j), j.id).toBe(true);
+    }
+    // continueAsChild가 만든 일하는 후계자: 나이·학력·면허·결격이 모두 맞는다
+    let working = 0;
+    for (let i = 0; i < 40; i++) {
+      const seed = `R018-HEIR-LIFE-${i}`;
+      const p = newGame({ seed, mode: 'reality', birthYear: 2026 });
+      p.ch.age = 65;
+      p.year = p.ch.birthYear + 65;
+      p.world.year = p.year;
+      p.ch.npcs = [];
+      const child = haveChild(p, rngFor(seed, 'child'));
+      child.birthYear = p.year - 35;
+      p.ch.alive = false;
+      p.phase = 'dead';
+      p.ch.death = { age: 65, year: p.year, cause: '검사' };
+      const heir = continueAsChild(p, child.id)!;
+      const id = heir.ch.career.jobId;
+      if (!id) continue;
+      working++;
+      expect(appointIssues(heir, JOB_BY_ID.get(id)!), id).toEqual([]);
+      expect(heir.ch.career.history).toHaveLength(1);
+    }
+    expect(working).toBeGreaterThan(10);
+  });
+
+  it('나이·학력·면허가 모자라도 takeJob은 아무것도 바꾸지 않고, 사건 효과는 까닭을 남긴다', () => {
+    const s = adult('R018-OTHER', 40, 'high');
+    expect(takeJob(s, 'factory')).not.toBeNull();
+    const before = careerPrint(s);
+    expect(takeJob(s, 'nco')).toBeNull(); // 19~27세
+    expect(takeJob(s, 'doctor')).toBeNull(); // 대졸
+    expect(takeJob(s, 'bus_driver')).toBeNull(); // 1종 대형·버스운전자격
+    expect(careerPrint(s)).toBe(before);
+    expect(appointIssues(s, JOB_BY_ID.get('bus_driver')!).map((i) => i.kind)).toEqual(['license', 'license']);
+    const changes: Change[] = [];
+    applyEffects(s, { do: [{ type: 'getJob', job: 'doctor' }] }, { ctx: {}, rng: rngFor('R018-OTHER'), changes });
+    expect(careerPrint(s)).toBe(before);
+    expect(changes[0].text).toContain('채용 무산');
+    expect(changes[0].text).toContain('대졸 이상');
+  });
+
+  it('재직 중에 결격 사유가 생기면 연말에 당연퇴직하고, 결격이 끝나면 다시 지원할 수 있다', () => {
+    const s = adult('R018-DISMISS', 30, 'high');
+    s.ch.stats.stamina = 80;
+    s.ch.stats.intelligence = 80;
+    expect(takeJob(s, 'firefighter')).not.toBeNull();
+    s.ch.legal.convictions = 1;
+    addSentence(s.ch, { age: 30, crime: 'theft', kind: 'probation', months: 12, until: 32 });
+    yearEnd(s);
+    expect(s.ch.career.jobId).toBeUndefined();
+    expect(s.ch.career.work!.exit!.reason).toBe('dismissed');
+    expect(s.log.some((l) => l.title === '당연퇴직')).toBe(true);
+    s.ch.age = BAR_END;
+    expect(canAppoint(s, JOB_BY_ID.get('firefighter')!)).toBe(true);
+  });
+
+  it('창업도 같은 임용 자격을 본다: 자영업 최소 나이 전이면 돈도 일도 그대로다', () => {
+    const s = adult('R018-BIZ', 19, 'high');
+    const cash = s.ch.res.cash;
+    expect(startBusiness(s, 0.5, '가게')).toBe(0);
+    expect(s.ch.res.cash).toBe(cash);
+    expect(s.ch.career.jobId).toBeUndefined();
+    s.ch.age = 20;
+    expect(startBusiness(s, 0.5, '가게')).toBeGreaterThan(0);
+    expect(s.ch.career.jobId).toBe('self_employed');
   });
 });

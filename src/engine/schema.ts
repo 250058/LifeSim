@@ -331,6 +331,11 @@ export interface JobDef {
   side?: boolean;
   /** 겸직이 금지된 직업 (공무원·군인·공기업 등) */
   noSide?: boolean;
+  /**
+   * 공공 부문 결격(국가공무원법 33조: 집행유예가 끝나고 2년, 실형은 출소하고 5년)을 따르는 직업.
+   * 공무원·군인·교원과 인사규정이 이를 준용하는 공공기관. records.ts의 결격 직업 목록에 더한다 (career.ts jobBarred)
+   */
+  publicBar?: boolean;
   /** 승진 사다리가 없는 직업 (운동선수·작가 등) */
   flat?: boolean;
   /** 나이 든 사람도 많이 뽑는다: 45세 이상 감점이 없다 (경비·청소·돌봄·농업·운전 등) */

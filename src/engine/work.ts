@@ -17,12 +17,11 @@
 // 사건 카드는 효과로 '의사 표시 태그'(work_*)만 붙이고, 실제 계약·소득·면허 처리는 연말에 여기서 한다.
 
 import { evaluate, type Scope } from './conditions';
-import { DEGREE_LABEL, DEGREE_RANK, jobSalary, leaveJob, meetsJob, TIER_LABEL, TIER_RANK } from './career';
+import { appointChecks, DEGREE_LABEL, DEGREE_RANK, jobBarred, jobSalary, leaveJob, meetsJob, TIER_LABEL, TIER_RANK } from './career';
 import { JOB_BY_ID, JOB_TABLES } from './data';
 import { addFlag, changeAttr } from './effects';
 import { formatWon, HIGH_TYPE_LABEL, josa } from './format';
 import type { ActionResult } from './game';
-import { barredFromJob } from './records';
 import { alive, changeCloseness } from './relations';
 import { rngFor, type Rng } from './rng';
 import type { JobDef } from './schema';
@@ -326,9 +325,8 @@ export function degreeOk(ch: Character, job: JobDef): boolean {
   return DEGREE_RANK[ch.edu.degree] >= DEGREE_RANK[job.minDegree] || isTrained(ch, job.training);
 }
 
-/** 학력·나이·결격 밖의 조건: 면허, 고교 유형, 경력, 작품 */
+/** 임용 자격(나이·학력·면허·결격, career.ts appointChecks) 밖의 선발 기준: 고교 유형, 경력, 작품 */
 export function extraRequirementsOk(ch: Character, job: JobDef): boolean {
-  if (job.licenses && !job.licenses.every((id) => hasLicense(ch, id))) return false;
   if (job.highTypes && !(ch.edu.highType && job.highTypes.includes(ch.edu.highType))) return false;
   if (job.minExp && fieldExperience(ch, job.expField ?? job.field) < job.minExp) return false;
   if (job.portfolio && !ch.talents.some((t) => t.key === job.portfolio && t.discovered)) return false;
@@ -340,29 +338,24 @@ export interface Requirement {
   ok: boolean;
 }
 
-/** 화면에 보여 줄 지원 조건과 지금 충족 여부 (meetsJob과 같은 규칙) */
+/**
+ * 화면에 보여 줄 지원 조건과 지금 충족 여부 (meetsJob과 같은 규칙). 앞쪽은 모든 진입 경로가 보는 임용 자격
+ * (나이·학력·면허·결격, career.ts appointChecks), 뒤쪽은 공고의 선발 기준이다
+ */
 export function jobRequirements(state: GameState, job: JobDef, scope?: Scope): Requirement[] {
   const ch = state.ch;
-  const out: Requirement[] = [];
-  const ageLabel = job.maxAge !== undefined ? `${job.minAge}~${job.maxAge}세` : `${job.minAge}세 이상`;
-  out.push({ label: ageLabel, ok: ch.age >= job.minAge && (job.maxAge === undefined || ch.age <= job.maxAge) && ch.age < job.retireAge });
-  if (job.minDegree !== 'none') {
-    const alt = job.training ? ` (또는 ${TRAINING_TRACKS[job.training]?.label ?? job.training} 이수)` : '';
-    out.push({ label: `${DEGREE_LABEL[job.minDegree]} 이상${alt}`, ok: degreeOk(ch, job) });
-  }
+  const out: Requirement[] = appointChecks(state, job).map(({ label, ok }) => ({ label, ok }));
   if (job.minTier) {
     const t = ch.edu.univ?.tier;
     out.push({ label: `${TIER_LABEL[job.minTier]} 이상 대학`, ok: Boolean(t && ch.edu.degree === 'university' && TIER_RANK[t] >= TIER_RANK[job.minTier]) });
   }
   if (job.highTypes) out.push({ label: job.highTypes.map((h) => HIGH_TYPE_LABEL[h]).join('·'), ok: Boolean(ch.edu.highType && job.highTypes.includes(ch.edu.highType)) });
-  for (const id of job.licenses ?? []) out.push({ label: LICENSE_BY_ID.get(id)?.name ?? id, ok: hasLicense(ch, id) });
   if (job.minExp) {
     const f = job.expField ?? job.field;
     out.push({ label: `${FIELD_BY_ID.get(f ?? '')?.label ?? '같은 분야'} 경력 ${job.minExp}년`, ok: fieldExperience(ch, f) >= job.minExp });
   }
   if (job.portfolio) out.push({ label: `${TALENT_LABEL[job.portfolio]} 실적(재능 발견)`, ok: ch.talents.some((t) => t.key === job.portfolio && t.discovered) });
   if (job.req) out.push({ label: describeReq(job.req), ok: evaluate(job.req, scope ?? reqScope(state)) });
-  if (barredFromJob(ch, job.id)) out.push({ label: '결격 기간 (판결)', ok: false });
   return out;
 }
 
@@ -679,10 +672,18 @@ function settleContract(state: GameState, job: JobDef): void {
   }
 }
 
+/** 일터 태그(work_*)가 하나라도 있는가 */
+function hasWorkFlag(f: Character['flags']): boolean {
+  for (const id in f) if (id.startsWith('work_')) return true;
+  return false;
+}
+
 /** 사건 카드가 붙인 의사 표시 태그를 연말에 실제 상태로 옮긴다 */
 function resolveIntents(state: GameState, job: JobDef | undefined): number {
   const ch = state.ch;
   const f = ch.flags;
+  // 의사 표시 태그도, 만료 통보도, 받을 임금도 없으면 할 일이 없다 (아이들과 대부분의 해. 일 기록도 만들지 않는다)
+  if (!hasWorkFlag(f) && !ch.career.work?.ending && !ch.career.work?.arrears) return 0;
   const w = workOf(ch);
   const pi = state.world.economy.priceIndex;
   const rng = rngFor(state.seed, 'work-intent', ch.age);
@@ -758,8 +759,9 @@ function resolveIntents(state: GameState, job: JobDef | undefined): number {
   for (const id of Object.keys(f)) {
     if (!id.startsWith('work_study_')) continue;
     delete f[id];
+    // 사건에서 등록한 공부도 응시 조건(나이·학력·선행 면허·한 해 한 번)은 행동과 같다
     const def = LICENSE_BY_ID.get(id.slice('work_study_'.length));
-    if (def && !hasLicense(ch, def.id)) attemptLicense(state, def, 'intent');
+    if (def && !licenseBlock(state, def)) attemptLicense(state, def, 'intent');
   }
   if (f.work_renew) {
     delete f.work_renew;
@@ -818,9 +820,9 @@ function finishTraining(state: GameState, track: string, def: (typeof TRAINING_T
 /** 부업 소득과 피로 */
 function settleSide(state: GameState): number {
   const ch = state.ch;
-  const w = workOf(ch);
-  const side = w.side;
+  const side = ch.career.work?.side;
   if (!side) return 0;
+  const w = workOf(ch);
   const job = JOB_BY_ID.get(side.jobId);
   if (!job) {
     delete w.side;
@@ -868,6 +870,17 @@ function settleFamilyWork(state: GameState, job: JobDef): void {
   }
   const base2026 = jobSalary(job, ch.career.years, 1, 1);
   ch.family.estate += Math.round(base2026 * (1 - TYPE_PAY.family) * 0.3);
+}
+
+/**
+ * 재직 중에 결격 사유가 생기면 당연퇴직한다 (국가공무원법 69조, 공공기관 인사규정의 준용은 추정 규칙).
+ * 판결 직후 처리(justice.ts)는 records.ts의 결격 직업만 보므로, publicBar 직업도 같은 해 연말에 여기서 정리한다
+ */
+function dismissIfBarred(state: GameState, job: JobDef): boolean {
+  if (!jobBarred(state.ch, job)) return false;
+  leaveJob(state, 0, 'dismissed');
+  log(state, '당연퇴직', `판결로 결격 사유가 생겨 ${josa(job.title, '을/를')} 더는 할 수 없게 됐다. 결격 기간이 끝나면 다시 지원할 수 있다.`, 'tragedy', 12);
+  return true;
 }
 
 /** 정년이 없는 형태(자영업·프리랜서·플랫폼·일용·가족종사)는 그 직업의 은퇴 나이에 스스로 일을 접는다 */
@@ -931,7 +944,7 @@ export function workYearEnd(state: GameState, main: WorkIncome): number {
   const type = currentType(state);
   const jobIdAtYear = ch.career.jobId;
   let benefit = resolveIntents(state, job);
-  if (job && ch.career.jobId === job.id) {
+  if (job && ch.career.jobId === job.id && !dismissIfBarred(state, job)) {
     settleContract(state, job);
     scheduleWear(state, job);
     settleFamilyWork(state, job);
@@ -1174,20 +1187,45 @@ export function quitSideJob(state: GameState): ActionResult {
 
 // ── 조건식이 읽는 값 (scope.ts의 job.*) ───────────────────
 
-/** job.* 에 더하는 값. 일이 없으면 모두 0·false·'none' (검증 도구가 키를 알아야 하므로 늘 같은 키) */
-export function workScope(state: GameState): Record<string, unknown> {
+const NO_SCHEDULE: readonly WorkSchedule[] = [];
+
+/** 효력 있는 면허·자격 수 */
+function licenseCount(w: WorkState | undefined): number {
+  let n = 0;
+  for (const id in w?.licenses ?? {}) {
+    const r = w!.licenses![id];
+    if (r.passed !== undefined && !r.lapsed) n++;
+  }
+  return n;
+}
+
+/**
+ * 조건식의 job.* 전체 (scope.ts). 일이 없으면 모두 0·false·'none' (검증 도구가 키를 알아야 하므로 늘 같은 키).
+ * 조건식 범위는 해마다 수없이 만들어지므로 한 개의 객체 리터럴로 만든다 (다른 객체를 펼쳐 넣으면 느리다).
+ * 앞의 열 개는 직업 확장 전부터 있던 값이고, 희망퇴직(layoffRisk)은 정규직·계약직, 정년퇴직 카드(atRetireAge)는
+ * 조직에 속한 일만 대상이다 (자영업·프리랜서는 그 직업의 은퇴 나이에 스스로 접는다: selfRetire)
+ */
+export function jobScope(state: GameState): Record<string, unknown> {
   const ch = state.ch;
   const c = ch.career;
   const w = c.work;
   const job = c.jobId ? JOB_BY_ID.get(c.jobId) : undefined;
   const type = currentType(state);
-  const sched = job?.schedule ?? [];
-  let licenses = 0;
-  for (const id in w?.licenses ?? {}) {
-    const r = w!.licenses![id];
-    if (r.passed !== undefined && !r.lapsed) licenses++;
-  }
+  const sched = job?.schedule ?? NO_SCHEDULE;
+  const org = Boolean(type && ORG_TYPES.has(type));
+  const employee = Boolean(type && EMPLOYEE_TYPES.has(type));
+  const unemployed = ch.flags.unemployed;
   return {
+    id: c.jobId ?? 'none',
+    employed: Boolean(c.jobId),
+    salary: c.salary,
+    years: c.years,
+    business: Boolean(c.business),
+    retired: c.retired,
+    layoffRisk: job && type && LAYOFF_TYPES.has(type) ? job.layoffRisk : 0,
+    stress: job ? job.stress : 0,
+    retireAge: job ? job.retireAge : 0,
+    atRetireAge: Boolean(job && !c.business && ch.age >= job.retireAge && org),
     type: type ?? 'none',
     field: job?.field ?? 'none',
     hours: currentHours(state),
@@ -1199,26 +1237,26 @@ export function workScope(state: GameState): Record<string, unknown> {
     seasonal: sched.includes('seasonal'),
     injury: job?.injury ?? 0,
     injuryCover: Boolean(type && INJURY_COVER_TYPES.has(type)),
-    employee: Boolean(type && EMPLOYEE_TYPES.has(type)),
+    employee,
     customer: Boolean(job?.customer),
-    arrearsRisk: job && type && EMPLOYEE_TYPES.has(type) ? job.arrears ?? 1 : 0,
+    arrearsRisk: job && employee ? job.arrears ?? 1 : 0,
     automation: job?.automation ?? 0,
-    org: Boolean(type && ORG_TYPES.has(type)),
+    org,
     ladder: Boolean(job && (type === 'regular' || type === 'contract') && !job.flat),
     contract: Boolean(c.jobId && w?.contractUntil !== undefined),
     contractEnding: Boolean(c.jobId && w?.ending),
     renewals: w?.renewals ?? 0,
     canDispatch: Boolean(job?.employment?.dispatch) && type !== 'dispatch',
     hasSide: Boolean(w?.side),
-    seeking: Boolean(ch.flags.unemployed),
-    joblessYears: ch.flags.unemployed ? ch.age - ch.flags.unemployed.since : 0,
-    lastField: lastField(ch),
+    seeking: Boolean(unemployed),
+    joblessYears: unemployed ? ch.age - unemployed.since : 0,
+    lastField: c.history.length > 0 ? lastField(ch) : 'none',
     injured: Boolean(w?.injury && ch.age - w.injury.age <= 1),
     arrearsOwed: Boolean(w?.arrears),
-    licenses,
-    driver: hasLicense(ch, 'driver_1'),
-    forklift: hasLicense(ch, 'forklift'),
-    licenseDue: licenseDue(ch),
+    licenses: w ? licenseCount(w) : 0,
+    driver: w ? hasLicense(ch, 'driver_1') : false,
+    forklift: w ? hasLicense(ch, 'forklift') : false,
+    licenseDue: w ? licenseDue(ch) : false,
     expYears: job ? fieldExperience(ch, job.expField ?? job.field) : 0,
   };
 }

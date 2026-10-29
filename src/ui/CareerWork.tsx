@@ -2,7 +2,7 @@
 // 자격·면허 공부, 직업훈련. 직업이 수백 개라 찾아보기는 분야와 검색어로 좁히고 조금씩 펼친다.
 
 import { useMemo, useState } from 'react';
-import { jobOpenings, jobSalary } from '../engine/career';
+import { barRuleApplies, jobOpenings, jobSalary } from '../engine/career';
 import { JOBS, JOB_BY_ID } from '../engine/data';
 import { formatWon, formatWonShort } from '../engine/format';
 import { applyForJob, quitJob, type ActionResult } from '../engine/game';
@@ -329,7 +329,13 @@ function JobDetail({
   const allOk = reqs.every((r) => r.ok);
   const applied = c.appliedThisYear.includes(job.id);
   const sideWhy = job.side ? sideJobBlock(game, job) : null;
-  const notes = [scheduleOf(job), INJURY_LABEL[job.injury ?? 0], job.customer ? '고객 응대 많음' : '', job.noSide ? '겸직 금지' : ''].filter(Boolean);
+  const notes = [
+    scheduleOf(job),
+    INJURY_LABEL[job.injury ?? 0],
+    job.customer ? '고객 응대 많음' : '',
+    job.noSide ? '겸직 금지' : '',
+    barRuleApplies(job) ? '판결 결격 기간 적용' : '',
+  ].filter(Boolean);
   return (
     <div style={{ padding: '0 0.25rem 0.75rem' }}>
       <p className="quiet">{job.desc}</p>

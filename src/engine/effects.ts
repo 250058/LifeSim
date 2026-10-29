@@ -2,6 +2,7 @@
 // 적용 순서: 능력치 → 돈 → 태그 추가 → 치료 단계 → 행동(do) → 태그 제거 → 상태 변화 보상 → 예약 → 긴장도 → 사망
 
 import {
+  appointIssues,
   closeBusiness,
   computeCsat,
   csatSummary,
@@ -16,7 +17,6 @@ import { JOB_BY_ID, REGIONS, TAG_BY_ID } from './data';
 import { addImpact } from './director';
 import { formatWon, HIGH_TYPE_LABEL, josa, signedWon } from './format';
 import { prosecute, release } from './justice';
-import { barredFromJob } from './records';
 import {
   addFriend,
   addSibling,
@@ -463,13 +463,28 @@ function runAction(state: GameState, a: Action, ec: EffectContext): void {
       }
       break;
     case 'getJob': {
-      // 공공 부문 결격 기간이면 사건이 주는 직업도 임용되지 않는다 (직업 목록과 같은 조회, records.ts)
-      if (barredFromJob(ch, a.job)) {
-        changes.push({ text: `임용 결격: ${JOB_BY_ID.get(a.job)?.title ?? a.job}`, sign: 'bad' });
+      // 사건이 주는 직업도 공고와 같은 임용 자격(나이·학력·면허·결격, career.ts appointChecks)을 takeJob 안에서
+      // 받는다. 걸리면 지금 하던 일·이력·연봉이 그대로고, 까닭을 변화와 일기에 남긴다 (R-018)
+      const def = JOB_BY_ID.get(a.job);
+      const issues = def ? appointIssues(state, def) : [];
+      const job = issues.length === 0 ? takeJob(state, a.job) : null;
+      if (job) {
+        changes.push({ text: `직업: ${job.title}`, sign: 'good' });
         break;
       }
-      const job = takeJob(state, a.job);
-      changes.push({ text: `직업: ${job.title}`, sign: 'good' });
+      const title = def?.title ?? a.job;
+      const why = issues.map((i) => i.label).join(', ');
+      const barred = issues.some((i) => i.kind === 'barred');
+      changes.push({ text: barred ? `임용 결격: ${title}` : `채용 무산: ${title} (${why})`, sign: 'bad' });
+      state.log.push({
+        year: state.year,
+        age: ch.age,
+        kind: 'event',
+        title: barred ? '임용 취소' : '채용 무산',
+        text: `${josa(title, '으로/로')} 일하게 되지 않았다. ${why} 조건이 안 됐다.`,
+        tone: 'tragedy',
+        impact: 8,
+      });
       break;
     }
     case 'loseJob': {

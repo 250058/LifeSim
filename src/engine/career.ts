@@ -2,12 +2,12 @@
 
 import { evaluate, type Scope } from './conditions';
 import { JOB_BY_ID, JOBS, REGION_BY_ID, WORLD } from './data';
-import { barredFromJob, recordHireFactor } from './records';
+import { BARRED_JOBS, barredFromJob, publicSectorBarred, recordHireFactor } from './records';
 import { rngFor, type Rng } from './rng';
 import { buildScope } from './scope';
 import type { JobDef } from './schema';
 import { ELITE_HIGH } from './format';
-import type { Degree, ExitReason, GameState, HighType, UnivTier } from './types';
+import type { Character, Degree, ExitReason, GameState, HighType, UnivTier } from './types';
 import {
   canStart,
   currentType,
@@ -19,10 +19,12 @@ import {
   hasSeverance,
   isTrained,
   lastField,
+  LICENSE_BY_ID,
   offerFor,
   payFactor,
   standardType,
   startWork,
+  TRAINING_TRACKS,
   workGross,
   workYearEnd,
   type Offer,
@@ -165,27 +167,89 @@ export function jobSalary(job: JobDef, years: number, priceIndex: number, raise:
   return Math.round(base * priceIndex * raise);
 }
 
+// ── 임용 자격 (R-018) ─────────────────────────────────────
+//
+// 응시·합격·임용은 다르다. 시험 공부와 응시는 결격 기간에도 막지 않고(gongsi_exam), 합격 여부는 사건의 판정이
+// 정한다. 아래의 공통 자격은 직업이 실제로 바뀌는 순간(임용·채용)에만, 그리고 모든 경로에 똑같이 적용한다:
+// 공고 지원·직접 지원·지인 추천·경력 복귀(game.ts applyForJob), 사건의 getJob(공채 합격 뒤 임용·마이스터고 채용·
+// 현장실습·드래프트·데뷔·공공 일자리·눈높이를 낮춘 취업), 후계자 생성(heir.ts), 창업(startBusiness), 부업.
+// 모두 takeJob 안에서 이 판정을 받고, 걸리면 지금 하던 일·이력·연봉이 그대로다.
+
+/** 임용 자격 한 줄: 화면의 지원 조건 목록과 '채용되지 않은 까닭'에 그대로 쓴다 */
+export interface AppointCheck {
+  kind: 'age' | 'degree' | 'license' | 'barred';
+  label: string;
+  ok: boolean;
+}
+
+/**
+ * 판결 때문에 이 직업에 임용될 수 없는가. records.ts의 결격 직업(barredFromJob: 9급 공무원·교사·부사관·공기업
+ * 기술직·변호사)에 더해, 직업 정의에 publicBar가 붙은 공무원·군인·교원·공공기관 일자리도 같은 공공 부문
+ * 결격 기간(국가공무원법 33조, 소년법 67조 예외 포함)을 따른다
+ */
+export function jobBarred(ch: Character, job: JobDef): boolean {
+  return barredFromJob(ch, job.id) || (job.publicBar === true && publicSectorBarred(ch));
+}
+
+/** 판결에 따른 결격 기간이 적용되는 직업인가 (화면 안내용. 지금 결격인지는 jobBarred) */
+export function barRuleApplies(job: JobDef): boolean {
+  return job.publicBar === true || BARRED_JOBS.includes(job.id);
+}
+
+/**
+ * 임용 직전의 공통 자격: 나이(최소·최대, 정년 전), 학력(또는 그 분야 직업훈련 이수), 필수 면허·자격,
+ * 판결에 따른 결격. 대학 등급·고교 유형·같은 분야 경력·작품·능력치 조건은 채용 관행(선발 기준)이라
+ * 공고 자격(meetsJob)에서만 본다. 사건이 정한 채용(드래프트·마이스터고 채용 등)은 그 선발을 사건이 대신한다
+ */
+export function appointChecks(state: GameState, job: JobDef): AppointCheck[] {
+  const ch = state.ch;
+  const out: AppointCheck[] = [];
+  const ageLabel = job.maxAge !== undefined ? `${job.minAge}~${job.maxAge}세` : `${job.minAge}세 이상`;
+  const inRange = ch.age >= job.minAge && (job.maxAge === undefined || ch.age <= job.maxAge);
+  out.push({ kind: 'age', label: inRange && ch.age >= job.retireAge ? `${job.retireAge}세 정년 전` : ageLabel, ok: inRange && ch.age < job.retireAge });
+  if (job.minDegree !== 'none') {
+    const alt = job.training ? ` (또는 ${TRAINING_TRACKS[job.training]?.label ?? job.training} 이수)` : '';
+    out.push({ kind: 'degree', label: `${DEGREE_LABEL[job.minDegree]} 이상${alt}`, ok: degreeOk(ch, job) });
+  }
+  for (const id of job.licenses ?? []) out.push({ kind: 'license', label: LICENSE_BY_ID.get(id)?.name ?? id, ok: hasLicense(ch, id) });
+  if (jobBarred(ch, job)) out.push({ kind: 'barred', label: '결격 기간 (판결)', ok: false });
+  return out;
+}
+
+/** 임용을 막는 까닭 (없으면 빈 목록) */
+export function appointIssues(state: GameState, job: JobDef): AppointCheck[] {
+  return appointChecks(state, job).filter((c) => !c.ok);
+}
+
+/**
+ * 지금 이 직업에 임용·채용될 수 있는가 (모든 진입 경로의 공통 자격). appointChecks와 같은 규칙을 문장 없이
+ * 빠르게 본다: 공고 목록이 해마다 직업 수백 개를 훑는다 (두 함수가 같은 답을 내는지는 tests/jobs.test.ts가 본다)
+ */
+export function canAppoint(state: GameState, job: JobDef): boolean {
+  const ch = state.ch;
+  if (ch.age < job.minAge || (job.maxAge !== undefined && ch.age > job.maxAge) || ch.age >= job.retireAge) return false;
+  if (!degreeOk(ch, job)) return false;
+  if (job.licenses && !job.licenses.every((id) => hasLicense(ch, id))) return false;
+  return !jobBarred(ch, job);
+}
+
 export function meetsJob(state: GameState, job: JobDef): boolean {
   return meetsJobWith(state, job, () => buildScope(state));
 }
 
 /**
- * meetsJob과 같은 규칙. 조건식 범위는 필요할 때 한 번만 만든다 (공고 목록이 직업 수백 개를 훑는다).
- * 학력은 그 분야 직업훈련 이수로 대신할 수 있고, 면허·고교 유형·경력·작품 조건은 work.ts가 본다
+ * 공고 자격 = 임용 자격(canAppoint) + 선발 기준(대학 등급·고교 유형·경력·작품·능력치 조건식).
+ * 조건식 범위는 필요할 때 한 번만 만든다 (공고 목록이 직업 수백 개를 훑는다)
  */
 function meetsJobWith(state: GameState, job: JobDef, scope: () => Scope): boolean {
   const ch = state.ch;
-  if (ch.age < job.minAge || (job.maxAge !== undefined && ch.age > job.maxAge)) return false;
-  if (ch.age >= job.retireAge) return false;
-  if (!degreeOk(ch, job)) return false;
+  if (!canAppoint(state, job)) return false;
   if (job.minTier) {
     const t = ch.edu.univ?.tier;
     if (!t || ch.edu.degree !== 'university' || TIER_RANK[t] < TIER_RANK[job.minTier]) return false;
   }
   if (!extraRequirementsOk(ch, job)) return false;
   if (job.req && !evaluate(job.req, scope())) return false;
-  // 공공 부문 결격 기간 (집행유예·실형 뒤, records.ts)
-  if (barredFromJob(ch, job.id)) return false;
   return true;
 }
 
@@ -291,6 +355,8 @@ function postingDraws(seed: string, age: number): Float64Array {
  * 실직 중이면 그만둔 직업(경력 복귀), 지인 추천을 받았으면 추천 자리가 더 붙는다
  */
 export function jobOpenings(state: GameState): JobOpening[] {
+  // 나이 조건을 넘는 공고가 하나도 없으면 (대개 일흔이 넘은 사람) 난수도 뽑지 않는다. 결과는 같다
+  if (listedForAge(state.ch.age).length === 0) return [];
   // 같은 상태로 다시 물으면 (지원 직전 확인, 화면 다시 그리기) 계산을 되풀이하지 않는다
   const memoKey = openingsKey(state);
   const memo = openingsMemo.get(state);
@@ -336,6 +402,21 @@ function openingsKey(state: GameState): string {
   ].join('|');
 }
 
+/** 나이별로 공고에 나올 수 있는 직업의 순번 (공고에 나오는 직업 중 나이·정년 조건만 본 색인. 나이마다 한 번 만든다) */
+const ageIndex = new Map<number, number[]>();
+function listedForAge(age: number): number[] {
+  let list = ageIndex.get(age);
+  if (!list) {
+    list = [];
+    for (let i = 0; i < JOBS.length; i++) {
+      const j = JOBS[i];
+      if (j.listed && age >= j.minAge && (j.maxAge === undefined || age <= j.maxAge) && age < j.retireAge) list.push(i);
+    }
+    ageIndex.set(age, list);
+  }
+  return list;
+}
+
 function computeOpenings(state: GameState): JobOpening[] {
   const ch = state.ch;
   let scope: Scope | undefined;
@@ -350,11 +431,14 @@ function computeOpenings(state: GameState): JobOpening[] {
   };
   const draws = postingDraws(state.seed, ch.age);
   const cands: { job: JobDef; key: number }[] = [];
-  JOBS.forEach((job, i) => {
-    if (!job.listed || job.id === ch.career.jobId || !meetsJobWith(state, job, lazyScope) || !canStart(state, job)) return;
+  // 나이 조건으로 먼저 거른 직업만 자세히 본다 (은퇴 뒤에도 해마다 묻는 봇이 직업 수백 개를 다 훑지 않게).
+  // 열쇠는 직업 목록 순서의 난수를 그대로 쓰므로 결과는 전부 훑을 때와 같다
+  for (const i of listedForAge(ch.age)) {
+    const job = JOBS[i];
+    if (job.id === ch.career.jobId || !meetsJobWith(state, job, lazyScope) || !canStart(state, job)) continue;
     const w = postingWeight(seeker, job);
     if (w > 0) cands.push({ job, key: -Math.log(1 - draws[i]) / w });
-  });
+  }
   cands.sort((a, b) => a.key - b.key);
   const posting = (job: JobDef, boost: number, via?: JobOpening['via']): JobOpening => ({
     job,
@@ -380,9 +464,14 @@ function computeOpenings(state: GameState): JobOpening[] {
   return out;
 }
 
-export function takeJob(state: GameState, jobId: string): JobDef {
+/**
+ * 직업을 얻는다. 직업 상태를 바꾸기 직전에 임용 자격(appointIssues)을 다시 본다: 하나라도 걸리면 아무것도
+ * 바꾸지 않고 null을 돌려준다 (지금 하던 일·이력·연봉·부업·구직 태그 그대로). 까닭은 appointIssues로 읽는다
+ */
+export function takeJob(state: GameState, jobId: string): JobDef | null {
   const job = JOB_BY_ID.get(jobId);
   if (!job) throw new Error(`없는 직업: ${jobId}`);
+  if (!canAppoint(state, job)) return null;
   const c = state.ch.career;
   if (c.jobId) endHistory(state);
   c.jobId = job.id;
@@ -451,7 +540,10 @@ export function retire(state: GameState): number {
   return Math.round(c.pension * state.world.economy.priceIndex);
 }
 
+/** 창업. 자영업 정의(self_employed)의 임용 자격을 같은 규칙으로 보고, 걸리면 돈도 일도 그대로 두고 0을 돌려준다 */
 export function startBusiness(state: GameState, capitalPct: number, name: string): number {
+  const self = JOB_BY_ID.get('self_employed');
+  if (self && !canAppoint(state, self)) return 0;
   const r = state.ch.res;
   const capital = Math.round(Math.max(0, r.cash) * capitalPct);
   r.cash -= capital;

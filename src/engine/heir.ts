@@ -10,6 +10,7 @@
 
 import { timePointsFor } from './activities';
 import { jobSalary, meetsJob, takeJob, computePension } from './career';
+import type { JobDef } from './schema';
 import { JOBS, REGION_BY_ID, WORLD } from './data';
 import { initDirector } from './director';
 import { formatWon, josa } from './format';
@@ -19,6 +20,7 @@ import { rngFor, type Rng } from './rng';
 import { SAVE_VERSION } from './save';
 import { netWorth } from './scope';
 import { syncDerivedFlags } from './game';
+import { currentType, payFactor, standardType } from './work';
 import {
   PERSONALITY_KEYS,
   TALENT_KEYS,
@@ -359,6 +361,14 @@ function guardianLine(ch: Character, guardian: Npc | undefined): string {
   return g ? `${roleLabel(g, ch)} ${josa(g.name, '이/가')} 키운다.` : '';
 }
 
+/**
+ * 후계자가 지금 하고 있을 법한 일: 공고에 나오는 직업 중 공고 자격(meetsJob: 임용 자격 + 선발 기준)을 갖춘 것.
+ * 판결 결격·면허·학력·나이는 다른 진입 경로와 같은 규칙이다 (R-018). 실제 배정은 takeJob이 다시 판정한다
+ */
+export function heirJobCandidates(state: GameState): JobDef[] {
+  return JOBS.filter((j) => j.listed && meetsJob(state, j));
+}
+
 /** 나이에 맞는 학교·병역·직업. 지금보다 늦게 시작하는 기록은 만들지 않는다 */
 function fillSchoolAndWork(state: GameState, rng: Rng, wealth: number): void {
   const ch = state.ch;
@@ -418,18 +428,23 @@ function fillSchoolAndWork(state: GameState, rng: Rng, wealth: number): void {
   const pi = state.world.economy.priceIndex;
   if (age >= 23 && age < 60 && edu.status !== 'university' && rng.chance(0.8)) {
     // 학력에 맞는 일을 더 자주 고른다 (대졸이 편의점 계산대에 서는 경우는 드물다)
-    const jobs = JOBS.filter((j) => j.listed && meetsJob(state, j));
+    const jobs = heirJobCandidates(state);
     if (jobs.length > 0) {
       const mine = DEGREE_RANK[edu.degree];
-      const job = rng.weighted(jobs, (j) => (DEGREE_RANK[j.minDegree] === mine ? 4 : mine - DEGREE_RANK[j.minDegree] >= 2 ? 0.5 : 1))!;
-      takeJob(state, job.id);
+      const pick = rng.weighted(jobs, (j) => (DEGREE_RANK[j.minDegree] === mine ? 4 : mine - DEGREE_RANK[j.minDegree] >= 2 ? 0.5 : 1))!;
+      // 후계자도 다른 경로와 같은 임용 자격을 takeJob 안에서 받는다 (R-018). 걸리면 일 없이 시작한다
+      const job = takeJob(state, pick.id);
       const years = rng.int(0, Math.max(0, Math.min(age - 23, 30)));
-      const c = ch.career;
-      c.years = years;
-      c.totalYears = years + rng.int(0, 3);
-      c.salary = jobSalary(job, years, pi, 1);
-      c.avgSalary = Math.round(jobSalary(job, years, 1, 1) * 0.85);
-      c.history[c.history.length - 1].fromAge = age - years;
+      if (job) {
+        const c = ch.career;
+        c.years = years;
+        c.totalYears = years + rng.int(0, 3);
+        // 고용 형태의 몫까지 반영한 2026년 원 연봉에 물가를 곱한다 (형태 몫을 빼면 계약직·시간제도 표준 연봉이 된다)
+        const real = jobSalary(job, years, 1, 1) * payFactor(job, currentType(state) ?? standardType(job));
+        c.salary = Math.round(real * pi);
+        c.avgSalary = Math.round(real * 0.85);
+        c.history[c.history.length - 1].fromAge = age - years;
+      }
     }
   } else if (age >= 60) {
     const c = ch.career;

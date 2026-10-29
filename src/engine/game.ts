@@ -13,7 +13,7 @@
 
 import { performActivity, timePointsFor, type ActivityResult } from './activities';
 import { birthStory, createCharacter, type NewGameOptions } from './character';
-import { hireChance, jobOpenings, leaveJob, meetsJob, takeJob, yearlyEarnings } from './career';
+import { appointIssues, hireChance, jobOpenings, leaveJob, meetsJob, takeJob, yearlyEarnings } from './career';
 import { currentType, jobRequirements, offerFor, payCapital, TYPE_LABEL } from './work';
 import { ACTIVITY_BY_ID, JOB_BY_ID, REGION_BY_ID } from './data';
 import { directorYearEnd, initDirector } from './director';
@@ -116,16 +116,19 @@ export function applyForJob(state: GameState, jobId: string): ActionResult {
   }
   const offer = posted?.offer ?? offerFor(state, job);
   if (!offer) return { ok: false, text: '올해는 이 일을 시작할 형편이 안 된다 (개업 자금 등).' };
+  // 임용 직전 공통 자격 (R-018): 시간·지원 기록을 쓰기 전에 본다. takeJob도 같은 판정을 다시 한다
+  const issues = appointIssues(state, job);
+  if (issues.length > 0) return { ok: false, text: `지원 자격이 안 된다: ${issues.map((i) => i.label).join(', ')}.` };
   if (!posted) state.points.left -= 1;
   ch.career.appliedThisYear.push(jobId);
   const rng = rngFor(state.seed, 'apply', ch.age, jobId);
   const chance = posted ? posted.chance : hireChance(state, job) * DIRECT_APPLY;
   if (rng.chance(chance)) {
+    if (!takeJob(state, jobId)) return { ok: false, text: `${job.title}에 임용되지 않았다.` };
     if (ch.edu.status === 'university' && !ch.edu.onLeave) {
       // 졸업 전 취업: 학교는 그만둔다
       ch.edu.status = 'dropout';
     }
-    takeJob(state, jobId);
     const changes: Change[] = [{ text: `직업: ${job.title} (${TYPE_LABEL[currentType(state) ?? offer.type]})`, sign: 'good' }];
     // 자영업·장비 지입: 개업 자금 (현금이 모자라면 사업 대출)
     if (offer.capital > 0 && currentType(state) === offer.type) {

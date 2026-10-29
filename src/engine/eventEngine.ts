@@ -518,6 +518,7 @@ function cancelledEntry(state: GameState, ev: EventDef, ctx: Record<string, stri
  * 일기 한 줄만 남기고 false(대기열의 다음 사건으로 넘어간다). 건너뛴 사건도 false.
  */
 export function presentCard(state: GameState, pending: PendingCard): boolean {
+  ((globalThis as any).__cnt ??= {})['eventEngine'] = (((globalThis as any).__cnt['eventEngine']) ?? 0) + 1; // TEMPCOUNT
   const ev = getEvent(pending.eventId);
   if (!state.ch.alive) return false;
   // 물려받은 대상(자녀·부모·형제·친구·연인·배우자)이 그사이 죽었거나 역할·자녀 나이대에서 벗어났으면
