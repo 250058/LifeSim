@@ -36,6 +36,7 @@ import type { Rng } from './rng';
 import { mortgageLimit } from './scope';
 import type { Action, Effects, Range, TagDef, TreatStep } from './schema';
 import { applySubstanceAction } from './substances';
+import { applyDailyAction } from './daily';
 import type { AttrKey, Change, GameState, TalentKey, UnivTier } from './types';
 import { STAT_KEYS, HIDDEN_KEYS, STATE_KEYS } from './types';
 import { TALENT_LABEL } from './text';
@@ -695,6 +696,10 @@ function runAction(state: GameState, a: Action, ec: EffectContext): void {
     case 'substance':
       // 술·담배·약물: 사용·거절·줄이기·끊기·치료. 미성년자의 사용은 substances.ts가 막는다
       applySubstanceAction(state, a, ec);
+      break;
+    case 'daily':
+      // 하루 사슬(빨래와 다음 날 일정): 시각·옷·부탁·반납 의무는 daily.ts가 기록한다
+      applyDailyAction(state, a, ec);
       break;
   }
 }

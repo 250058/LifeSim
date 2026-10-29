@@ -11,6 +11,7 @@ import type { Action, ChoiceDef, Effects, EventDef, NextRef } from './schema';
 import { effectsOf, targetRolesOf } from './text';
 import { HIDDEN_KEYS, STATE_KEYS, STAT_KEYS, SUBSTANCE_ACTS, SUBSTANCE_IDS, TALENT_KEYS } from './types';
 import { POOL_IDS } from './pools';
+import { DAILY_STEPS, DAILY_SYSTEM_EVENTS, dailyDataIssues } from './daily';
 
 export interface Issue {
   level: 'error' | 'warn';
@@ -31,6 +32,8 @@ const SYSTEM_EVENTS = new Set([
   'sub_relapse',
   'sub_drug_arrest',
   'sub_drug_emergency',
+  // daily.ts: 빌린 옷 같은 의무의 독촉·정리 (의무가 생길 때 엔진이 예약한다)
+  ...DAILY_SYSTEM_EVENTS,
 ]);
 /** 본인의 술·담배·약물 사용을 뜻하는 태그 */
 const USE_TAGS = new Set(['smoker', 'vaper', 'heavy_drinker', 'drug_use']);
@@ -138,6 +141,8 @@ export const KNOWN_PLACEHOLDERS = new Set([
   '수능', '결과', '판결',
   // 엔진이 카드와 함께 넘기는 값
   '고인', '고인관계', '향년', '사인', '상속액', '혐의', '물질',
+  // 하루 사슬(daily.ts)이 채우는 값
+  '날씨', '옷', '일정', '시각', '도우미', '빨래방비', '조정', '상황', '남은시간', '대리인',
 ]);
 
 const ACTION_TYPES = new Set([
@@ -146,6 +151,7 @@ const ACTION_TYPES = new Set([
   'loseJob', 'promote', 'retire', 'militaryExam', 'enlist', 'startService', 'discharge', 'prosecute', 'release', 'gamble',
   'startBusiness', 'closeBusiness', 'parentHealth', 'npcCloseness', 'leaveHome', 'refundPct', 'inherit', 'grade',
   'buyHome', 'debtRelief', 'earlyAdmit', 'passGed', 'separateFamily', 'reunite', 'setStyle', 'substance',
+  'daily',
 ]);
 
 const HIGH_TYPES = new Set(['general', 'foreign', 'autonomous', 'gifted', 'science', 'arts', 'sports', 'vocational', 'meister', 'alternative']);
@@ -342,6 +348,7 @@ export function validateData(): Issue[] {
   const checkAction = (where: string, a: Action) => {
     if (!ACTION_TYPES.has(a.type)) return err(where, `알 수 없는 행동: ${a.type}`);
     if (a.type === 'getJob' && !JOB_BY_ID.has(a.job)) err(where, `없는 직업: ${a.job}`);
+    if (a.type === 'daily' && !(DAILY_STEPS as readonly string[]).includes(a.step)) err(where, `없는 하루 사슬 단계: ${a.step}`);
     if (a.type === 'enroll' && a.highType && !HIGH_TYPES.has(a.highType)) err(where, `없는 고등학교 유형: ${a.highType}`);
     if (a.type === 'prosecute' && a.crime !== 'ctx' && !CRIMES[a.crime]) err(where, `없는 범죄: ${a.crime}`);
     if (a.type === 'discoverTalent' && a.talent && !(TALENT_KEYS as readonly string[]).includes(a.talent)) {
@@ -468,6 +475,9 @@ export function validateData(): Issue[] {
       choices.forEach((c, i) => checkChoice(`${where} › 선택지 ${i + 1}`, c));
     }
   }
+
+  // 하루 사슬(daily.ts): 문장 표가 엔진의 일정·단계·거절 이유와 맞는지
+  for (const msg of dailyDataIssues(new Set(EVENTS.map((e) => e.id)))) err('events/daily.json', msg);
 
   for (const ev of EVENTS) {
     if (ev.type === 'chain' && !referenced.has(ev.id) && !SYSTEM_EVENTS.has(ev.id)) {

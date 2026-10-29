@@ -520,6 +520,38 @@
       "effects": { "stats": { "morality": -2, "stress": 3 } },
       "special": "gamble",
       "log": "새벽까지 화면을 들여다봤다."
+    },
+    {
+      "id": "chore_laundry",
+      "name": "빨래·옷 정리",
+      "desc": "빨래를 미리 돌려 말리고 내일 입을 옷을 챙겨 둔다. 올해 옷 때문에 허둥댈 일이 줄어든다",
+      "group": "life",
+      "points": 1,
+      "age": [10, 200],
+      "if": "!legal.inPrison && !military.serving",
+      "effects": { "stats": { "stress": -2 } },
+      "log": "빨래를 개어 옷장에 넣었다. 내일 입을 옷이 의자 등받이에 걸려 있다."
+    },
+    {
+      "id": "chore_return",
+      "name": "빌린 옷 돌려주기",
+      "desc": "빌린 옷을 빨아서 주인에게 돌려준다. 미루면 서로 서먹해진다",
+      "group": "social",
+      "points": 1,
+      "age": [8, 200],
+      "if": "daily.canReturn && !legal.inPrison && !military.serving",
+      "log": "빌린 옷을 빨아서 돌려줬다."
+    },
+    {
+      "id": "chore_dryer",
+      "name": "건조기 들이기",
+      "desc": "빨래가 안 말라 애태울 일이 크게 준다",
+      "group": "money",
+      "points": 1,
+      "cost": 900000,
+      "age": [19, 200],
+      "if": "!daily.dryer && !legal.inPrison && !military.serving",
+      "log": "건조기를 들였다. 수건이 호텔 수건처럼 보송해졌다."
     }
   ]
 }

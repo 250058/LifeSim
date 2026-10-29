@@ -25,6 +25,7 @@ import general from '../../data/events/general.json';
 import disaster from '../../data/events/disaster.json';
 import lifestyle from '../../data/events/lifestyle.json';
 import substances from '../../data/events/substances.json';
+import daily from '../../data/events/daily.json';
 import schoolViolence from '../../data/arcs/school_violence.json';
 import militaryAbuse from '../../data/arcs/military_abuse.json';
 import voicePhishing from '../../data/arcs/voice_phishing.json';
@@ -69,6 +70,8 @@ export const EVENT_FILES: Record<string, EventDef[]> = {
   'arcs/war.json': (war as unknown as EventFile).events,
   // 표로 쓴 생활 사건 (병원·몸·밥상·연애·육아)
   ...CATALOG_FILES,
+  // 하루 사슬: 빨래와 다음 날 일정 (daily.ts와 짝). 맨 끝에 두어 기존 사건의 추첨 순서를 밀지 않는다
+  'events/daily.json': (daily as unknown as EventFile).events,
 };
 
 export const EVENTS: EventDef[] = Object.values(EVENT_FILES).flat();
