@@ -2,15 +2,19 @@
 // 생애 단계마다 포인트가 다르다. 고3과 직장인은 적고, 대학생과 은퇴자는 많다.
 
 import { evaluate } from './conditions';
-import { ACTIVITIES, ACTIVITY_BY_ID } from './data';
+import { ACTIVITIES, ACTIVITY_BY_ID, EVENT_BY_ID } from './data';
 import { addFlag, applyEffects, removeFlag } from './effects';
 import { formatWon, josa, signedWon } from './format';
-import { addFriend, alive, changeCloseness, partnerOf, spouseOf, startPartner } from './relations';
+import { addFriend, alive, changeCloseness, npcAge, partnerOf, spouseOf, startPartner } from './relations';
 import { rngFor } from './rng';
 import { buildScope, inPrison } from './scope';
 import type { ActivityDef } from './schema';
 import { TALENT_LABEL } from './text';
-import type { Change, GameState } from './types';
+import type { Change, GameState, Npc } from './types';
+
+function npcAgeOf(state: GameState, npc: Npc | undefined): number {
+  return npc ? npcAge(npc, state.year) : 99;
+}
 
 export function timePointsFor(state: GameState): number {
   const ch = state.ch;
@@ -44,6 +48,7 @@ export function activityViews(state: GameState): ActivityView[] {
   const views: ActivityView[] = [];
   for (const def of ACTIVITIES) {
     if (ch.age < def.age[0] || ch.age > def.age[1]) continue;
+    if (def.adult && ch.age < 19) continue;
     if (def.if && !evaluate(def.if, scope)) continue;
     const cost = Math.round((def.cost ?? 0) * state.world.economy.priceIndex);
     let reason: string | undefined;
@@ -190,6 +195,24 @@ export function performActivity(state: GameState, id: string): ActivityResult | 
     case 'drink':
       if (rng.chance(0.12)) addFlag(state, 'heavy_drinker', changes);
       break;
+    case 'motel':
+    case 'intimacy': {
+      // 성인 커플만 (활동 조건 family.partnerAdult). 묘사는 하지 않고 관계만 가까워진다
+      const married = Boolean(spouseOf(ch));
+      changeCloseness(ch, married ? 'spouse' : 'partner', def.special === 'motel' ? 8 : 6);
+      const kids = alive(ch, 'child').length;
+      const femaleAge = ch.sex === 'F' ? ch.age : npcAgeOf(state, married ? spouseOf(ch) : partnerOf(ch));
+      if (femaleAge <= 44) {
+        if (married && kids < 3 && rng.chance(0.06)) {
+          state.queue.push({ eventId: 'pregnancy', ctx: {} });
+          queuedCard = true;
+        } else if (!married && rng.chance(0.03) && EVENT_BY_ID.has('rom_pregnancy_scare')) {
+          state.queue.push({ eventId: 'rom_pregnancy_scare', ctx: {} });
+          queuedCard = true;
+        }
+      }
+      break;
+    }
     case 'shopping':
       // 옷장 스타일이 아직 없으면 쇼핑하면서 하나가 정해진다
       if (!ch.flags.style_basic && !ch.flags.style_trendy && !ch.flags.style_luxury && !ch.flags.style_comfort) {

@@ -303,6 +303,10 @@ export interface ActivityDef {
     | 'drink'
     | 'shopping'
     | 'diet'
-    | 'foodie';
+    | 'foodie'
+    | 'motel'
+    | 'intimacy';
+  /** 성인 전용 (만 19세 이상, 상대도 성인) */
+  adult?: boolean;
   log?: string;
 }

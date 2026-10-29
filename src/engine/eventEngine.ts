@@ -152,49 +152,75 @@ export function drawYearEvents(state: GameState): PendingCard[] {
 /** 같은 묶음의 생활 사건이 다시 나오기까지 최소 햇수 */
 const GROUP_COOLDOWN = 6;
 
-/** 풀별 사건 목록 (모듈을 처음 쓸 때 한 번 만든다) */
-let poolIndex: Map<string, EventDef[]> | null = null;
+/** 풀별 사건과 누적 기본 가중치 (모듈을 처음 쓸 때 한 번 만든다) */
+interface PoolTable {
+  events: EventDef[];
+  cumulative: number[];
+}
+let poolIndex: Map<string, PoolTable> | null = null;
 
-export function poolEvents(pool: string): EventDef[] {
+function poolTable(pool: string): PoolTable {
   if (!poolIndex) {
     poolIndex = new Map();
     for (const ev of EVENTS) {
       if (!ev.pool || !DRAWN_TYPES.has(ev.type) || !ev.weight) continue;
-      const list = poolIndex.get(ev.pool) ?? [];
-      list.push(ev);
-      poolIndex.set(ev.pool, list);
+      const t = poolIndex.get(ev.pool) ?? { events: [], cumulative: [] };
+      const prev = t.cumulative.length ? t.cumulative[t.cumulative.length - 1] : 0;
+      t.events.push(ev);
+      t.cumulative.push(prev + ev.weight.base);
+      poolIndex.set(ev.pool, t);
     }
   }
-  return poolIndex.get(pool) ?? [];
+  return poolIndex.get(pool) ?? { events: [], cumulative: [] };
 }
 
+export function poolEvents(pool: string): EventDef[] {
+  return poolTable(pool).events;
+}
+
+/** 풀 하나에서 몇 번 뽑아 보고 조건이 맞는 사건이 없으면 다른 풀로 넘어간다 */
+const POOL_TRIES = 80;
+
+/**
+ * 풀 추첨. 사건이 수천 개라 전부 조건을 따지면 느리므로 기본 가중치로 하나를 뽑고
+ * 조건(나이·태그·제한)이 맞는지 본다. 나이 곡선·보정 배수는 받아들일 확률로 쓴다.
+ */
 function drawPool(state: GameState, scope: ReturnType<typeof buildScope>): EventDef | null {
   const rng = rngFor(state.seed, 'pool', state.ch.age);
   if (!rng.chance(poolYearChance(state.mode))) return null;
   const weights = poolWeights(state);
-  const order = rng.shuffle([...POOL_IDS]);
-  // 고른 풀에 맞는 사건이 없으면 다른 풀로
-  for (let tries = 0; tries < POOL_IDS.length; tries++) {
-    const pool = rng.weighted(order, (p) => weights[p]);
+  for (let round = 0; round < POOL_IDS.length; round++) {
+    const pool = rng.weighted(POOL_IDS, (p) => weights[p]);
     if (!pool) return null;
-    const candidates: { ev: EventDef; w: number }[] = [];
-    for (const ev of poolEvents(pool)) {
+    const table = poolTable(pool);
+    const total = table.cumulative[table.cumulative.length - 1] ?? 0;
+    for (let tries = 0; total > 0 && tries < POOL_TRIES; tries++) {
+      const ev = table.events[lowerBound(table.cumulative, rng.next() * total)];
       if (ev.group) {
         const last = state.lastAge[`@${ev.group}`];
         if (last !== undefined && state.ch.age - last < GROUP_COOLDOWN) continue;
       }
       if (!limitOk(ev, state) || !triggerOk(ev, scope, state)) continue;
       const w = ev.weight!;
-      let m = 1;
-      for (const mod of w.modifiers ?? []) if (evaluate(mod.if, scope)) m *= mod.x;
-      const x = w.base * ageFactor(w.ageCurve, state.ch.age) * m;
-      if (x > 0) candidates.push({ ev, w: x });
+      let x = ageFactor(w.ageCurve, state.ch.age);
+      for (const mod of w.modifiers ?? []) if (evaluate(mod.if, scope)) x *= mod.x;
+      if (rng.next() < Math.min(1, x)) return ev;
     }
-    const picked = rng.weighted(candidates, (c) => c.w);
-    if (picked) return picked.ev;
     weights[pool] = 0;
   }
   return null;
+}
+
+/** 누적 배열에서 value보다 큰 첫 자리 */
+function lowerBound(cumulative: number[], value: number): number {
+  let lo = 0;
+  let hi = cumulative.length - 1;
+  while (lo < hi) {
+    const mid = (lo + hi) >> 1;
+    if (cumulative[mid] > value) hi = mid;
+    else lo = mid + 1;
+  }
+  return lo;
 }
 
 /** 1단계 관문: 조건을 채운 마일스톤은 반드시 일어난다 */

@@ -187,6 +187,33 @@
       "log": "둘만의 시간을 보냈다."
     },
     {
+      "id": "motel",
+      "name": "모텔 데이트",
+      "desc": "대실 네 시간. 성인 커플만",
+      "group": "social",
+      "points": 1,
+      "cost": 60000,
+      "age": [19, 200],
+      "adult": true,
+      "if": "family.partnerAdult && !legal.inPrison && !military.serving",
+      "effects": { "stats": { "happiness": [3, 5], "stress": -6 } },
+      "special": "motel",
+      "log": "대실 네 시간. 둘만의 시간이었다."
+    },
+    {
+      "id": "happytime",
+      "name": "해피타임",
+      "desc": "연인·배우자와 단둘이. 성인만",
+      "group": "social",
+      "points": 1,
+      "age": [19, 200],
+      "adult": true,
+      "if": "family.partnerAdult && !legal.inPrison && !military.serving",
+      "effects": { "stats": { "happiness": [2, 4], "stress": -5 } },
+      "special": "intimacy",
+      "log": "불을 끄고 오래 이야기했다. 그다음은 둘만 아는 일이다."
+    },
+    {
       "id": "parttime",
       "name": "알바",
       "desc": "주 15시간, 최저임금",

@@ -2,7 +2,7 @@
 
 import { describe, expect, it } from 'vitest';
 import { EVENTS } from '../src/engine/data';
-import { eventProbability } from '../src/engine/eventEngine';
+import { drawYearEvents, eventProbability } from '../src/engine/eventEngine';
 import { continueAsChild, heirOptions, inheritanceTax } from '../src/engine/heir';
 import { formatWon, josa } from '../src/engine/format';
 import { choose, endTurn, newGame, proceed } from '../src/engine/game';
@@ -11,7 +11,13 @@ import type { EventDef } from '../src/engine/schema';
 import { simulateLife } from '../src/engine/sim';
 import { render } from '../src/engine/text';
 import type { GameState } from '../src/engine/types';
-import { eventsPerStage, validateData } from '../src/engine/validate';
+import { eventsPerStage, eventStats, validateData } from '../src/engine/validate';
+import { activityViews } from '../src/engine/activities';
+import { startPartner } from '../src/engine/relations';
+import { Rng } from '../src/engine/rng';
+
+/** 1,000개 이상이어야 하는 생활 사건 풀 (사용자 요청) */
+const POOLS_OVER_1000 = ['physiology'];
 
 /** 항상 첫 선택지를 고르며 n년을 산다 */
 function liveYears(state: GameState, years: number): void {
@@ -207,5 +213,46 @@ describe('자녀로 이어하기', () => {
     expect(inheritanceTax(100_000_000, 1)).toBe(10_000_000);
     expect(inheritanceTax(500_000_000, 1)).toBe(90_000_000);
     expect(inheritanceTax(1_000_000_000, 1)).toBe(240_000_000);
+  });
+});
+
+describe('생활 사건 풀', () => {
+  it('생리 현상·의료·영양 사건이 각각 1,000개 이상이다', () => {
+    const { byPool } = eventStats();
+    for (const pool of POOLS_OVER_1000) expect(byPool[pool] ?? 0, pool).toBeGreaterThanOrEqual(1000);
+  });
+
+  it('풀 사건은 한 해에 한 장까지만 나온다', () => {
+    const s = newGame({ seed: 'POOL-YEARS', mode: 'drama', birthYear: 2026 });
+    let years = 0;
+    for (let age = 5; age <= 90; age++) {
+      s.ch.age = age;
+      s.year = 2026 + age;
+      const pooled = drawYearEvents(s).filter((p) => EVENTS.find((e) => e.id === p.eventId)?.pool).length;
+      expect(pooled).toBeLessThanOrEqual(1);
+      years += pooled;
+    }
+    expect(years).toBeGreaterThan(20);
+  });
+});
+
+describe('성인 전용', () => {
+  it('성인 전용 사건은 모두 만 19세 이상에게만 열린다', () => {
+    for (const ev of EVENTS.filter((e) => e.adult)) expect(ev.trigger?.age?.[0] ?? 0, ev.id).toBeGreaterThanOrEqual(19);
+  });
+
+  it('모텔·해피타임은 성인 커플에게만 보인다', () => {
+    const s = newGame({ seed: 'ADULT-ONLY', mode: 'drama', birthYear: 2026 });
+    s.ch.age = 18;
+    s.year = 2044;
+    const ids = () => activityViews(s).map((v) => v.def.id);
+    expect(ids()).not.toContain('happytime');
+    s.ch.age = 25;
+    s.year = 2051;
+    expect(ids()).not.toContain('happytime');
+    const partner = startPartner(s, new Rng('p'));
+    expect(s.year - partner.birthYear).toBeGreaterThanOrEqual(19);
+    expect(ids()).toContain('happytime');
+    expect(ids()).toContain('motel');
   });
 });

@@ -1,5 +1,7 @@
 import { useEffect, useRef } from 'react';
 import { choose, proceed } from '../engine/game';
+import { POOL_LABEL } from '../engine/pools';
+import type { PoolId } from '../engine/schema';
 import type { ActiveCard, GameState } from '../engine/types';
 import { Changes } from './GameScreen';
 import { circled } from './labels';
@@ -62,7 +64,9 @@ export function EventCard({ game, card }: { game: GameState; card: ActiveCard })
         <header className="card-date">
           <span className="card-year num">{game.year}</span>
           <span className="card-age">만 {game.ch.age}세</span>
-          <span className="card-kind">{card.arcLabel ? ARC_LABEL[card.arcLabel] ?? card.arcLabel : TONE_LABEL[card.tone]}</span>
+          <span className="card-kind">
+            {card.arcLabel ? ARC_LABEL[card.arcLabel] ?? card.arcLabel : card.pool ? POOL_LABEL[card.pool as PoolId] : TONE_LABEL[card.tone]}
+          </span>
         </header>
         {card.zoom && <p className="zoom">{card.zoom}</p>}
         <h2 id="card-title" className="card-title">

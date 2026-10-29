@@ -224,6 +224,9 @@ export function validateData(): Issue[] {
     const where = `activities.json › ${a.id}`;
     if (a.if) checkExpr(where, a.if);
     checkEffects(where, a.effects);
+    if (a.adult && (a.age[0] < 19 || !a.if?.includes('family.partnerAdult'))) {
+      err(where, '성인 전용 활동은 만 19세 이상이고 family.partnerAdult 조건이 있어야 한다');
+    }
   }
 
   return issues;
