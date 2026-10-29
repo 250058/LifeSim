@@ -3,8 +3,9 @@
 // - 긴장도 = 최근 사건 충격량의 합. 해마다 줄어든다.
 // - 긴장도가 높으면 회복 구간(평온): 큰 비극을 줄이고 회복·도움 사건을 늘린다.
 // - 평온이 오래가면 격동: 드라마 확률을 올린다.
-// - 연간 사건 수: 평온 0~1, 보통 1~2, 격동 2~3
-// 현실 모드는 실제 통계 그대로라 디렉터가 확률을 건드리지 않는다.
+// - 조용한 해 채우기: 평온 0개, 보통 1개, 격동 2개까지 일상 사건으로 채운다 (드라마·막장).
+// 완급은 확률 배수 D와 채우기로만 조절한다. 이미 일어난 사건을 개수 때문에 지우지 않는다 (R-001).
+// 현실 모드는 실제 통계 그대로라 디렉터가 확률을 건드리지 않고 채우지도 않는다.
 
 import type { EventDef } from './schema';
 import type { DirectorState, GameState, Tone } from './types';
@@ -38,17 +39,12 @@ export function directorFactor(state: GameState, ev: EventDef): number {
   return FACTORS[state.director.pace][ev.tone ?? 'neutral'];
 }
 
-/** [최소, 최대] 연간 사건 수. 최소는 일상 사건으로 채운다 */
-export function countRange(state: GameState): [number, number] {
-  if (!WORLD.modes[state.mode].filler) return [0, 3];
-  switch (state.director.pace) {
-    case 'calm':
-      return [0, 1];
-    case 'normal':
-      return [1, 2];
-    case 'turbulent':
-      return [2, 3];
-  }
+const FILLER_MINIMUM: Record<DirectorState['pace'], number> = { calm: 0, normal: 1, turbulent: 2 };
+
+/** 그해 사건이 이보다 적으면 일상 사건으로 채운다. 현실 모드는 채우지 않는다 */
+export function fillerMinimum(state: GameState): number {
+  if (!WORLD.modes[state.mode].filler) return 0;
+  return FILLER_MINIMUM[state.director.pace];
 }
 
 export function addImpact(state: GameState, impact: number): void {
