@@ -2,7 +2,7 @@
   "schema_version": 1,
   "repository": "250058/LifeSim",
   "current_plan_path": "docs/PLAN.md",
-  "latest_report_path": "docs/reviews/2026-10-29T06-16-05Z.md",
+  "latest_report_path": "docs/reviews/2026-10-29T06-21-52Z.md",
   "handoff_issue_number": 1,
   "initial_full_review_pending": true,
   "last_completed_review_at": "2026-10-29T06:13:24Z",
@@ -560,13 +560,23 @@
     }
   },
   "last_request_check": {
-    "checked_at": "2026-10-29T06:13:24Z",
-    "open_pr_count": 0,
-    "issue_comment_count": 5,
-    "last_issue_comment_id": 6488599197,
+    "checked_at": "2026-10-29T06:33:17Z",
+    "open_pr_count": 1,
+    "issue_comment_count": 7,
+    "last_issue_comment_id": 6489533927,
     "ready_requests_found": [],
     "native_codex_review_status": "not_confirmed",
-    "event_trigger_configured": false
+    "event_trigger_configured": false,
+    "pull_requests": [
+      {
+        "number": 2,
+        "head_sha": "66b55217daf986621143d3107fcff0a3e75f469a",
+        "conversation_comments": 0,
+        "reviews": 0,
+        "review_comments": 0,
+        "ready_request_found": false
+      }
+    ]
   },
   "last_review_discovery": {
     "observed_at": "2026-10-29T06:04:54Z",
@@ -575,7 +585,7 @@
     "ready_message": false,
     "reviewed_in_report": "docs/reviews/2026-10-29T05-55-12Z.md"
   },
-  "latest_user_direction_report_path": "docs/reviews/2026-10-29T06-16-05Z.md",
+  "latest_user_direction_report_path": "docs/reviews/2026-10-29T06-21-52Z.md",
   "user_directives": [
     {
       "id": "U-001",
@@ -594,7 +604,60 @@
       "report_path": "docs/reviews/2026-10-29T06-16-05Z.md",
       "implementation_verified": false,
       "claude_response_status": "not_yet_received"
+    },
+    {
+      "id": "U-003",
+      "title": "현실 1:1 재현에 필요한 공통 기반·생활 영역·검증·누락 체계와 재개 인계",
+      "status": "approved_by_user_plan_recorded",
+      "recorded_at": "2026-10-29T06:21:52Z",
+      "report_path": "docs/reviews/2026-10-29T06-21-52Z.md",
+      "design_path": "docs/REALITY_MODEL.md",
+      "handoff_path": "docs/CLAUDE_RESTART.md",
+      "implementation_verified": false,
+      "claude_response_status": "not_yet_received",
+      "user_announced_resume": "6~7시",
+      "resume_timezone_and_ampm": "not_specified"
     }
   ],
-  "last_user_direction_update_at": "2026-10-29T06:19:45Z"
+  "last_user_direction_update_at": "2026-10-29T06:35:16Z",
+  "observed_pull_requests": [
+    {
+      "number": 2,
+      "url": "https://github.com/250058/LifeSim/pull/2",
+      "state": "open",
+      "created_at": "2026-10-29T06:13:08Z",
+      "observed_at": "2026-10-29T06:33:17Z",
+      "head_ref": "ccr-d37c47c4-qxyoxr",
+      "head_sha": "66b55217daf986621143d3107fcff0a3e75f469a",
+      "api_base_sha": "c912ea6cfc80ec91cb8d7c6b54308de8ccac9031",
+      "associated_existing_code_report": "docs/reviews/2026-10-29T05-55-12Z.md",
+      "scope_note": "Same previously scoped-reviewed code head. PR discovery is not a new code review or readiness request.",
+      "ready_request_found": false,
+      "conversation_comment_count": 0,
+      "review_count": 0,
+      "review_comment_count": 0
+    }
+  ],
+  "observed_refs_at_user_direction": {
+    "observed_at": "2026-10-29T06:33:17Z",
+    "main": "87f5d2d8724001e5e564615bb3831bc41427d7e8",
+    "ccr-d37c47c4-qxyoxr": "66b55217daf986621143d3107fcff0a3e75f469a"
+  },
+  "reality_planning": {
+    "report_path": "docs/reviews/2026-10-29T06-21-52Z.md",
+    "model_path": "docs/REALITY_MODEL.md",
+    "restart_path": "docs/CLAUDE_RESTART.md",
+    "design_counts": {
+      "common_systems": 18,
+      "life_domains": 64,
+      "validation_criteria": 24
+    },
+    "counts_kind": "planning_categories_not_implemented_situations",
+    "living_gap_register_required": true,
+    "code_changes": false,
+    "execution_tests_rerun": false,
+    "code_evidence_report": "docs/reviews/2026-10-29T05-55-12Z.md",
+    "native_codex_activation_confirmed": false,
+    "schedule_changed": false
+  }
 }
