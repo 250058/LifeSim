@@ -451,6 +451,47 @@ describe('사건의 흐름', () => {
     const c2 = open(t, 'crime_stalking_ex');
     expect(readLedger(t.ch).people.find((p) => p.id === c2.offender)?.npcId).toBeUndefined();
   });
+
+  it('아는 사람 가해: 이미 아는 성인 친구(NPC)로 묶이기도 하고, 사이가 끊기면 관계 종료, 숨지면 공소권 없음', () => {
+    // 같은 장면도 시드에 따라 친구 NPC이거나 새 참여자다 (장면의 friendOffender 확률). 둘 다 나오는지 본다
+    const bound: GameState[] = [];
+    let anonymous = 0;
+    for (let i = 0; i < 40 && (bound.length === 0 || anonymous === 0); i++) {
+      const s = personAt(`FLOW-FRIEND-${i}`, 35);
+      const f = addFriend(s, rngFor('t', 'friend', i));
+      f.birthYear = s.ch.birthYear;
+      f.closeness = 60;
+      const c = open(s, 'crime_fraud_loan');
+      const p = readLedger(s.ch).people.find((x) => x.id === c.offender)!;
+      if (p.npcId === f.id) bound.push(s);
+      else anonymous++;
+    }
+    expect(bound.length).toBeGreaterThan(0);
+    expect(anonymous).toBeGreaterThan(0);
+    const s = bound[0];
+    const c = readLedger(s.ch).cases[0];
+    const friend = s.ch.npcs.find((n) => n.id === readLedger(s.ch).people.find((p) => p.id === c.offender)!.npcId)!;
+    // 피해자는 그 친구와 멀어진다 (피해자의 도덕성·평판은 그대로)
+    expect(friend.closeness).toBeLessThan(60);
+    expect(s.card!.text).toContain(friend.name);
+    const view = () => (crimeScope(s, { caseId: c.id }) as { case: Record<string, unknown> }).case;
+    expect(view().offenderKnown).toBe(true);
+    friend.closeness = 5;
+    expect(view().relationEnded).toBe(true);
+    friend.closeness = 30;
+    respond(s, 'report');
+    expect(c.report).toBe('immediate');
+    friend.alive = false;
+    crimeYear(s, []);
+    expect(c.prosecution).toBe('no_right');
+    expect(c.log.some((l) => l.step === 'recheck')).toBe(true);
+    // 미성년자·보호 장면·성범죄 장면에는 친구를 가해자로 묶지 않는다 (검사 규칙)
+    for (const scene of CRIME_SCENES.filter((x) => x.friendOffender !== undefined)) {
+      expect(scene.minor).toBeUndefined();
+      expect(CATEGORY[scene.cat].sexual).toBe(false);
+      expect(scene.age[0]).toBeGreaterThanOrEqual(CRIME_ADULT_AGE);
+    }
+  });
 });
 
 // ── 미신고와 지연 신고 ───────────────────────────────────
@@ -1179,8 +1220,12 @@ describe.skipIf(!process.env.CRIME_RATES)('현실 모드 발생률 (CRIME_RATES=
   it('장면별 기대 발생(ΣP)과 실제 발생이 맞고, 범주별 평생 경험을 표로 보여 준다', () => {
     const N = Number(process.env.CRIME_RATES_N ?? 1000);
     const events = CRIME_SCENES.map((x) => getEvent(x.id));
+    const catOf = new Map(CRIME_SCENES.map((x) => [x.id, x.cat]));
     let expected = 0;
     let observed = 0;
+    const expectedBy: Record<string, number> = {};
+    // 분모: 살아 있던 해 (성인·미성년, 성별)
+    const years = { F: { adult: 0, minor: 0 }, M: { adult: 0, minor: 0 } };
     const lives: GameState[] = [];
     for (let i = 0; i < N; i++) {
       const s = newGame({ seed: `CHECK-${i}`, mode: 'reality', birthYear: 2026 });
@@ -1188,7 +1233,14 @@ describe.skipIf(!process.env.CRIME_RATES)('현실 모드 발생률 (CRIME_RATES=
       for (let guard = 0; guard < 20_000 && s.phase !== 'dead'; guard++) {
         if (s.phase === 'action') {
           const scope = buildScope(s);
-          for (const ev of events) if (limitOk(ev, s) && triggerOk(ev, scope, s)) expected += eventProbability(ev, s, scope).P;
+          for (const ev of events) {
+            if (!limitOk(ev, s) || !triggerOk(ev, scope, s)) continue;
+            const P = eventProbability(ev, s, scope).P;
+            expected += P;
+            const cat = catOf.get(ev.id)!;
+            expectedBy[cat] = (expectedBy[cat] ?? 0) + P;
+          }
+          years[s.ch.sex][s.ch.age >= CRIME_ADULT_AGE ? 'adult' : 'minor'] += 1;
           endTurn(s);
         } else if (s.card && s.card.choices.length > 0 && !s.card.result) {
           choose(s, bot.chance(0.4) ? 0 : bot.int(0, (s.card as ActiveCard).choices.length - 1));
@@ -1199,15 +1251,44 @@ describe.skipIf(!process.env.CRIME_RATES)('현실 모드 발생률 (CRIME_RATES=
       lives.push(s);
     }
     const z = (observed - expected) / Math.sqrt(expected);
-    console.log(`장면 발생: 기대 ${expected.toFixed(1)}, 관측 ${observed} (z=${z.toFixed(2)}), ${N}명`);
-    for (const sex of ['F', 'M'] as const) {
-      const ls = lives.filter((x) => x.ch.sex === sex);
-      const rows = Object.keys(CATEGORY).map((cat) => {
-        const n = ls.filter((x) => readLedger(x.ch).cases.some((c) => c.cat === cat && c.role === 'victim')).length;
-        return `${cat} ${n}/${ls.length}`;
-      });
-      console.log(`${sex}: ${rows.join(', ')}`);
+    console.log(`장면 발생: 기대 ΣP ${expected.toFixed(1)}, 관측 ${observed} (z=${z.toFixed(2)}), ${N}명`);
+    console.log(`분모(살아 있던 해): 여 성인 ${years.F.adult}·미성년 ${years.F.minor}, 남 성인 ${years.M.adult}·미성년 ${years.M.minor}`);
+    const all = lives.flatMap((x) => readLedger(x.ch).cases.map((c) => ({ c, sex: x.ch.sex })));
+    const adultYears = years.F.adult + years.M.adult;
+    const minorYears = years.F.minor + years.M.minor;
+    const per1000 = (n: number, d: number) => (d > 0 ? ((1000 * n) / d).toFixed(2) : '-');
+    console.log('범주 | 피해 사건 성인(여/남) /1천 성인-년 | 미성년 /1천 미성년-년 | 신고 비율 | 평생 피해 경험 여/남 | 기대 ΣP·관측(전 역할)');
+    for (const cat of Object.keys(CATEGORY)) {
+      const v = all.filter((x) => x.c.cat === cat && x.c.role === 'victim');
+      const adultF = v.filter((x) => !x.c.minor && x.sex === 'F').length;
+      const adultM = v.filter((x) => !x.c.minor && x.sex === 'M').length;
+      const minor = v.filter((x) => x.c.minor).length;
+      const reported = v.filter((x) => x.c.report !== 'none').length;
+      const ever = (sex: 'F' | 'M') => {
+        const ls = lives.filter((x) => x.ch.sex === sex);
+        return `${ls.filter((x) => readLedger(x.ch).cases.some((c) => c.cat === cat && c.role === 'victim')).length}/${ls.length}`;
+      };
+      const obsAll = all.filter((x) => x.c.cat === cat).length;
+      console.log(
+        `${cat} | ${per1000(adultF, years.F.adult)}/${per1000(adultM, years.M.adult)} (${adultF + adultM}건) | ${per1000(minor, minorYears)} (${minor}건) | ` +
+          `${reported}/${v.length} | ${ever('F')} ${ever('M')} | ${(expectedBy[cat] ?? 0).toFixed(1)}·${obsAll}`,
+      );
     }
+    // 전국범죄피해조사 비교: 성인의 폭력 피해(성폭력·폭행·강도·이상동기·협박) 건수 / 성인-년
+    const violent = all.filter((x) => x.c.role === 'victim' && !x.c.minor && ['sexual_assault', 'assault', 'robbery', 'random_violence', 'threat'].includes(x.c.cat));
+    console.log(`성인 폭력 피해 ${violent.length}건 / ${adultYears} 성인-년 = ${((100 * violent.length) / adultYears).toFixed(3)}%/년 (kcvs2020 0.88%)`);
+    const violentReported = violent.filter((x) => x.c.report !== 'none').length;
+    console.log(`  그중 신고 ${violentReported}/${violent.length} (kcvs2020 폭력 신고율 18.95%)`);
+    const property = all.filter((x) => x.c.role === 'victim' && ['theft', 'fraud', 'vandalism', 'extortion', 'trespass'].includes(x.c.cat));
+    console.log(`재산 피해 신고 ${property.filter((x) => x.c.report !== 'none').length}/${property.length} (kcvs2020 재산 신고율 20.44%)`);
+    const roles = ['victim', 'witness', 'supporter'].map((r) => `${r} ${lives.filter((x) => readLedger(x.ch).cases.some((c) => c.role === r)).length}/${N}`);
+    console.log(`평생 한 번이라도: ${roles.join(', ')}; 미성년 피해 ${lives.filter((x) => readLedger(x.ch).cases.some((c) => c.minor && c.role === 'victim')).length}/${N}`);
+    // 의미 있게 다른 경로: 같은 사건 번호에 쌓인 상태의 조합 (이름·문장·시드만 다른 것은 같은 경로)
+    const path = (c: CrimeCase) =>
+      [c.cat, c.role, c.minor ? 'minor' : 'adult', c.report, c.reportedBy ?? '-', c.police, c.prosecution, c.verdict, c.internal, c.admin, c.civil, c.protection, c.care, c.recovered !== undefined ? 'rec' : 'open'].join('|');
+    const paths = new Set(all.map((x) => path(x.c)));
+    const outcomeOnly = new Set(all.map((x) => path(x.c).split('|').slice(3).join('|')));
+    console.log(`관측 사건 ${all.length}건, 서로 다른 경로 ${paths.size}개 (범주·역할 빼고 기관·회복 상태 조합 ${outcomeOnly.size}개)`);
     expect(Math.abs(z)).toBeLessThan(4);
   });
 });

@@ -316,6 +316,11 @@ export interface SceneRow {
   ago?: [number, number];
   /** 가해자가 미성년인가 (소년부 송치) */
   minorOffender?: boolean;
+  /**
+   * 아는 사람(acquaintance)이 가해자인 피해 장면에서, 그 사람이 이미 아는 성인 친구(NPC)일 확률.
+   * 없으면 늘 새 참여자다. 성인 피해자 장면에서만 쓰고 보호 장면·성범죄 장면에는 쓰지 않는다 (검사 규칙)
+   */
+  friendOffender?: number;
   age: [number, number];
   sex?: Sex;
   if?: string;

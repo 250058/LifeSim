@@ -271,6 +271,8 @@ function offenderStatus(state: GameState, c: CrimeCase): OffenderStatus {
     let ended = npc.missing === true || (p.kind === 'spouse' && npc.role !== 'spouse') || (p.kind === 'partner' && npc.role !== 'partner' && npc.role !== 'spouse');
     // 부모에게 맞던 아이가 집을 떠났으면 더 마주치지 않는다 (같이 사는 동안에만 위협이 이어진다)
     if (p.kind === 'parent' && c.victim === 'self' && !ch.family.livesWithParents) ended = true;
+    // 가해자가 된 친구와 멀어졌으면 관계가 끝난 것이다 (친밀도 10 아래면 연말에 친구 목록에서도 빠진다)
+    if (npc.role === 'friend' && npc.closeness < 10) ended = true;
     return { known, alive: npc.alive, ended };
   }
   if (p.jobId) return { known, alive: true, ended: ch.career.jobId !== p.jobId };
@@ -612,6 +614,10 @@ function bindOffender(state: GameState, scene: SceneRow, ctx: Record<string, str
       if (exNpc) return linkedPerson(led, exNpc, 'ex', exNpc.name);
     }
   }
+  if (kind === 'acquaintance') {
+    const friend = friendOffender(state, scene);
+    if (friend) return linkedPerson(led, friend, 'acquaintance', friend.name);
+  }
   // 내 직장 사람 (지원 역할의 직장 사건은 피해자의 직장이라 내 직업과 묶지 않는다)
   const myWork = (kind === 'superior' || kind === 'coworker' || kind === 'customer') && scene.role !== 'supporter' && Boolean(ch.career.jobId);
   if (myWork) {
@@ -625,6 +631,19 @@ function bindOffender(state: GameState, scene: SceneRow, ctx: Record<string, str
   if (scene.minorOffender) p.minor = true;
   led.people.push(p);
   return p;
+}
+
+/**
+ * 아는 사람이 가해자인 성인 피해 장면: 장면이 정한 확률로 이미 아는 성인 친구(NPC)가 그 사람이다.
+ * 'crime'·'bind' 줄기를 따로 써서 다른 판정의 순서를 바꾸지 않는다
+ */
+function friendOffender(state: GameState, scene: SceneRow): Npc | undefined {
+  const ch = state.ch;
+  if (!scene.friendOffender || scene.minor || scene.role !== 'victim' || ch.age < CRIME_ADULT_AGE) return undefined;
+  const rng = rngFor(state.seed, 'crime', 'bind', scene.id, ch.age, state.serial);
+  if (!rng.chance(scene.friendOffender)) return undefined;
+  const friends = alive(ch, 'friend').filter((n) => !n.missing && npcAge(n, state.year) >= CRIME_ADULT_AGE);
+  return friends.length > 0 ? rng.pick(friends) : undefined;
 }
 
 /**
@@ -791,12 +810,11 @@ function immediateHarm(s: Session, scene: SceneRow): void {
   } else {
     changeAttr(state, 'stress', 2 + w, s.changes);
   }
-  // 부모에게 맞은 아이: 그 부모와의 거리가 멀어진다 (피해자의 도덕성·평판은 건드리지 않는다)
+  // 부모에게 맞은 아이, 친구에게 피해를 입은 사람: 그 사람과의 거리가 멀어진다 (피해자의 도덕성·평판은 건드리지 않는다)
   const off = personOf(state.ch, c.offender);
-  if (c.role === 'victim' && off?.kind === 'parent' && off.npcId) {
-    const npc = state.ch.npcs.find((n) => n.id === off.npcId);
-    if (npc) npc.closeness = Math.max(0, npc.closeness - (6 + 4 * c.harm));
-  }
+  const npc = c.role === 'victim' && off?.npcId ? state.ch.npcs.find((n) => n.id === off.npcId) : undefined;
+  if (npc && (npc.role === 'mother' || npc.role === 'father')) npc.closeness = Math.max(0, npc.closeness - (6 + 4 * c.harm));
+  else if (npc?.role === 'friend') npc.closeness = Math.max(0, npc.closeness - (25 + 8 * c.harm));
 }
 
 /** 장면 카드가 뜨는 순간: 사건 기록을 만들고 이어질 단계를 예약한다 */
@@ -2306,6 +2324,11 @@ export function crimeDataProblems(): string[] {
         out.push(`${where}: 미성년자에게 열리는 일반 장면은 비성적 범죄의 허용된 역할만`);
       }
       if (s.cat === 'grooming') out.push(`${where}: 온라인 그루밍은 아동·청소년 보호 장면에서만`);
+    }
+    // 아는 친구(NPC)를 가해자로 묶는 것은 성인 피해자의 비성적 범죄 장면에서만
+    if (s.friendOffender !== undefined) {
+      const ok = s.offender === 'acquaintance' && s.role === 'victim' && !s.minor && !rule.sexual && s.age[0] >= CRIME_ADULT_AGE;
+      if (!ok || s.friendOffender <= 0 || s.friendOffender > 1) out.push(`${where}: friendOffender는 성인 피해자의 비성적 범죄, 아는 사람 가해 장면에서 0~1`);
     }
     // 선생님에게 말하기·보호자 신고는 미성년자가 있는 장면에서만
     if (acts.includes('teacher') && !(s.minor || s.age[0] < CRIME_ADULT_AGE)) out.push(`${where}: 선생님 대응은 미성년자 장면에서만`);
