@@ -276,6 +276,8 @@ export interface Character {
   legal: Legal;
   /** 술·담배·약물 기록. 한 번도 권유·사용이 없었거나 옛 저장이면 없다 (읽을 때 빈 기록으로 본다) */
   substances?: Substances;
+  /** 하루 사슬(빨래·다음 날 일정)과 빌린 옷 같은 의무·인물 기억. 옛 저장에는 없다 (daily.ts readDaily가 빈 기록으로 본다) */
+  daily?: import('./daily').DailyState;
 }
 
 export type EconomyPhase = 'boom' | 'normal' | 'recession' | 'crisis';

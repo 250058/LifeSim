@@ -122,7 +122,9 @@ export type Action =
    * 술·담배·약물 기록 (substances.ts). use는 만 19세 이상만 처리되고 미성년자는 노출로만 남는다.
    * substance가 'ctx'면 카드 ctx.substance를 쓴다. 치료 마침·중단·버티기는 생략하면 해당하는 물질 전부
    */
-  | { type: 'substance'; substance?: SubstanceId | 'ctx'; act: SubstanceAct; amount?: number; product?: 'cigarette' | 'ecig' };
+  | { type: 'substance'; substance?: SubstanceId | 'ctx'; act: SubstanceAct; amount?: number; product?: 'cigarette' | 'ecig' }
+  /** 하루 사슬 한 단계 (daily.ts DAILY_STEPS: start·wait·laundromat·borrow·adjust·…·return·forget·void) */
+  | { type: 'daily'; step: string };
 
 /**
  * 치료 한 단계. 기간이 있는 치료 태그(TagDef.stopped가 있는 태그)는 add/remove 대신 이것으로 다룬다.

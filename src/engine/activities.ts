@@ -3,6 +3,7 @@
 
 import { evaluate } from './conditions';
 import { CONCEIVED_CTX, CONTRA_CTX, contraceptionMethod, drawScare, fecundity, pregnancyRisk } from './contraception';
+import { choreActivity, isChore } from './daily';
 import { ACTIVITIES, ACTIVITY_BY_ID, EVENT_BY_ID } from './data';
 import { addFlag, applyEffects, removeFlag } from './effects';
 import { formatWon, josa, signedWon } from './format';
@@ -280,6 +281,9 @@ export function performActivity(state: GameState, id: string): ActivityResult | 
       }
       break;
   }
+
+  // 빨래·집안일(chore_*): 미리 빨래하기·건조기·빌린 옷 돌려주기는 하루 사슬(daily.ts)이 기록한다
+  if (isChore(def)) text = choreActivity(state, def, changes) ?? text;
 
   if (ch.edu.status !== 'none' && id === 'study') {
     ch.edu.studyThisYear += 1;

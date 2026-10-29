@@ -1,6 +1,7 @@
 // 조건식이 읽는 값들. 사건 JSON의 trigger.if, modifiers, choices.if 에서
 // 'stats.intelligence', 'family.siblings', 'world.economy' 처럼 쓴다.
 
+import { dailyScope } from './daily';
 import { JOB_BY_ID, REGION_BY_ID } from './data';
 import { familySupport, alive, npcAge, partnerOf, spouseOf } from './relations';
 import { ELITE_HIGH, stageOf } from './format';
@@ -212,6 +213,8 @@ export function buildScope(state: GameState, ctx: Record<string, string> = {}): 
     },
     // 술·담배·약물: substance.adult(본인 만 19세 이상), substance.alcohol.current, substance.tobacco.quitting …
     substance: substanceScope(state),
+    // 하루 사슬: daily.stage, daily.canBorrow, daily.canReturn, daily.dueOpen … (daily.ts)
+    daily: dailyScope(state, ctx),
     ctx,
   };
 }
