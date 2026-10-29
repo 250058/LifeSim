@@ -2,6 +2,7 @@
 
 import { evaluate } from './conditions';
 import { JOB_BY_ID, JOBS, WORLD } from './data';
+import { barredFromJob, recordHireFactor } from './records';
 import { rngFor, type Rng } from './rng';
 import { buildScope } from './scope';
 import type { JobDef } from './schema';
@@ -155,6 +156,8 @@ export function meetsJob(state: GameState, job: JobDef): boolean {
     if (!t || ch.edu.degree !== 'university' || TIER_RANK[t] < TIER_RANK[job.minTier]) return false;
   }
   if (job.req && !evaluate(job.req, buildScope(state))) return false;
+  // 공공 부문 결격 기간 (집행유예·실형 뒤, records.ts)
+  if (barredFromJob(ch, job.id)) return false;
   return true;
 }
 
@@ -165,7 +168,7 @@ export function hireChance(state: GameState, job: JobDef): number {
   p *= 0.55 + 0.45 * skill;
   const tier = ch.edu.univ?.tier;
   if (tier && ch.edu.degree === 'university') p *= { S: 1.6, A: 1.3, B: 1.1, C: 1, D: 0.9 }[tier];
-  if (ch.flags.criminal_record) p *= 0.45;
+  p *= recordHireFactor(ch); // 처분 종류·경과 기간별 (records.ts)
   if (ch.flags.certified) p *= 1.15;
   if (ch.flags.interview_ready) p *= 1.15;
   if (ch.flags.bankrupt) p *= 0.85;

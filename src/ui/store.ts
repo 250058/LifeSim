@@ -10,6 +10,9 @@ import type { Change, GameState, LifeSummary, Mode } from '../engine/types';
 
 export type Sheet = 'activity' | 'relations' | 'assets' | 'career' | 'profile';
 
+/** 새 인생의 기본 모드 (개정 계획: 현실). 드라마·막장은 고를 수 있고, 저장된 인생의 모드는 그대로 둔다 */
+export const DEFAULT_MODE: Mode = 'reality';
+
 export interface Notice {
   id: number;
   text: string;
@@ -24,8 +27,8 @@ interface Store {
   sheet: Sheet | null;
   notice: Notice | null;
   adult: boolean;
-  /** 새 인생 */
-  start(opts: { seed?: string | null; mode: Mode; birthYear?: number }): void;
+  /** 새 인생. 모드를 고르지 않으면 DEFAULT_MODE */
+  start(opts: { seed?: string | null; mode?: Mode; birthYear?: number }): void;
   /** 죽은 사람의 자녀로 이어 살기 */
   continueAs(childId: string): void;
   /** 저장된 인생으로 돌아가기 */
@@ -72,7 +75,7 @@ export const useGame = create<Store>((set, get) => ({
   notice: null,
   adult: readAdult() || saved !== null,
 
-  start({ seed, mode, birthYear }) {
+  start({ seed, mode = DEFAULT_MODE, birthYear }) {
     // 기본값은 올해 출생. 같은 시드로 다시 태어날 때는 그 해를 그대로 쓴다
     const game = newGame({ seed: seed || randomSeed(), mode, birthYear: birthYear ?? new Date().getFullYear() });
     saveGame(game);

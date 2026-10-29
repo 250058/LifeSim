@@ -1,8 +1,10 @@
 // 범죄·사법: 체포 → 기소 → 재판 → 벌금·집행유예·실형 → 교도소 → 출소 후 전과자.
 // 형량은 대법원 양형기준의 큰 줄기를 단순화했다. 미성년자는 소년법을 따른다.
+// 처분은 모두 ch.legal.records에 한 건씩 남긴다. 전과·재범·채용의 정의는 records.ts에 있다.
 
 import { leaveJob } from './career';
 import { formatWon } from './format';
+import { addSentence, barredFromJob, convictionCount, FINE_EXPIRY_YEARS } from './records';
 import type { Rng } from './rng';
 import type { Change, GameState } from './types';
 
@@ -90,11 +92,13 @@ export function prosecute(state: GameState, crimeId: string, rng: Rng, lenient =
   if (!crime) throw new Error(`없는 범죄: ${crimeId}`);
   const ch = state.ch;
   const changes: Change[] = [];
-  const priors = ch.legal.convictions;
+  // 재범 판정: 벌금 이상 유죄 판결만 센다 (기소유예·소년보호처분은 전과가 아니다)
+  const priors = convictionCount(ch);
 
   // 만 14세 미만 촉법소년, 19세 미만은 대부분 소년보호처분
   if (ch.age < 14 || (ch.age < 19 && (!crime.serious || rng.chance(0.6)))) {
-    ch.flags.juvenile_record = { since: ch.age };
+    ch.flags.juvenile_record ??= { since: ch.age };
+    addSentence(ch, { age: ch.age, crime: crimeId, kind: 'juvenile' });
     ch.state.stress = Math.min(100, ch.state.stress + 10);
     const text =
       ch.age < 14
@@ -133,33 +137,43 @@ export function prosecute(state: GameState, crimeId: string, rng: Rng, lenient =
     )?.[0] ?? 'fine';
 
   if (kind === 'drop') {
+    addSentence(ch, { age: ch.age, crime: crimeId, kind: 'suspended_prosecution' });
     changes.push({ text: '기소유예', sign: 'info' });
     return { kind, text: `${crime.name} 혐의. 기소유예 처분을 받았다. 이번만은 넘어간다.`, changes };
   }
 
+  // 여기부터는 유죄 판결: 벌금도 전과다
   ch.legal.convictions += 1;
+  markCriminalRecord(state, changes);
   if (kind === 'fine') {
     const [lo, hi] = crime.fine ?? [1_000_000, 3_000_000];
     const amount = Math.round(rng.int(lo, hi) / 100_000) * 100_000;
     payOrBorrow(state, amount);
+    addSentence(ch, { age: ch.age, crime: crimeId, kind: 'fine', amount, until: ch.age + FINE_EXPIRY_YEARS });
     changes.push({ text: `벌금 ${formatWon(amount)}`, sign: 'bad' });
     return { kind, text: `${crime.name}. 벌금 ${formatWon(amount)}을 선고받았다.`, changes };
   }
 
-  ch.flags.criminal_record = { since: ch.age };
-  changes.push({ text: '태그: 전과자', sign: 'bad' });
   const [mLo, mHi] = crime.months ?? [6, 12];
   const months = rng.int(mLo, mHi);
   const term = monthsText(months);
 
   if (kind === 'suspended') {
     ch.legal.probationUntil = ch.age + 2;
+    addSentence(ch, { age: ch.age, crime: crimeId, kind: 'probation', months, until: ch.legal.probationUntil });
     changes.push({ text: `징역 ${term}, 집행유예 2년`, sign: 'bad' });
+    // 공무원·교사·부사관 등은 집행유예만으로도 당연퇴직한다 (국가공무원법 69조)
+    const c = ch.career;
+    if (c.jobId && !c.business && barredFromJob(ch, c.jobId)) {
+      leaveJob(state, 0);
+      changes.push({ text: '당연퇴직', sign: 'bad' });
+    }
     return { kind, text: `${crime.name}. 징역 ${term}에 집행유예 2년. 다시 문제를 일으키면 바로 들어간다.`, changes };
   }
 
   const years = Math.max(1, Math.ceil(months / 12));
   ch.legal.prisonUntil = ch.age + years;
+  addSentence(ch, { age: ch.age, crime: crimeId, kind: 'prison', months, until: ch.legal.prisonUntil });
   if (state.ch.career.jobId && !state.ch.career.business) leaveJob(state, 0);
   if (state.ch.career.business) {
     state.ch.career.business = undefined;
@@ -170,6 +184,13 @@ export function prosecute(state: GameState, crimeId: string, rng: Rng, lenient =
   ch.stats.happiness = Math.max(0, ch.stats.happiness - 15);
   changes.push({ text: `징역 ${term} (실형)`, sign: 'bad' });
   return { kind, text: `${crime.name}. 징역 ${term}. 법정에서 바로 구속됐다.`, changes };
+}
+
+/** 전과자 태그. 처음 붙을 때만 알리고, 붙은 나이는 첫 유죄 판결 그대로 둔다 */
+function markCriminalRecord(state: GameState, changes: Change[]): void {
+  if (state.ch.flags.criminal_record) return;
+  state.ch.flags.criminal_record = { since: state.ch.age };
+  changes.push({ text: '태그: 전과자', sign: 'bad' });
 }
 
 function monthsText(months: number): string {

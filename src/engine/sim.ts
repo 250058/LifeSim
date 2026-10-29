@@ -1,12 +1,22 @@
 // 자동 플레이: 밸런스 시뮬레이터와 테스트가 쓰는 봇.
 // 봇은 평범한 사람처럼 군다: 공부·운동·친구를 고르고, 무직이면 구직하고,
 // 여윳돈으로 빚을 갚고, 선택지는 무작위로 고른다.
+// 단, 보이스피싱·감금 단지 같은 사기 아크에서는 열에 아홉은 끊거나 거절·신고한다
+// (실제 사람은 대부분 전화를 끊는다. 무작위로 고르면 피싱 피해가 부풀려진다. 비율은 봇 가정이지 통계가 아니다).
 
 import { activityViews } from './activities';
 import { jobOpenings } from './career';
+import { EVENT_BY_ID } from './data';
 import { applyForJob, buyHome, buyStocks, choose, doActivity, endTurn, homePrice, newGame, proceed, repayDebt } from './game';
 import { Rng } from './rng';
-import type { GameState, Mode } from './types';
+import type { ActiveCard, GameState, Mode } from './types';
+
+/** 끊기·거절이 당연한 사기 아크 */
+const SCAM_ARCS = ['voice_phishing', 'scam_compound'];
+/** 끊기·거절·신고를 뜻하는 선택지 문구 */
+const REFUSE_TEXT = /끊|거절|신고|112|경찰/;
+/** 사기 아크에서 끊거나 거절하는 비율 (나머지는 평소처럼 고른다) */
+export const SCAM_REFUSE_RATE = 0.9;
 
 export interface SimOptions {
   mode?: Mode;
@@ -44,6 +54,21 @@ function botActions(state: GameState, bot: Rng, riskTaste: number): void {
   }
 }
 
+/** 사기 아크 카드에서 끊기·거절·신고 선택지의 화면 번호. 사기 아크가 아니거나 그런 선택지가 없으면 undefined */
+export function refusalChoice(card: ActiveCard): number | undefined {
+  const arc = EVENT_BY_ID.get(card.eventId)?.arc;
+  if (!arc || !SCAM_ARCS.includes(arc)) return undefined;
+  const i = card.choices.findIndex((c) => REFUSE_TEXT.test(c.text));
+  return i >= 0 ? i : undefined;
+}
+
+function botChoice(card: ActiveCard, bot: Rng): number {
+  const refuse = refusalChoice(card);
+  if (refuse !== undefined && bot.chance(SCAM_REFUSE_RATE)) return refuse;
+  // 평범한 사람은 무난한 첫 선택지를 자주 고른다
+  return bot.chance(0.4) ? 0 : bot.int(0, card.choices.length - 1);
+}
+
 /** 한 인생을 끝까지 자동으로 산다 */
 export function simulateLife(seed: string, opts: SimOptions = {}): GameState {
   const state = newGame({ seed, mode: opts.mode ?? 'drama', birthYear: opts.birthYear ?? 2026 });
@@ -60,8 +85,7 @@ export function simulateLife(seed: string, opts: SimOptions = {}): GameState {
       endTurn(state);
     } else if (state.phase === 'event') {
       const card = state.card!;
-      // 평범한 사람은 무난한 첫 선택지를 자주 고른다
-      if (card.choices.length > 0 && !card.result) choose(state, bot.chance(0.4) ? 0 : bot.int(0, card.choices.length - 1));
+      if (card.choices.length > 0 && !card.result) choose(state, botChoice(card, bot));
       else proceed(state);
     }
   }

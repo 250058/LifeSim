@@ -2,7 +2,7 @@ import { useState } from 'react';
 import { normalizeSeed } from '../engine/rng';
 import type { Mode } from '../engine/types';
 import { MODE_INFO } from './labels';
-import { useGame } from './store';
+import { DEFAULT_MODE, useGame } from './store';
 
 const TITLE_ROWS = [
   ['대', '한', '민', '국', '에', '서'],
@@ -13,7 +13,8 @@ const MODES: Mode[] = ['reality', 'drama', 'makjang'];
 
 export function TitleScreen() {
   const { game, graves, adult, setAdult, start, resume } = useGame();
-  const [mode, setMode] = useState<Mode>('drama');
+  // 새 인생은 현실 모드에서 시작한다. 드라마·막장은 눌러서 고른다
+  const [mode, setMode] = useState<Mode>(DEFAULT_MODE);
   const [seed, setSeed] = useState('');
   // 살던 인생이 있으면 한 번 더 눌러야 새로 태어난다 (저장이 하나뿐이다)
   const [confirming, setConfirming] = useState(false);
