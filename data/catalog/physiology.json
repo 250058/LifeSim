@@ -1,0 +1,2042 @@
+{
+  "about": "생리적 현상. contexts(상황) × phenomena(현상)를 짝지어 장면을 만들고, stages는 생애 단계별 현상이다. 현상의 tags와 상황의 tags가 하나라도 겹치면 짝이 된다.",
+  "contexts": [
+    {
+      "id": "class",
+      "name": "수업 시간",
+      "tags": ["quiet", "formal"],
+      "age": [8, 18],
+      "if": "edu.status == 'elementary' || edu.status == 'middle' || edu.status == 'high'",
+      "lead": "조용한 수업 시간. 선생님이 칠판에 무언가를 쓰고 있었다.",
+      "loud": "반 아이들이 일제히 뒤를 돌아봤다.",
+      "seen": "선생님과 눈이 마주쳤다.",
+      "exit": { "text": "손을 들고 보건실에 다녀온다", "result": "보건실 침대에 십 분쯤 누워 있다가 돌아왔다.", "fx": { "stress": -2 } }
+    },
+    {
+      "id": "lecture",
+      "name": "대학 강의실",
+      "tags": ["quiet"],
+      "age": [19, 30],
+      "if": "edu.status == 'university'",
+      "lead": "200명이 듣는 교양 강의. 교수님 마이크 소리만 울렸다.",
+      "loud": "앞줄 몇 명이 돌아봤다.",
+      "seen": "옆자리 동기가 슬쩍 웃었다.",
+      "exit": { "text": "가방을 챙겨 조용히 나간다", "result": "출석은 이미 불렀다. 남은 수업은 녹화본으로 봤다.", "fx": { "stress": -1 } }
+    },
+    {
+      "id": "exam",
+      "name": "시험 시간",
+      "tags": ["quiet", "formal"],
+      "age": [10, 26],
+      "if": "edu.status == 'middle' || edu.status == 'high' || edu.status == 'university'",
+      "lead": "시험 시작 20분째. 감독관이 교실 뒤를 천천히 걸었다.",
+      "loud": "감독관이 '조용히'라고 적힌 표정으로 돌아봤다.",
+      "seen": "감독관이 잠깐 멈춰 서서 내 쪽을 봤다.",
+      "fx": { "stress": 2 }
+    },
+    {
+      "id": "interview",
+      "name": "면접장",
+      "tags": ["formal"],
+      "age": [19, 60],
+      "if": "!legal.inPrison && !military.serving",
+      "lead": "면접관 세 명이 이력서를 넘기고 있었다. '자기소개 해 보세요.'",
+      "loud": "가운데 면접관이 고개를 들었다.",
+      "seen": "면접관 한 명이 메모를 멈췄다.",
+      "fx": { "stress": 3 }
+    },
+    {
+      "id": "meeting",
+      "name": "회의 시간",
+      "tags": ["quiet", "formal"],
+      "age": [19, 70],
+      "if": "job.employed",
+      "lead": "월요일 아침 주간 회의. 팀장이 실적 그래프를 띄워 놓고 말이 길어졌다.",
+      "loud": "회의실이 잠깐 조용해졌다.",
+      "seen": "팀장이 말을 멈추고 이쪽을 봤다.",
+      "exit": { "text": "급한 전화인 척 나간다", "result": "복도에서 숨을 돌리고 들어왔다. 아무도 묻지 않았다.", "fx": { "stress": -1 } }
+    },
+    {
+      "id": "presentation",
+      "name": "발표 시간",
+      "tags": ["formal"],
+      "age": [12, 65],
+      "if": "edu.status == 'middle' || edu.status == 'high' || edu.status == 'university' || job.employed",
+      "lead": "내 발표 차례. 스크린에 첫 장표가 떴고, 모두가 나를 봤다.",
+      "loud": "앞자리에서 누가 킥 웃었다.",
+      "seen": "맨 앞줄 사람이 고개를 갸웃했다.",
+      "fx": { "stress": 3 }
+    },
+    {
+      "id": "company_dinner",
+      "name": "회식 자리",
+      "tags": ["social"],
+      "age": [20, 65],
+      "if": "job.employed && !military.serving",
+      "lead": "부장님이 잔을 들었다. '자, 다들 한 잔씩!' 고깃집 연기가 자욱했다.",
+      "loud": "옆 테이블까지 웃음이 번졌다.",
+      "seen": "대리님이 눈짓으로 괜찮냐고 물었다.",
+      "exit": { "text": "화장실 간다며 잠깐 빠진다", "result": "찬물에 손을 씻고 나니 좀 나았다.", "fx": { "stress": -1 } }
+    },
+    {
+      "id": "date",
+      "name": "데이트",
+      "tags": ["social", "intimate"],
+      "age": [19, 90],
+      "if": "family.partnerAdult && !legal.inPrison && !military.serving",
+      "lead": "{짝}와/과 분위기 좋은 식당에 마주 앉았다. 촛불이 흔들렸다.",
+      "loud": "{짝}이/가 웃음을 참느라 어깨를 들썩였다.",
+      "seen": "{짝}이/가 '괜찮아?' 하고 물었다."
+    },
+    {
+      "id": "blind_date",
+      "name": "소개팅",
+      "tags": ["social", "formal"],
+      "age": [21, 50],
+      "if": "!family.hasPartner && !family.married && !legal.inPrison && !military.serving",
+      "lead": "소개팅 첫 만남. 카페 창가 자리에서 서로 어색하게 웃었다.",
+      "loud": "상대가 못 들은 척 커피잔만 봤다.",
+      "seen": "상대가 내 얼굴을 한 번 더 봤다.",
+      "fx": { "stress": 2 }
+    },
+    {
+      "id": "wedding",
+      "name": "결혼식장",
+      "tags": ["social", "formal"],
+      "age": [12, 100],
+      "if": "!legal.inPrison && !military.serving",
+      "lead": "친척 결혼식. 신부 입장 음악이 울리고 하객들이 일어섰다.",
+      "loud": "앞줄 하객 몇이 돌아봤다.",
+      "seen": "사진 기사가 셔터를 누르다 멈췄다."
+    },
+    {
+      "id": "funeral",
+      "name": "장례식장",
+      "tags": ["quiet", "formal"],
+      "age": [10, 100],
+      "if": "!legal.inPrison && !military.serving",
+      "lead": "조문하러 간 장례식장. 영정 사진 앞에서 향이 타고 있었다.",
+      "loud": "상주가 고개를 들어 이쪽을 봤다.",
+      "seen": "옆에 선 사람이 조용히 휴지를 건넸다."
+    },
+    {
+      "id": "family_dinner",
+      "name": "명절 밥상",
+      "tags": ["social"],
+      "age": [5, 100],
+      "if": "!legal.inPrison && !military.serving",
+      "lead": "명절 저녁. 온 가족이 둘러앉았고, 전 부치는 냄새가 집 안에 가득했다.",
+      "loud": "작은아버지가 껄껄 웃었다.",
+      "seen": "할머니가 '얼굴이 왜 그러냐'고 물었다."
+    },
+    {
+      "id": "reunion",
+      "name": "동창회",
+      "tags": ["social"],
+      "age": [25, 90],
+      "if": "!legal.inPrison && !military.serving",
+      "lead": "십몇 년 만의 동창회. 다들 반가운 척, 변한 얼굴을 훔쳐봤다.",
+      "loud": "반장이었던 애가 '야, 여전하네' 하고 웃었다.",
+      "seen": "옛 짝꿍이 괜찮냐고 물었다."
+    },
+    {
+      "id": "karaoke",
+      "name": "노래방",
+      "tags": ["social"],
+      "age": [12, 80],
+      "if": "!legal.inPrison && !military.serving",
+      "lead": "노래방 3번 방. 내 차례가 왔고 반주가 시작됐다.",
+      "loud": "다들 탬버린을 흔들며 박장대소했다.",
+      "seen": "친구가 마이크를 대신 들어 줬다."
+    },
+    {
+      "id": "concert",
+      "name": "공연장",
+      "tags": ["social", "quiet"],
+      "age": [12, 80],
+      "if": "!legal.inPrison && !military.serving",
+      "lead": "어렵게 구한 공연 티켓. 조명이 꺼지고 첫 곡의 전주가 흘렀다.",
+      "loud": "앞자리 관객이 돌아봤다.",
+      "seen": "옆 사람이 슬쩍 자리를 좁혀 줬다."
+    },
+    {
+      "id": "movie",
+      "name": "영화관",
+      "tags": ["quiet"],
+      "age": [7, 100],
+      "if": "!legal.inPrison && !military.serving",
+      "lead": "영화관 맨 뒷줄. 스크린 속 주인공이 마지막 대사를 하려는 순간이었다.",
+      "loud": "앞줄에서 '쉿' 소리가 났다.",
+      "seen": "옆 사람이 팝콘을 내밀었다."
+    },
+    {
+      "id": "library",
+      "name": "도서관 열람실",
+      "tags": ["quiet"],
+      "age": [10, 90],
+      "if": "!legal.inPrison && !military.serving",
+      "lead": "시험 기간 도서관 열람실. 연필 사각거리는 소리만 들렸다.",
+      "loud": "열람실 사람들이 동시에 고개를 들었다.",
+      "seen": "맞은편 사람이 이어폰을 꼈다."
+    },
+    {
+      "id": "church",
+      "name": "친구 따라 간 예배당",
+      "tags": ["quiet"],
+      "age": [8, 90],
+      "if": "!legal.inPrison && !military.serving",
+      "lead": "친구를 따라 처음 가 본 예배당. 모두 눈을 감고 기도하는 시간이었다.",
+      "loud": "몇 사람이 눈을 뜨고 이쪽을 봤다.",
+      "seen": "친구가 실눈을 뜨고 나를 봤다."
+    },
+    {
+      "id": "hospital_wait",
+      "name": "병원 대기실",
+      "tags": ["quiet"],
+      "age": [3, 110],
+      "lead": "대학병원 대기실. 전광판의 번호는 한참째 그대로였다.",
+      "loud": "옆자리 할머니가 '아이고' 하고 쳐다봤다.",
+      "seen": "간호사가 지나가다 멈칫했다."
+    },
+    {
+      "id": "elevator",
+      "name": "엘리베이터",
+      "tags": ["quiet", "transit"],
+      "age": [8, 100],
+      "if": "!legal.inPrison",
+      "lead": "출근 시간 엘리베이터. 모르는 사람 열두 명과 함께 20층까지 올라가야 했다.",
+      "loud": "모두가 층수 표시판만 쳐다봤다.",
+      "seen": "거울에 비친 사람들과 눈이 마주쳤다."
+    },
+    {
+      "id": "subway",
+      "name": "출근길 지하철",
+      "tags": ["transit"],
+      "age": [14, 80],
+      "if": "!legal.inPrison && !military.serving",
+      "lead": "2호선 출근길. 사람 사이에 끼어 발끝으로 서 있었다.",
+      "loud": "앞사람이 이어폰을 빼고 돌아봤다.",
+      "seen": "맞은편 사람이 휴대폰에서 눈을 들었다."
+    },
+    {
+      "id": "bus",
+      "name": "고속버스",
+      "tags": ["transit"],
+      "age": [8, 100],
+      "if": "!legal.inPrison && !military.serving",
+      "lead": "네 시간짜리 고속버스. 휴게소까지는 아직 한 시간이 남았다.",
+      "loud": "옆자리 사람이 안대를 벗었다.",
+      "seen": "통로 건너편 사람이 힐끔 봤다."
+    },
+    {
+      "id": "plane",
+      "name": "비행기 안",
+      "tags": ["transit"],
+      "age": [3, 100],
+      "if": "!legal.inPrison && !military.serving",
+      "lead": "제주행 비행기. 안전벨트 표시등이 켜졌고 기체가 덜컹거렸다.",
+      "loud": "승무원이 통로를 걸어오다 멈췄다.",
+      "seen": "옆자리 아이가 빤히 쳐다봤다."
+    },
+    {
+      "id": "taxi",
+      "name": "택시 뒷자리",
+      "tags": ["transit"],
+      "age": [19, 100],
+      "if": "!legal.inPrison && !military.serving",
+      "lead": "새벽 택시. 기사님이 라디오를 켜 놓고 말없이 달렸다.",
+      "loud": "기사님이 백미러로 쳐다봤다.",
+      "seen": "기사님이 에어컨을 슬쩍 줄였다."
+    },
+    {
+      "id": "holiday_drive",
+      "name": "명절 귀성길",
+      "tags": ["transit", "social"],
+      "age": [5, 100],
+      "if": "!legal.inPrison && !military.serving",
+      "lead": "명절 귀성길 고속도로. 내비게이션 도착 시간이 계속 늘어났다.",
+      "loud": "앞자리 가족이 동시에 웃음을 터뜨렸다.",
+      "seen": "운전대를 잡은 가족이 백미러로 봤다."
+    },
+    {
+      "id": "mart",
+      "name": "마트 계산대 줄",
+      "tags": ["transit"],
+      "age": [15, 100],
+      "if": "!legal.inPrison && !military.serving",
+      "lead": "일요일 저녁 마트. 계산대 줄이 열 명째 늘어서 있었다.",
+      "loud": "앞사람이 카트를 밀다 돌아봤다.",
+      "seen": "계산원이 '괜찮으세요?' 하고 물었다."
+    },
+    {
+      "id": "photo",
+      "name": "가족사진 촬영",
+      "tags": ["formal", "social"],
+      "age": [5, 100],
+      "if": "!legal.inPrison && !military.serving",
+      "lead": "사진관에서 가족사진을 찍는 날. 사진사가 '자, 하나 둘' 하고 셔터에 손을 올렸다.",
+      "loud": "사진사가 카메라에서 얼굴을 뗐다.",
+      "seen": "사진사가 '한 번만 더 갈게요' 했다."
+    },
+    {
+      "id": "parent_meeting",
+      "name": "학부모 상담",
+      "tags": ["formal"],
+      "age": [25, 70],
+      "if": "family.youngestChildAge >= 7 && family.youngestChildAge <= 18",
+      "lead": "아이 담임과의 학부모 상담. 작은 의자에 무릎을 접고 앉았다.",
+      "loud": "담임 선생님이 서류를 넘기다 멈췄다.",
+      "seen": "담임 선생님이 물을 한 컵 따라 줬다."
+    },
+    {
+      "id": "gym",
+      "name": "헬스장",
+      "tags": ["active"],
+      "age": [16, 85],
+      "if": "!legal.inPrison && !military.serving",
+      "lead": "퇴근 후 헬스장. 데드리프트 세 번째 세트를 앞두고 있었다.",
+      "loud": "옆 벤치 사람이 덤벨을 내려놓고 쳐다봤다.",
+      "seen": "트레이너가 다가왔다."
+    },
+    {
+      "id": "pe_class",
+      "name": "체육 시간",
+      "tags": ["active"],
+      "age": [8, 18],
+      "if": "edu.status == 'elementary' || edu.status == 'middle' || edu.status == 'high'",
+      "lead": "체육 시간 운동장. 오래달리기 세 바퀴째였다.",
+      "loud": "반 아이들이 달리다 말고 돌아봤다.",
+      "seen": "체육 선생님이 호루라기를 불었다."
+    },
+    {
+      "id": "hiking",
+      "name": "등산길",
+      "tags": ["active"],
+      "age": [10, 90],
+      "if": "!legal.inPrison && !military.serving",
+      "lead": "주말 등산. 정상까지 1.2km라는 표지판이 보였다.",
+      "loud": "내려오던 등산객이 '힘내요' 하고 지나갔다.",
+      "seen": "일행이 물병을 건넸다."
+    },
+    {
+      "id": "swimming",
+      "name": "수영장",
+      "tags": ["active"],
+      "age": [6, 85],
+      "if": "!legal.inPrison && !military.serving",
+      "lead": "동네 수영장 자유수영 시간. 레인마다 사람이 꽉 찼다.",
+      "loud": "옆 레인 사람이 물안경을 올렸다.",
+      "seen": "안전요원이 호루라기를 입에 물었다."
+    },
+    {
+      "id": "rollcall",
+      "name": "저녁 점호",
+      "tags": ["formal", "military"],
+      "age": [18, 30],
+      "if": "military.serving && military.branch != 'social'",
+      "lead": "저녁 점호. 당직 사관이 생활관 앞에 섰고 모두 차렷 자세였다.",
+      "loud": "당직 사관의 눈썹이 꿈틀했다.",
+      "seen": "옆 동기가 입 모양으로 '참아'라고 했다."
+    },
+    {
+      "id": "guard_duty",
+      "name": "새벽 불침번",
+      "tags": ["night", "military"],
+      "age": [18, 30],
+      "if": "military.serving && military.branch != 'social'",
+      "lead": "새벽 두 시 불침번. 생활관에는 코 고는 소리만 가득했다."
+    },
+    {
+      "id": "march",
+      "name": "행군",
+      "tags": ["active", "military"],
+      "age": [18, 30],
+      "if": "military.serving && military.branch != 'social'",
+      "lead": "40km 행군 중. 군장 끈이 어깨를 파고들었다.",
+      "loud": "분대장이 뒤를 돌아봤다.",
+      "seen": "선임이 말없이 내 군장을 한 번 들어 줬다."
+    },
+    {
+      "id": "bed",
+      "name": "잠들기 전",
+      "tags": ["night", "private"],
+      "age": [4, 110],
+      "lead": "불을 끄고 누웠다. 시계 초침 소리가 유난히 크게 들렸다."
+    },
+    {
+      "id": "exam_eve",
+      "name": "시험 전날 밤",
+      "tags": ["night"],
+      "age": [14, 26],
+      "if": "edu.status == 'middle' || edu.status == 'high' || edu.status == 'university'",
+      "lead": "시험 전날 밤. 알람을 세 개 맞춰 놓고 누웠다."
+    },
+    {
+      "id": "interview_eve",
+      "name": "면접 전날 밤",
+      "tags": ["night"],
+      "age": [20, 45],
+      "if": "!job.employed && !legal.inPrison && !military.serving",
+      "lead": "면접 전날 밤. 다려 놓은 셔츠가 의자에 걸려 있었다."
+    },
+    {
+      "id": "move_night",
+      "name": "이사 첫날 밤",
+      "tags": ["night"],
+      "age": [19, 90],
+      "if": "!family.livesWithParents && !legal.inPrison && !military.serving",
+      "lead": "이사 첫날 밤. 풀지 못한 상자들 사이에 이불만 깔고 누웠다."
+    },
+    {
+      "id": "camp_night",
+      "name": "수학여행 밤",
+      "tags": ["night", "social"],
+      "age": [11, 18],
+      "if": "edu.status == 'elementary' || edu.status == 'middle' || edu.status == 'high'",
+      "lead": "수학여행 숙소. 선생님 순찰이 끝나자 다들 몰래 눈을 떴다.",
+      "loud": "옆 이불에서 키득거리는 소리가 났다.",
+      "seen": "친구가 손전등을 비췄다."
+    },
+    {
+      "id": "mt_night",
+      "name": "대학 MT",
+      "tags": ["night", "social"],
+      "age": [19, 27],
+      "if": "edu.status == 'university'",
+      "lead": "대학 MT 숙소. 새벽 세 시, 몇 명은 아직 술잔을 돌리고 있었다.",
+      "loud": "선배가 '야, 괜찮냐' 하며 웃었다.",
+      "seen": "동기가 이불을 덮어 줬다."
+    },
+    {
+      "id": "hospital_night",
+      "name": "입원 병실",
+      "tags": ["night"],
+      "age": [3, 110],
+      "lead": "검사 때문에 하루 입원한 6인실. 옆 침대 커튼 너머로 기계음이 났다."
+    },
+    {
+      "id": "home_alone",
+      "name": "혼자 있는 저녁",
+      "tags": ["private"],
+      "age": [19, 110],
+      "if": "!family.livesWithParents && !legal.inPrison && !military.serving",
+      "lead": "혼자 사는 집의 저녁. 배달 앱을 열었다 닫았다."
+    }
+  ],
+  "phenomena": [
+    {
+      "id": "hiccup",
+      "name": "딸꾹질",
+      "tags": ["quiet", "formal", "social", "military"],
+      "age": [4, 100],
+      "notice": "loud",
+      "w": 0.6,
+      "scene": "갑자기 딸꾹질이 터졌다. 숨을 참아도, 침을 삼켜도 멈추지 않는다.",
+      "choices": [
+        { "text": "숨을 참고 속으로 스물까지 센다", "result": "열여덟에서 멈췄다.", "fx": { "stress": -1 } },
+        { "text": "물을 조금씩 여러 번 삼킨다", "result": "일곱 모금째에 겨우 멎었다." },
+        { "text": "그냥 둔다", "result": "셀 수 없을 만큼 딸꾹거리고 나서야 멎었다.", "fx": { "stress": 2 } }
+      ]
+    },
+    {
+      "id": "sneeze_fit",
+      "name": "재채기 연발",
+      "tags": ["quiet", "formal", "social", "transit", "military"],
+      "age": [3, 110],
+      "notice": "loud",
+      "w": 0.6,
+      "scene": "코끝이 간질간질하더니 재채기가 연달아 다섯 번 터졌다.",
+      "choices": [
+        { "text": "팔꿈치로 입을 막는다", "result": "기침 예절은 지켰다. 소매가 축축해졌다." },
+        { "text": "코를 꽉 쥐고 참는다", "result": "귀가 먹먹해졌다. 재채기는 참는 게 아니라더니.", "fx": { "stress": 1 } },
+        { "text": "휴지를 꺼내 시원하게 푼다", "result": "코가 뻥 뚫렸다. 주변이 잠깐 조용했다.", "fx": { "stress": -1 } }
+      ]
+    },
+    {
+      "id": "yawn",
+      "name": "하품",
+      "tags": ["quiet", "formal", "military"],
+      "age": [5, 110],
+      "notice": "seen",
+      "w": 0.6,
+      "scene": "턱이 빠질 것 같은 하품이 올라왔다. 참으려 할수록 눈물이 핑 돈다.",
+      "choices": [
+        { "text": "입을 다문 채 코로 하품을 넘긴다", "result": "콧구멍이 벌름거렸지만 들키지 않았다." },
+        { "text": "손으로 가리고 크게 한다", "result": "눈물을 닦는 것까지 들켰다.", "fx": { "stress": 1 } },
+        { "text": "허벅지를 꼬집는다", "result": "아팠다. 대신 정신이 번쩍 들었다.", "fx": { "health": -1, "stress": -1 } }
+      ]
+    },
+    {
+      "id": "growl",
+      "name": "꼬르륵",
+      "tags": ["quiet", "formal", "social", "transit", "military"],
+      "age": [5, 110],
+      "notice": "loud",
+      "w": 0.7,
+      "scene": "배 속에서 꼬르르륵, 길고 선명한 소리가 났다. 아침을 거른 대가였다.",
+      "choices": [
+        { "text": "배에 힘을 줘서 막는다", "result": "두 번째 소리는 막았다. 세 번째는 못 막았다.", "fx": { "stress": 1 } },
+        { "text": "헛기침으로 덮는다", "result": "헛기침이 더 어색했다." },
+        {
+          "text": "'배고파서 그래요' 하고 웃어 버린다",
+          "result": "웃고 나니 민망함이 반으로 줄었다.",
+          "fx": { "sociability": 1, "happiness": 1 }
+        }
+      ]
+    },
+    {
+      "id": "fart_hold",
+      "name": "방귀 위기",
+      "tags": ["quiet", "formal", "social", "transit"],
+      "age": [6, 110],
+      "notice": "hidden",
+      "w": 0.5,
+      "scene": "아랫배가 묵직해졌다. 지금 여기서 방귀가 나오면 끝이다.",
+      "choices": [
+        {
+          "text": "엉덩이에 힘을 주고 끝까지 참는다",
+          "check": ["stamina", 40],
+          "result": "참았다. 배가 부글거렸지만 아무도 몰랐다.",
+          "fail": "참다 참다 아주 작게 새어 나왔다. 다들 못 들은 척해 줬다.",
+          "failFx": { "stress": 3 }
+        },
+        { "text": "조용히 자리를 뜬다", "result": "잠깐 자리를 비웠다가 돌아왔다. 세상이 평화로웠다.", "fx": { "stress": -2 } },
+        {
+          "text": "소리 없이 조금씩 내보낸다",
+          "result": "소리는 없었다. 냄새는 있었다. 범인은 끝까지 밝혀지지 않았다.",
+          "fx": { "morality": -1 }
+        }
+      ],
+      "not": ["taxi", "bus", "holiday_drive", "plane", "subway"]
+    },
+    {
+      "id": "burp",
+      "name": "트림",
+      "tags": ["social", "formal"],
+      "age": [5, 110],
+      "notice": "loud",
+      "w": 0.4,
+      "not": ["blind_date", "photo"],
+      "scene": "탄산을 너무 빨리 마셨다. 목구멍 끝까지 트림이 올라왔다.",
+      "choices": [
+        { "text": "입을 다물고 코로 조용히 뺀다", "result": "성공했다. 눈물이 조금 났다." },
+        { "text": "고개를 돌리고 짧게 한다", "result": "생각보다 크게 났다. '실례했습니다.'", "fx": { "stress": 1 } }
+      ]
+    },
+    {
+      "id": "nosebleed",
+      "name": "코피",
+      "tags": ["quiet", "formal", "social", "transit", "active"],
+      "age": [5, 90],
+      "notice": "seen",
+      "w": 0.4,
+      "scene": "코에서 뭔가 주르륵 흘렀다. 손등으로 훔쳐 보니 빨갛다. 코피다.",
+      "choices": [
+        { "text": "고개를 숙이고 콧방울을 10분 누른다", "result": "제대로 된 방법이었다. 금방 멎었다.", "fx": { "health": 1 } },
+        { "text": "고개를 뒤로 젖힌다", "result": "피가 목으로 넘어가 비릿했다. 고개는 숙이는 게 맞다고 나중에 들었다." },
+        { "text": "휴지를 돌돌 말아 막는다", "result": "휴지 꼬리를 달고 한참 있었다.", "fx": { "stress": 1 } }
+      ]
+    },
+    {
+      "id": "leg_cramp",
+      "name": "다리 쥐",
+      "tags": ["night", "active", "transit", "private"],
+      "age": [12, 110],
+      "notice": "hidden",
+      "w": 0.5,
+      "scene": "종아리가 돌처럼 굳으며 쥐가 났다. 숨이 턱 막히게 아프다.",
+      "choices": [
+        { "text": "발끝을 몸 쪽으로 당긴다", "result": "근육이 천천히 풀렸다. 다음 날까지 뻐근했다.", "fx": { "health": -1 } },
+        { "text": "꾹 참고 주무른다", "result": "오 분 만에 풀렸다. 물을 많이 마시기로 했다.", "fx": { "stress": 1 } }
+      ]
+    },
+    {
+      "id": "numb_legs",
+      "name": "다리 저림",
+      "tags": ["quiet", "social"],
+      "age": [6, 110],
+      "notice": "seen",
+      "w": 0.4,
+      "only": ["funeral", "family_dinner", "church", "photo", "reunion", "date"],
+      "scene": "양반다리로 오래 앉아 있었더니 발끝부터 다리 전체가 찌릿찌릿 저려 왔다.",
+      "choices": [
+        { "text": "조심조심 다리를 편다", "result": "감각이 돌아오는 동안 얼굴이 일그러졌다." },
+        {
+          "text": "벌떡 일어선다",
+          "check": ["stamina", 45],
+          "result": "휘청했지만 버텼다.",
+          "fail": "일어서자마자 다리가 꺾여 주저앉았다. 다들 웃었다.",
+          "failFx": { "stress": 2, "sociability": 1 }
+        }
+      ]
+    },
+    {
+      "id": "head_rush",
+      "name": "기립성 어지럼",
+      "tags": ["formal", "active", "military", "social"],
+      "age": [12, 110],
+      "notice": "seen",
+      "w": 0.4,
+      "scene": "일어서는 순간 눈앞이 하얘지며 핑 돌았다. 귀에서 웅 소리가 났다.",
+      "choices": [
+        { "text": "그 자리에 쪼그려 앉는다", "result": "잠깐 쉬자 시야가 돌아왔다.", "fx": { "health": 1 } },
+        { "text": "벽을 짚고 버틴다", "result": "몇 초 뒤 괜찮아졌다. 다음엔 천천히 일어나기로 했다." },
+        {
+          "text": "아무렇지 않은 척한다",
+          "check": ["health", 55],
+          "result": "아무도 몰랐다.",
+          "fail": "휘청하다 옆 사람 어깨를 붙잡았다.",
+          "failFx": { "stress": 2 }
+        }
+      ]
+    },
+    {
+      "id": "food_coma",
+      "name": "식곤증",
+      "tags": ["quiet", "formal", "transit"],
+      "age": [10, 110],
+      "notice": "seen",
+      "w": 0.6,
+      "scene": "점심을 든든히 먹은 뒤였다. 눈꺼풀이 천근만근 내려왔다.",
+      "choices": [
+        { "text": "찬물로 세수를 하고 온다", "result": "십 분은 버틸 수 있게 됐다.", "fx": { "stress": -1 } },
+        { "text": "볼펜으로 손바닥을 찌른다", "result": "정신은 들었는데 손바닥에 점이 생겼다." },
+        { "text": "잠깐만 눈을 감는다", "result": "눈을 떠 보니 15분이 지나 있었다.", "fx": { "stress": -2, "intelligence": -1 } }
+      ],
+      "only": ["class", "lecture", "meeting", "library", "church", "bus", "subway", "hospital_wait", "movie"]
+    },
+    {
+      "id": "nod_off",
+      "name": "꾸벅 졸기",
+      "tags": ["quiet", "transit", "military"],
+      "age": [8, 110],
+      "notice": "seen",
+      "w": 0.5,
+      "scene": "고개가 앞으로 툭 떨어졌다가 화들짝 들렸다. 또 떨어졌다.",
+      "choices": [
+        { "text": "자세를 고쳐 앉는다", "result": "허리를 펴니 조금 나았다." },
+        { "text": "껌을 씹는다", "result": "턱을 움직이니 잠이 달아났다." },
+        { "text": "포기하고 잔다", "result": "개운하게 잤다. 침 자국이 남았다.", "fx": { "stress": -2 } }
+      ],
+      "not": ["elevator", "mart"]
+    },
+    {
+      "id": "sweaty_palms",
+      "name": "손에 땀",
+      "tags": ["formal", "social"],
+      "age": [10, 90],
+      "notice": "hidden",
+      "w": 0.5,
+      "scene": "손바닥이 축축하게 젖었다. 쥐고 있던 종이가 눅눅해졌다.",
+      "choices": [
+        { "text": "바지에 슬쩍 닦는다", "result": "바지에 손자국이 남았다." },
+        { "text": "심호흡을 세 번 한다", "result": "숨을 고르자 손이 조금 말랐다.", "fx": { "stress": -2 } }
+      ]
+    },
+    {
+      "id": "blush",
+      "name": "얼굴 빨개짐",
+      "tags": ["formal", "social"],
+      "age": [10, 80],
+      "notice": "seen",
+      "w": 0.5,
+      "scene": "귀부터 목까지 화끈 달아올랐다. 얼굴이 빨개지는 게 느껴진다.",
+      "choices": [
+        { "text": "'좀 덥네요' 하고 손부채질을 한다", "result": "다들 그런 줄 알았다. 아마도." },
+        { "text": "모른 척 계속한다", "result": "빨개진 얼굴은 금방 돌아왔다.", "fx": { "mental": 1 } }
+      ]
+    },
+    {
+      "id": "racing_heart",
+      "name": "두근거림",
+      "tags": ["formal", "social", "night"],
+      "age": [10, 110],
+      "notice": "hidden",
+      "w": 0.5,
+      "scene": "심장이 귀에서 뛰는 것처럼 쿵쾅거렸다. 손끝까지 맥박이 느껴진다.",
+      "choices": [
+        { "text": "4초 들이쉬고 7초 참고 8초 내쉰다", "result": "세 번 하자 박자가 느려졌다.", "fx": { "stress": -3 } },
+        { "text": "물을 한 모금 마신다", "result": "목이 축여지니 조금 나았다.", "fx": { "stress": -1 } },
+        { "text": "그냥 버틴다", "result": "끝나고 나서야 심장이 제자리로 돌아왔다.", "fx": { "stress": 2 } }
+      ]
+    },
+    {
+      "id": "voice_crack",
+      "name": "목소리 갈라짐",
+      "tags": ["formal", "social"],
+      "age": [12, 90],
+      "notice": "loud",
+      "w": 0.4,
+      "only": ["presentation", "interview", "karaoke", "class", "meeting", "blind_date", "wedding"],
+      "scene": "입을 여는데 목소리가 삑 하고 갈라졌다. 첫마디가 그렇게 나갔다.",
+      "choices": [
+        { "text": "헛기침을 하고 다시 시작한다", "result": "두 번째는 멀쩡했다.", "fx": { "stress": 1 } },
+        { "text": "'다시 할게요' 하고 웃는다", "result": "웃음이 터졌고 오히려 분위기가 풀렸다.", "fx": { "sociability": 1 } }
+      ]
+    },
+    {
+      "id": "dry_mouth",
+      "name": "입마름",
+      "tags": ["formal"],
+      "age": [12, 110],
+      "notice": "hidden",
+      "w": 0.4,
+      "scene": "입안이 바싹 말라 혀가 입천장에 달라붙었다. 말할 때마다 쩍쩍 소리가 난다.",
+      "choices": [
+        { "text": "물을 달라고 부탁한다", "result": "종이컵 물 한 잔이 이렇게 고마울 수가.", "fx": { "stress": -1 } },
+        { "text": "혀끝을 깨물어 침을 만든다", "result": "조금 나아졌다. 요령이 생겼다." }
+      ],
+      "only": ["interview", "presentation", "meeting", "blind_date", "parent_meeting"]
+    },
+    {
+      "id": "breath_worry",
+      "name": "입냄새 걱정",
+      "tags": ["social", "formal", "transit"],
+      "age": [14, 100],
+      "notice": "hidden",
+      "w": 0.4,
+      "only": ["date", "blind_date", "interview", "meeting", "elevator", "taxi", "reunion"],
+      "scene": "점심에 마늘 보쌈을 먹었다는 게 이제야 생각났다. 말할 때마다 신경이 쓰인다.",
+      "choices": [
+        { "text": "입을 가리고 짧게 말한다", "result": "말수가 줄었다. 상대는 내가 기분이 안 좋은 줄 알았다.", "fx": { "stress": 1 } },
+        { "text": "가글을 하고 온다", "result": "편의점 가글 하나로 자신감이 돌아왔다.", "fx": { "cost": 2000, "stress": -1 } },
+        { "text": "그냥 신경 끈다", "result": "생각보다 아무도 신경 쓰지 않았다." }
+      ]
+    },
+    {
+      "id": "itch_back",
+      "name": "등 가려움",
+      "tags": ["formal", "military", "quiet"],
+      "age": [6, 110],
+      "notice": "seen",
+      "w": 0.4,
+      "scene": "손이 닿지 않는 등 한가운데가 미치도록 가려웠다.",
+      "choices": [
+        { "text": "의자 등받이에 슬쩍 비빈다", "result": "꿈틀거리는 게 다 보였겠지만 살 것 같았다.", "fx": { "stress": -1 } },
+        { "text": "끝까지 참는다", "result": "참을수록 가려움이 온몸으로 번졌다.", "fx": { "stress": 2, "mental": 1 } }
+      ]
+    },
+    {
+      "id": "ear_pop",
+      "name": "귀 먹먹",
+      "tags": ["transit"],
+      "age": [3, 110],
+      "notice": "hidden",
+      "w": 0.3,
+      "only": ["plane", "elevator", "bus", "subway"],
+      "scene": "기압이 바뀌면서 귀가 꽉 막혔다. 소리가 물속처럼 멀게 들린다.",
+      "choices": [
+        { "text": "코를 막고 살짝 바람을 넣는다", "result": "펑 하고 뚫렸다.", "fx": { "stress": -1 } },
+        { "text": "침을 여러 번 삼킨다", "result": "한쪽은 뚫렸고 한쪽은 한 시간 뒤에 뚫렸다." }
+      ]
+    },
+    {
+      "id": "motion_sick",
+      "name": "멀미",
+      "tags": ["transit"],
+      "age": [4, 100],
+      "notice": "seen",
+      "w": 0.4,
+      "only": ["bus", "plane", "taxi", "holiday_drive"],
+      "scene": "속이 울렁거리고 식은땀이 났다. 창밖 풍경이 빙빙 돈다.",
+      "choices": [
+        { "text": "먼 곳을 보며 창문을 연다", "result": "바람이 들어오니 좀 살 것 같았다.", "fx": { "stress": -1 } },
+        { "text": "눈을 감고 잠을 청한다", "result": "잠들자 멀미도 같이 잠들었다." },
+        { "text": "봉투를 준비한다", "result": "결국 썼다. 다음부턴 멀미약을 챙기기로 했다.", "fx": { "health": -1, "stress": 2 } }
+      ]
+    },
+    {
+      "id": "need_pee",
+      "name": "화장실 급함",
+      "tags": ["quiet", "formal", "transit", "social", "military"],
+      "age": [5, 110],
+      "notice": "hidden",
+      "w": 0.6,
+      "not": ["mart", "home_alone"],
+      "scene": "아까 마신 음료가 이제 와서 신호를 보냈다. 방광이 터질 것 같다.",
+      "choices": [
+        {
+          "text": "끝날 때까지 참는다",
+          "check": ["stamina", 45],
+          "result": "버텼다. 화장실까지 전력 질주했다.",
+          "fail": "도저히 못 참고 중간에 나갔다. 다들 쳐다봤다.",
+          "failFx": { "stress": 3 }
+        },
+        { "text": "양해를 구하고 다녀온다", "result": "다녀오니 세상이 아름다웠다.", "fx": { "stress": -2 } }
+      ]
+    },
+    {
+      "id": "urgent_stomach",
+      "name": "배탈 신호",
+      "tags": ["formal", "transit", "social", "quiet", "active"],
+      "age": [6, 110],
+      "notice": "hidden",
+      "w": 0.5,
+      "not": ["home_alone", "bed"],
+      "scene": "아랫배가 꾸르륵 뒤틀렸다. 아까 먹은 게 문제였나. 식은땀이 났다.",
+      "choices": [
+        { "text": "가장 가까운 화장실을 찾는다", "result": "아슬아슬하게 도착했다. 인생에서 가장 긴 30초였다.", "fx": { "stress": 1 } },
+        {
+          "text": "배를 문지르며 버틴다",
+          "check": ["mental", 50],
+          "result": "고비가 지나갔다.",
+          "fail": "고비는 두 번, 세 번 찾아왔다.",
+          "failFx": { "stress": 4, "health": -1 }
+        }
+      ]
+    },
+    {
+      "id": "headache",
+      "name": "두통",
+      "tags": ["quiet", "formal", "social", "night"],
+      "age": [8, 110],
+      "notice": "hidden",
+      "w": 0.5,
+      "scene": "관자놀이가 욱신거렸다. 머리 한쪽을 누가 망치로 두드리는 것 같다.",
+      "choices": [
+        { "text": "진통제를 먹는다", "result": "삼십 분 뒤 거짓말처럼 가라앉았다.", "fx": { "cost": 3000, "stress": -1 } },
+        { "text": "관자놀이를 꾹꾹 누른다", "result": "조금 나아졌다. 물을 많이 마셨다." },
+        { "text": "참는다", "result": "하루 종일 머리가 띵했다.", "fx": { "stress": 2 } }
+      ]
+    },
+    {
+      "id": "eye_twitch",
+      "name": "눈 떨림",
+      "tags": ["quiet", "formal"],
+      "age": [12, 100],
+      "notice": "seen",
+      "w": 0.4,
+      "scene": "왼쪽 눈 아래가 파르르 떨렸다. 멈추질 않는다.",
+      "choices": [
+        { "text": "마그네슘 부족인가 싶어 바나나를 먹는다", "result": "기분 탓인지 저녁쯤 멎었다.", "fx": { "health": 1 } },
+        { "text": "눈을 꾹 감았다 뜬다", "result": "떨림이 잠깐 멎었다가 다시 시작됐다. 피곤하다는 신호였다.", "fx": { "stress": 1 } }
+      ]
+    },
+    {
+      "id": "tinnitus",
+      "name": "이명",
+      "tags": ["quiet", "night", "private"],
+      "age": [15, 110],
+      "notice": "hidden",
+      "w": 0.3,
+      "scene": "조용해지자 귓속에서 삐― 하는 소리가 들렸다. 어디서 나는 소리도 아니다.",
+      "choices": [
+        { "text": "백색소음을 틀어 놓는다", "result": "빗소리에 묻혀 삐 소리가 작아졌다.", "fx": { "stress": -1 } },
+        {
+          "text": "이비인후과 예약을 잡는다",
+          "result": "청력 검사를 받았다. '피로와 스트레스 때문일 수 있어요.'",
+          "fx": { "cost": 15000, "health": 1 }
+        },
+        { "text": "신경 쓰지 않으려 애쓴다", "result": "신경 쓰지 않으려 할수록 더 크게 들렸다.", "fx": { "stress": 2 } }
+      ]
+    },
+    {
+      "id": "shaky_hunger",
+      "name": "허기 손떨림",
+      "tags": ["formal", "active"],
+      "age": [12, 100],
+      "notice": "seen",
+      "w": 0.4,
+      "scene": "끼니를 거른 탓인지 손이 덜덜 떨리고 식은땀이 났다. 눈앞이 어른거린다.",
+      "choices": [
+        { "text": "주머니의 사탕을 먹는다", "result": "단맛이 퍼지자 손떨림이 잦아들었다.", "fx": { "health": 1 } },
+        {
+          "text": "끝까지 버틴다",
+          "check": ["health", 55],
+          "result": "끝나자마자 편의점으로 달려갔다.",
+          "fail": "잠깐 주저앉았다. 누군가 초콜릿을 내밀었다.",
+          "failFx": { "health": -2, "stress": 2 }
+        }
+      ]
+    },
+    {
+      "id": "cold_hands",
+      "name": "손발 냉증",
+      "tags": ["social", "formal"],
+      "age": [10, 110],
+      "notice": "hidden",
+      "w": 0.3,
+      "only": ["date", "blind_date", "interview", "wedding", "funeral", "reunion"],
+      "scene": "손끝이 얼음장처럼 차가웠다. 악수를 하면 상대가 놀랄 것 같다.",
+      "choices": [
+        { "text": "핫팩을 쥐고 있다가 꺼낸다", "result": "따뜻해진 손으로 무사히 악수했다." },
+        { "text": "손을 비비며 '수족냉증이라서요' 한다", "result": "상대도 그렇다며 웃었다. 공통점이 생겼다.", "fx": { "sociability": 1 } }
+      ]
+    },
+    {
+      "id": "static_shock",
+      "name": "정전기",
+      "tags": ["social", "transit", "private"],
+      "age": [6, 110],
+      "notice": "seen",
+      "w": 0.3,
+      "only": ["date", "elevator", "mart", "taxi", "home_alone", "subway"],
+      "scene": "손잡이를 잡는 순간 '탁!' 정전기가 튀었다. 손끝이 얼얼하다.",
+      "choices": [
+        { "text": "손바닥 전체로 잡는다", "result": "요령을 알게 됐다. 겨울이 조금 덜 무서워졌다." },
+        { "text": "핸드크림을 바른다", "result": "건조한 게 문제였다.", "fx": { "cost": 5000, "looks": 1 } }
+      ]
+    },
+    {
+      "id": "dandruff",
+      "name": "비듬",
+      "tags": ["social", "formal"],
+      "age": [13, 100],
+      "notice": "seen",
+      "w": 0.3,
+      "scene": "검은 정장 어깨에 하얀 비듬이 눈처럼 내려앉아 있었다.",
+      "choices": [
+        { "text": "화장실에서 털고 온다", "result": "털고 나서도 신경이 쓰였다.", "fx": { "stress": 1 } },
+        { "text": "모르는 척한다", "result": "누군가 말없이 어깨를 털어 줬다." }
+      ]
+    },
+    {
+      "id": "big_pimple",
+      "name": "큰 뾰루지",
+      "tags": ["social", "formal"],
+      "age": [12, 60],
+      "notice": "seen",
+      "w": 0.4,
+      "scene": "하필 오늘 아침, 코끝에 커다란 뾰루지가 솟아 있었다.",
+      "choices": [
+        { "text": "컨실러로 가린다", "result": "가렸다. 가린 게 더 티 났다." },
+        { "text": "짜 버린다", "result": "빨갛게 부어올랐다. 짜면 안 된다는 걸 또 잊었다.", "fx": { "looks": -1, "stress": 1 } },
+        { "text": "그냥 둔다", "result": "다들 생각보다 남의 코끝을 안 봤다." }
+      ]
+    },
+    {
+      "id": "sweat_stain",
+      "name": "겨드랑이 땀",
+      "tags": ["formal", "social", "transit", "active"],
+      "age": [13, 90],
+      "notice": "seen",
+      "w": 0.4,
+      "scene": "회색 셔츠 겨드랑이에 동그란 땀자국이 번지고 있었다.",
+      "choices": [
+        { "text": "팔을 몸에 딱 붙인다", "result": "로봇처럼 움직였다.", "fx": { "stress": 1 } },
+        { "text": "재킷을 걸친다", "result": "더웠지만 가렸다." },
+        { "text": "신경 쓰지 않는다", "result": "땀은 누구나 흘린다.", "fx": { "mental": 1 } }
+      ],
+      "not": ["swimming"]
+    },
+    {
+      "id": "snore_public",
+      "name": "졸다가 코골이",
+      "tags": ["transit", "quiet"],
+      "age": [15, 110],
+      "notice": "loud",
+      "w": 0.3,
+      "only": ["bus", "plane", "subway", "library", "lecture", "hospital_wait"],
+      "scene": "깜빡 잠든 사이, 내 코 고는 소리에 내가 놀라 깼다.",
+      "choices": [
+        { "text": "자는 척을 계속한다", "result": "눈을 감은 채로 얼굴이 화끈거렸다." },
+        { "text": "헛기침을 하고 자세를 고친다", "result": "옆 사람이 '피곤하셨나 봐요' 했다.", "fx": { "sociability": 1 } }
+      ]
+    },
+    {
+      "id": "sleep_paralysis",
+      "name": "가위눌림",
+      "tags": ["night", "private"],
+      "age": [12, 90],
+      "notice": "hidden",
+      "w": 0.3,
+      "scene": "눈은 떠졌는데 몸이 움직이지 않았다. 방 한구석에 누가 서 있는 것 같다.",
+      "choices": [
+        { "text": "손가락 하나에만 힘을 모은다", "result": "새끼손가락이 꿈틀하자 몸이 풀렸다. 불을 켜고 잤다.", "fx": { "stress": 2 } },
+        {
+          "text": "속으로 숫자를 센다",
+          "check": ["mental", 50],
+          "result": "서른쯤에서 몸이 돌아왔다. 수면 부족이 원인이라고 했다.",
+          "fail": "숫자가 엉키고 공포가 밀려왔다. 그날 밤은 다시 잠들지 못했다.",
+          "failFx": { "stress": 5, "health": -1 }
+        }
+      ]
+    },
+    {
+      "id": "nightmare",
+      "name": "악몽",
+      "tags": ["night"],
+      "age": [5, 110],
+      "notice": "hidden",
+      "w": 0.4,
+      "not": ["guard_duty"],
+      "scene": "누군가에게 쫓기다 낭떠러지에서 떨어졌다. 몸이 움찔하며 깼다. 온몸이 땀범벅이다.",
+      "choices": [
+        { "text": "물을 마시고 다시 눕는다", "result": "다시 잠들었다. 꿈은 이어지지 않았다." },
+        { "text": "휴대폰을 보다 잠든다", "result": "새벽 네 시까지 영상을 봤다.", "fx": { "stress": 1, "health": -1 } }
+      ]
+    },
+    {
+      "id": "insomnia",
+      "name": "잠이 안 옴",
+      "tags": ["night", "private"],
+      "age": [12, 110],
+      "notice": "hidden",
+      "w": 0.6,
+      "not": ["guard_duty", "camp_night", "mt_night"],
+      "scene": "양을 천 마리까지 셌다. 정신은 점점 또렷해졌다.",
+      "choices": [
+        { "text": "일어나 따뜻한 우유를 마신다", "result": "한 시간 뒤 스르르 잠들었다.", "fx": { "stress": -1 } },
+        { "text": "휴대폰을 집어 든다", "result": "정신을 차려 보니 창밖이 밝아 오고 있었다.", "fx": { "health": -1, "stress": 2 } },
+        {
+          "text": "눈을 감고 호흡에만 집중한다",
+          "check": ["mental", 45],
+          "result": "어느새 잠들었다.",
+          "fail": "호흡을 셀수록 걱정이 늘었다.",
+          "failFx": { "stress": 2 }
+        }
+      ]
+    },
+    {
+      "id": "hot_flash",
+      "name": "안면홍조",
+      "sex": "F",
+      "tags": ["formal", "social", "transit", "night"],
+      "age": [45, 60],
+      "notice": "seen",
+      "w": 0.6,
+      "scene": "가슴부터 얼굴까지 뜨거운 열이 확 올라왔다. 이마에 땀이 맺혔다. 갱년기 증상이었다.",
+      "choices": [
+        { "text": "부채를 꺼내 부친다", "result": "몇 분 뒤 열기가 빠져나갔다." },
+        {
+          "text": "'요즘 이래요' 하고 웃는다",
+          "result": "말하고 나니 마음이 편했다. 누군가 창문을 조금 열어 줬다.",
+          "fx": { "sociability": 1, "stress": -1 }
+        },
+        { "text": "산부인과 상담을 받기로 한다", "result": "호르몬 치료와 생활 관리를 안내받았다.", "fx": { "cost": 50000, "health": 2 } }
+      ]
+    },
+    {
+      "id": "period_cramp",
+      "name": "생리통",
+      "sex": "F",
+      "tags": ["quiet", "formal", "active", "transit", "social"],
+      "age": [12, 52],
+      "notice": "hidden",
+      "w": 0.7,
+      "scene": "아랫배를 쥐어짜는 듯한 통증이 시작됐다. 허리까지 묵직하다. 생리 첫날이었다.",
+      "choices": [
+        { "text": "진통제를 먹고 버틴다", "result": "약효가 돌자 그럭저럭 견딜 만해졌다.", "fx": { "cost": 3000 } },
+        { "text": "핫팩을 배에 댄다", "result": "따뜻해지니 통증이 조금 풀렸다.", "fx": { "stress": -1 } },
+        {
+          "text": "오늘은 그만 들어가 눕는다",
+          "result": "이불 속에서 핫팩을 안고 하루를 보냈다.",
+          "fx": { "stress": -2, "happiness": -1 }
+        }
+      ]
+    },
+    {
+      "id": "period_worry",
+      "name": "생리 날짜",
+      "sex": "F",
+      "tags": ["quiet", "formal", "transit", "social"],
+      "age": [12, 52],
+      "notice": "hidden",
+      "w": 0.4,
+      "not": ["swimming"],
+      "scene": "예정일보다 사흘 빨랐다. 가방에 생리대가 없다는 게 떠올랐다.",
+      "choices": [
+        { "text": "친구·동료에게 조용히 빌린다", "result": "말없이 파우치째 건네줬다. 연대는 이런 데서 생긴다.", "fx": { "sociability": 1 } },
+        { "text": "화장실 무료 비치함을 찾는다", "result": "공공 화장실 비치함 덕을 봤다." },
+        { "text": "휴지로 급히 버틴다", "result": "하루 종일 신경이 곤두섰다.", "fx": { "stress": 3 } }
+      ]
+    },
+    {
+      "id": "pms",
+      "name": "생리 전 예민함",
+      "sex": "F",
+      "tags": ["social", "private"],
+      "age": [13, 50],
+      "notice": "hidden",
+      "w": 0.3,
+      "scene": "사소한 말에도 눈물이 나고 짜증이 났다. 달력을 보니 그럴 때였다.",
+      "choices": [
+        { "text": "'나 요즘 예민할 때야' 하고 미리 말한다", "result": "주변이 알아서 조심해 줬다.", "fx": { "stress": -2 } },
+        { "text": "단 걸 잔뜩 먹는다", "result": "초콜릿 한 판이 사라졌다.", "fx": { "happiness": 2, "health": -1 } }
+      ]
+    },
+    {
+      "id": "frequent_urination",
+      "name": "잦은 소변",
+      "tags": ["transit", "social", "night", "quiet"],
+      "age": [55, 110],
+      "notice": "hidden",
+      "w": 0.5,
+      "not": ["guard_duty", "camp_night", "mt_night"],
+      "scene": "한 시간도 안 됐는데 또 화장실이 급했다. 나이가 드니 방광이 말을 안 듣는다.",
+      "choices": [
+        { "text": "통로 쪽 자리를 고집한다", "result": "들락날락해도 덜 미안했다." },
+        {
+          "text": "비뇨의학과에 가 본다",
+          "result": "전립선·방광 검사를 받았다. 약으로 좀 나아졌다.",
+          "fx": { "cost": 40000, "health": 2 }
+        },
+        { "text": "물을 덜 마신다", "result": "소변은 줄었는데 입이 바짝 말랐다.", "fx": { "health": -1 } }
+      ]
+    },
+    {
+      "id": "knee_crack",
+      "name": "무릎 소리",
+      "tags": ["formal", "social", "active"],
+      "age": [45, 110],
+      "notice": "loud",
+      "w": 0.4,
+      "scene": "일어서는데 무릎에서 '뚜둑' 하고 큰 소리가 났다. 다들 들었다.",
+      "choices": [
+        { "text": "'아이고' 소리를 같이 낸다", "result": "다들 웃었다. 나이 든 티가 났다.", "fx": { "sociability": 1 } },
+        {
+          "text": "정형외과 예약을 잡는다",
+          "result": "연골이 닳기 시작했다고 했다. 허벅지 근육 운동을 권했다.",
+          "fx": { "cost": 30000, "health": 1 }
+        }
+      ]
+    },
+    {
+      "id": "back_twinge",
+      "name": "허리 삐끗",
+      "tags": ["active", "social", "private"],
+      "age": [30, 110],
+      "notice": "seen",
+      "w": 0.4,
+      "not": ["date"],
+      "scene": "허리를 숙이는 순간 '찌릿' 하고 허리가 굳었다. 펴지지가 않는다.",
+      "choices": [
+        { "text": "그 자세로 천천히 누워 쉰다", "result": "이틀 동안 엉금엉금 기어 다녔다.", "fx": { "health": -1, "stress": 2 } },
+        { "text": "한의원에서 침을 맞는다", "result": "침 맞고 찜질을 하니 조금 펴졌다.", "fx": { "cost": 20000 } },
+        { "text": "정형외과에서 주사를 맞는다", "result": "주사 한 방에 걸을 만해졌다.", "fx": { "cost": 50000, "health": 1 } }
+      ]
+    },
+    {
+      "id": "presbyopia",
+      "name": "작은 글씨",
+      "tags": ["formal", "quiet", "social", "transit"],
+      "age": [43, 110],
+      "notice": "seen",
+      "w": 0.4,
+      "scene": "작은 글씨가 흐릿하게 번졌다. 종이를 팔 길이만큼 멀리 떼야 읽힌다.",
+      "choices": [
+        { "text": "안경을 머리 위로 올리고 본다", "result": "그게 노안이라는 걸 인정하는 데 한 달이 걸렸다." },
+        { "text": "돋보기를 장만한다", "result": "세상이 다시 선명해졌다.", "fx": { "cost": 30000, "happiness": 1 } },
+        { "text": "휴대폰으로 사진을 찍어 확대한다", "result": "요즘 사람답게 해결했다." }
+      ]
+    },
+    {
+      "id": "tip_of_tongue",
+      "name": "단어가 안 떠오름",
+      "tags": ["formal", "social"],
+      "age": [45, 110],
+      "notice": "seen",
+      "w": 0.4,
+      "scene": "'그거, 그거 있잖아.' 아는 단어인데 혀끝에서만 맴돈다.",
+      "choices": [
+        { "text": "다른 말로 돌려 설명한다", "result": "다들 알아들었다. 한참 뒤 샤워하다 생각났다." },
+        { "text": "검색해서 찾는다", "result": "찾았다. 기억력 훈련 앱을 깔았다.", "fx": { "intelligence": 1 } }
+      ]
+    },
+    {
+      "id": "hard_of_hearing",
+      "name": "잘 안 들림",
+      "tags": ["social", "quiet"],
+      "age": [65, 110],
+      "notice": "seen",
+      "w": 0.4,
+      "scene": "다들 웃는데 무슨 말인지 하나도 못 들었다. 되묻기도 지쳤다.",
+      "choices": [
+        { "text": "웃는 척 따라 웃는다", "result": "웃었지만 조금 외로웠다.", "fx": { "happiness": -1 } },
+        {
+          "text": "보청기를 알아본다",
+          "result": "보조금을 받아 보청기를 맞췄다. 새소리가 다시 들렸다.",
+          "fx": { "cost": 300000, "happiness": 3 }
+        },
+        { "text": "'다시 말해 줄래' 하고 묻는다", "result": "손주가 귀에 대고 또박또박 다시 말해 줬다.", "fx": { "sociability": 1 } }
+      ]
+    },
+    {
+      "id": "cold_sweat",
+      "name": "식은땀",
+      "tags": ["formal"],
+      "age": [12, 100],
+      "notice": "seen",
+      "w": 0.4,
+      "scene": "등줄기를 따라 식은땀이 흘렀다. 머리가 하얘졌다.",
+      "choices": [
+        {
+          "text": "준비한 첫 문장을 떠올린다",
+          "check": ["mental", 50],
+          "result": "첫 문장이 나오자 나머지가 따라 나왔다.",
+          "fail": "한참 버벅댔다. 끝나고 나서야 다리가 풀렸다.",
+          "failFx": { "stress": 3 }
+        },
+        { "text": "솔직하게 '긴장했네요' 하고 웃는다", "result": "분위기가 누그러졌다.", "fx": { "stress": -1, "sociability": 1 } }
+      ],
+      "only": ["interview", "presentation", "exam", "meeting", "blind_date", "parent_meeting", "class"]
+    },
+    {
+      "id": "stiff_neck",
+      "name": "목 담 결림",
+      "tags": ["formal", "quiet", "transit"],
+      "age": [15, 110],
+      "notice": "seen",
+      "w": 0.4,
+      "scene": "자고 일어났더니 목이 왼쪽으로 돌아가지 않았다. 담이 단단히 걸렸다.",
+      "choices": [
+        { "text": "몸 전체를 돌려서 본다", "result": "로봇처럼 움직이는 나를 보고 다들 웃었다." },
+        { "text": "파스를 붙인다", "result": "파스 냄새를 풍기며 하루를 버텼다.", "fx": { "cost": 5000 } }
+      ]
+    },
+    {
+      "id": "hay_fever",
+      "name": "꽃가루 알레르기",
+      "tags": ["quiet", "formal", "transit", "social", "active"],
+      "age": [5, 100],
+      "notice": "loud",
+      "w": 0.4,
+      "scene": "꽃가루가 날리는 계절이었다. 눈이 가렵고 콧물이 줄줄 흘렀다.",
+      "choices": [
+        { "text": "알레르기약을 먹는다", "result": "증상은 잡혔는데 졸음이 쏟아졌다.", "fx": { "cost": 8000 } },
+        { "text": "마스크를 쓴다", "result": "조금 나았다. 봄마다 마스크가 필수가 됐다." },
+        { "text": "눈을 비빈다", "result": "눈이 토끼처럼 빨개졌다.", "fx": { "looks": -1 } }
+      ]
+    },
+    {
+      "id": "dry_eye",
+      "name": "안구건조",
+      "tags": ["quiet", "formal"],
+      "age": [12, 110],
+      "notice": "hidden",
+      "w": 0.4,
+      "scene": "눈이 뻑뻑하고 모래가 들어간 듯 따끔거렸다. 화면을 너무 오래 봤다.",
+      "choices": [
+        { "text": "인공눈물을 넣는다", "result": "눈이 촉촉해지자 살 것 같았다.", "fx": { "cost": 10000, "health": 1 } },
+        { "text": "20분마다 먼 곳을 본다", "result": "습관이 됐다. 눈이 좀 덜 피곤했다.", "fx": { "health": 1 } }
+      ],
+      "only": ["lecture", "meeting", "library", "exam", "subway", "home_alone", "presentation"]
+    },
+    {
+      "id": "caffeine_jitter",
+      "name": "카페인 과다",
+      "tags": ["formal", "quiet", "night"],
+      "age": [15, 100],
+      "notice": "hidden",
+      "w": 0.4,
+      "scene": "아메리카노 세 잔에 에너지 음료까지. 손이 떨리고 심장이 빨리 뛰었다.",
+      "choices": [
+        { "text": "물을 많이 마시고 걷는다", "result": "한 시간쯤 지나자 가라앉았다.", "fx": { "stress": -1 } },
+        {
+          "text": "오늘부터 커피는 하루 두 잔으로 줄인다",
+          "result": "사흘 동안 두통에 시달렸다. 그다음부터 잠이 잘 왔다.",
+          "fx": { "health": 2, "stress": 1 }
+        }
+      ],
+      "only": [
+        "exam",
+        "interview",
+        "meeting",
+        "library",
+        "lecture",
+        "presentation",
+        "exam_eve",
+        "interview_eve",
+        "guard_duty"
+      ]
+    },
+    {
+      "id": "hangover",
+      "name": "숙취",
+      "tags": ["formal", "social", "transit", "quiet"],
+      "age": [19, 100],
+      "if": "substance.alcohol.usedThisYear",
+      "notice": "seen",
+      "w": 0.5,
+      "not": ["exam_eve", "camp_night"],
+      "scene": "어젯밤 마신 술의 대가였다. 머리가 깨질 듯하고 속이 뒤집혔다.",
+      "choices": [
+        { "text": "콩나물국밥으로 해장한다", "result": "국물을 한 숟갈 뜨자 사람이 됐다.", "fx": { "cost": 9000, "health": 1 } },
+        { "text": "숙취해소제를 마신다", "result": "효과가 있는지는 모르겠지만 마음은 편했다.", "fx": { "cost": 5000 } },
+        {
+          "text": "다시는 안 마신다고 다짐한다",
+          "result": "물을 한 통 다 마시고 휴대폰 메모장에 '금주'라고 적었다.",
+          "fx": { "add": ["quitting_drinking"] }
+        }
+      ]
+    },
+    {
+      "id": "spicy_regret",
+      "name": "매운 음식 후폭풍",
+      "tags": ["formal", "transit", "social"],
+      "age": [12, 100],
+      "notice": "hidden",
+      "w": 0.4,
+      "scene": "어제 먹은 불닭의 대가가 하필 지금 찾아왔다. 속이 쓰리고 배가 뒤틀린다.",
+      "choices": [
+        { "text": "우유를 마신다", "result": "속이 좀 달래졌다." },
+        { "text": "제산제를 먹는다", "result": "약국 약사가 '매운 거 드셨죠' 하고 알아봤다.", "fx": { "cost": 6000 } }
+      ]
+    },
+    {
+      "id": "chills",
+      "name": "몸살 기운",
+      "tags": ["formal", "military", "social", "active"],
+      "age": [5, 110],
+      "notice": "seen",
+      "w": 0.5,
+      "scene": "으슬으슬 춥고 온몸이 두들겨 맞은 듯 쑤셨다. 열이 오르는 게 느껴진다.",
+      "choices": [
+        { "text": "일찍 들어가 쉰다", "result": "푹 자고 나니 한결 나았다.", "fx": { "health": 1, "stress": -1 } },
+        { "text": "해열제를 먹고 버틴다", "result": "버티긴 했다. 다음 날 더 앓았다.", "fx": { "health": -2, "cost": 4000 } },
+        { "text": "병원에서 수액을 맞는다", "result": "수액 한 팩에 기운이 돌아왔다.", "fx": { "cost": 50000, "health": 2 } }
+      ]
+    },
+    {
+      "id": "laugh_fit",
+      "name": "웃음 참기",
+      "tags": ["quiet", "formal", "military"],
+      "age": [7, 100],
+      "notice": "loud",
+      "w": 0.4,
+      "scene": "전혀 웃긴 상황이 아닌데 웃음이 비집고 나왔다. 참을수록 어깨가 들썩였다.",
+      "choices": [
+        {
+          "text": "슬픈 일을 떠올린다",
+          "check": ["mental", 45],
+          "result": "겨우 참았다. 입술을 깨물었다.",
+          "fail": "'풉' 하고 터졌다. 수습할 수 없었다.",
+          "failFx": { "stress": 3, "reputation": -1 }
+        },
+        { "text": "기침인 척한다", "result": "기침인 척하는 소리가 더 웃겼다.", "fx": { "stress": 1 } }
+      ]
+    },
+    {
+      "id": "tearing_up",
+      "name": "눈물 핑",
+      "tags": ["social", "quiet", "formal"],
+      "age": [6, 110],
+      "notice": "seen",
+      "w": 0.4,
+      "not": ["interview", "exam", "meeting", "elevator", "library", "hospital_wait"],
+      "scene": "예상하지 못한 순간 눈물이 핑 돌았다. 코끝이 시큰했다.",
+      "choices": [
+        { "text": "천장을 보며 눈물을 말린다", "result": "흘리지는 않았다. 눈가가 빨갰다." },
+        { "text": "그냥 운다", "result": "울고 나니 속이 시원했다.", "fx": { "stress": -3, "happiness": 1 } }
+      ]
+    },
+    {
+      "id": "goosebumps",
+      "name": "소름",
+      "tags": ["social", "quiet"],
+      "age": [8, 110],
+      "only": ["concert", "movie", "wedding", "karaoke", "church"],
+      "notice": "hidden",
+      "w": 0.3,
+      "scene": "팔뚝에 소름이 쫙 돋았다. 뒷목까지 찌릿했다.",
+      "choices": [
+        { "text": "그 순간을 오래 기억하기로 한다", "result": "몇 년이 지나도 그 장면이 떠올랐다.", "fx": { "happiness": 3 } },
+        {
+          "text": "옆 사람에게 '방금 소름' 하고 속삭인다",
+          "result": "옆 사람도 팔을 보여 줬다. 둘 다 소름이었다.",
+          "fx": { "sociability": 1, "happiness": 1 }
+        }
+      ]
+    },
+    {
+      "id": "doms",
+      "name": "근육통",
+      "tags": ["transit", "formal", "active"],
+      "age": [12, 100],
+      "notice": "seen",
+      "w": 0.4,
+      "scene": "어제 하체 운동의 대가였다. 계단 한 칸 내려가는데 허벅지가 비명을 질렀다.",
+      "choices": [
+        { "text": "난간을 잡고 게걸음으로 내려간다", "result": "뒤에서 누가 웃었다. 이해한다는 웃음이었다." },
+        { "text": "가볍게 스트레칭으로 푼다", "result": "조금 풀렸다. 근육은 이렇게 자란다.", "fx": { "stamina": 1 } }
+      ]
+    },
+    {
+      "id": "growing_pain",
+      "name": "성장통",
+      "tags": ["night", "active"],
+      "age": [6, 14],
+      "notice": "hidden",
+      "w": 0.5,
+      "scene": "밤마다 무릎과 종아리가 욱신거렸다. 뼈가 자라는 소리가 나는 것 같다.",
+      "choices": [
+        { "text": "{보호자}에게 다리를 주물러 달라고 한다", "result": "따뜻한 손에 스르르 잠들었다.", "fx": { "happiness": 1 } },
+        { "text": "꾹 참고 잔다", "result": "아침에는 거짓말처럼 괜찮았다. 키가 1cm 자라 있었다." }
+      ]
+    },
+    {
+      "id": "loose_tooth",
+      "name": "흔들리는 이",
+      "tags": ["social", "quiet"],
+      "age": [6, 12],
+      "notice": "seen",
+      "w": 0.4,
+      "scene": "앞니가 덜렁덜렁 흔들렸다. 혀로 자꾸 밀어 보게 된다.",
+      "choices": [
+        { "text": "실로 묶어 당긴다", "result": "톡. 빠진 이를 지붕 위로 던졌다. '헌 이 줄게, 새 이 다오.'", "fx": { "happiness": 1 } },
+        { "text": "저절로 빠질 때까지 둔다", "result": "사과를 먹다가 빠졌다. 사과에 이가 박혀 있었다." }
+      ]
+    },
+    {
+      "id": "runny_nose",
+      "name": "콧물",
+      "tags": ["quiet", "formal", "social", "transit"],
+      "age": [3, 110],
+      "notice": "seen",
+      "w": 0.4,
+      "scene": "콧물이 쉴 새 없이 흘렀다. 휴지가 다 떨어져 간다.",
+      "choices": [
+        { "text": "코를 계속 훌쩍인다", "result": "훌쩍이는 소리가 계속 신경 쓰였다.", "fx": { "stress": 1 } },
+        { "text": "빌린 휴지로 크게 푼다", "result": "시원했다. 잠깐 정적이 흘렀다." }
+      ]
+    },
+    {
+      "id": "cough_fit",
+      "name": "기침 발작",
+      "tags": ["quiet", "formal", "social", "transit"],
+      "age": [3, 110],
+      "notice": "loud",
+      "w": 0.4,
+      "scene": "목이 간질거리더니 기침이 멈추지 않았다. 얼굴이 시뻘게졌다.",
+      "choices": [
+        { "text": "물을 마시고 숨을 고른다", "result": "몇 모금 마시자 잦아들었다." },
+        { "text": "마스크를 쓰고 밖으로 나간다", "result": "밖에서 한참 기침을 하고 돌아왔다.", "fx": { "stress": 1 } },
+        { "text": "목캔디를 문다", "result": "화한 기운이 목을 달랬다.", "fx": { "cost": 1500 } }
+      ]
+    },
+    {
+      "id": "arm_numb",
+      "name": "팔 저림",
+      "tags": ["night", "transit"],
+      "age": [12, 110],
+      "notice": "hidden",
+      "w": 0.3,
+      "scene": "팔을 베고 잤더니 팔이 내 팔이 아닌 것처럼 감각이 없었다. 손가락이 저릿저릿하다.",
+      "choices": [
+        { "text": "주먹을 쥐었다 폈다 한다", "result": "피가 돌면서 바늘로 찌르는 듯 따끔거리다 돌아왔다." },
+        { "text": "손목 터널 증후군을 검색한다", "result": "검색할수록 무서워졌다. 그냥 자세 탓이었다.", "fx": { "stress": 1 } }
+      ]
+    },
+    {
+      "id": "bloated",
+      "name": "더부룩함",
+      "tags": ["social", "formal", "transit"],
+      "age": [12, 110],
+      "notice": "hidden",
+      "w": 0.4,
+      "scene": "너무 급하게 먹었다. 배가 빵빵하게 부풀어 바지 단추가 버거웠다.",
+      "choices": [
+        { "text": "단추를 몰래 푼다", "result": "숨통이 트였다." },
+        { "text": "소화제를 먹는다", "result": "한 시간 뒤 꺼억, 해방이었다.", "fx": { "cost": 3000 } },
+        { "text": "산책을 한다", "result": "걷고 나니 속이 내려갔다.", "fx": { "health": 1 } }
+      ]
+    },
+    {
+      "id": "cold_feet",
+      "name": "발이 시려 잠 못 듦",
+      "tags": ["night"],
+      "age": [10, 110],
+      "notice": "hidden",
+      "w": 0.3,
+      "scene": "발이 얼음장 같아서 도무지 잠이 오지 않았다.",
+      "choices": [
+        { "text": "수면양말을 신는다", "result": "발이 따뜻해지자 스르르 잠들었다.", "fx": { "stress": -1 } },
+        { "text": "족욕을 한다", "result": "발을 담그니 온몸이 노곤해졌다.", "fx": { "stress": -2, "health": 1 } }
+      ]
+    },
+    {
+      "id": "thirst",
+      "name": "갈증",
+      "tags": ["active", "military"],
+      "age": [8, 100],
+      "notice": "hidden",
+      "w": 0.4,
+      "scene": "입술이 갈라지고 목이 타들어 갔다. 물통은 이미 비어 있었다.",
+      "choices": [
+        { "text": "옆 사람에게 물을 얻는다", "result": "한 모금이 생명수였다.", "fx": { "sociability": 1 } },
+        {
+          "text": "끝날 때까지 버틴다",
+          "check": ["stamina", 55],
+          "result": "버텼다. 끝나고 물을 1리터 마셨다.",
+          "fail": "어지러워 주저앉았다. 탈수 직전이었다.",
+          "failFx": { "health": -3, "stress": 2 }
+        }
+      ]
+    },
+    {
+      "id": "heat_rash",
+      "name": "땀띠",
+      "tags": ["active", "military"],
+      "age": [3, 100],
+      "notice": "hidden",
+      "w": 0.3,
+      "scene": "목과 등에 좁쌀 같은 땀띠가 돋았다. 땀이 닿을 때마다 따갑다.",
+      "choices": [
+        { "text": "시원하게 씻고 말린다", "result": "며칠 만에 가라앉았다." },
+        { "text": "벅벅 긁는다", "result": "더 번졌다. 긁으면 안 됐다.", "fx": { "health": -1 } }
+      ]
+    },
+    {
+      "id": "numb_cold",
+      "name": "손 시림",
+      "tags": ["military", "active"],
+      "age": [8, 100],
+      "notice": "hidden",
+      "w": 0.3,
+      "only": ["guard_duty", "march", "hiking", "rollcall"],
+      "scene": "칼바람에 손가락 끝이 하얗게 질리고 감각이 없었다.",
+      "choices": [
+        { "text": "겨드랑이에 손을 넣어 녹인다", "result": "천천히 감각이 돌아왔다. 따끔거렸다." },
+        { "text": "입김으로 녹인다", "result": "잠깐 따뜻했다가 더 시렸다.", "fx": { "health": -1 } }
+      ]
+    },
+    {
+      "id": "chapped_lips",
+      "name": "입술 갈라짐",
+      "tags": ["social", "formal"],
+      "age": [5, 110],
+      "notice": "seen",
+      "w": 0.3,
+      "scene": "입술이 바싹 말라 갈라졌다. 웃으면 피가 날 것 같다.",
+      "choices": [
+        { "text": "립밤을 바른다", "result": "촉촉해졌다. 주머니에 립밤을 상비하기로 했다.", "fx": { "cost": 4000 } },
+        { "text": "각질을 뜯는다", "result": "결국 피가 났다.", "fx": { "looks": -1 } }
+      ]
+    },
+    {
+      "id": "vertigo",
+      "name": "빙글빙글 어지럼",
+      "tags": ["night", "private", "formal"],
+      "age": [35, 110],
+      "notice": "seen",
+      "w": 0.3,
+      "scene": "고개를 돌리는 순간 방이 빙글빙글 돌았다. 속이 메스꺼웠다.",
+      "choices": [
+        { "text": "눈을 감고 가만히 있는다", "result": "몇 분 뒤 멎었다. 다음 날 또 그랬다.", "fx": { "stress": 2 } },
+        {
+          "text": "이비인후과에 간다",
+          "result": "이석증이었다. 귀 안의 돌을 제자리로 돌리는 치료를 받았다.",
+          "fx": { "cost": 40000, "health": 2 }
+        }
+      ]
+    },
+    {
+      "id": "sneeze_hold_fail",
+      "name": "참다 터진 재채기",
+      "tags": ["quiet", "formal"],
+      "age": [6, 110],
+      "notice": "loud",
+      "w": 0.3,
+      "scene": "재채기를 꾹 참았다. 참은 재채기가 엉뚱한 소리로 터져 나왔다. '에취윽!'",
+      "choices": [
+        { "text": "아무 일 없었다는 듯 앉아 있는다", "result": "다들 아무 일 없었다는 듯해 줬다." },
+        { "text": "'죄송합니다' 하고 고개를 숙인다", "result": "누군가 '감기 조심하세요' 했다.", "fx": { "sociability": 1 } }
+      ]
+    }
+  ],
+  "stages": [
+    {
+      "id": "voice_change_choir",
+      "group": "voice_change",
+      "sex": "M",
+      "age": [12, 15],
+      "title": "변성기",
+      "zoom": "음악 시간 합창",
+      "text": "합창 연습 시간. 고음 부분에서 목소리가 '꽥' 하고 뒤집혔다. 변성기가 온 것이다.",
+      "choices": [
+        { "text": "베이스 파트로 옮긴다", "result": "낮은 음이 의외로 잘 나왔다.", "fx": { "happiness": 1 } },
+        { "text": "입만 벙긋거린다", "result": "음악 선생님은 모른 척해 줬다." }
+      ]
+    },
+    {
+      "id": "voice_change_phone",
+      "group": "voice_change",
+      "sex": "M",
+      "age": [12, 15],
+      "title": "변성기",
+      "zoom": "걸려 온 전화",
+      "text": "전화를 받았더니 친척 어른이 '아버님 바꿔 드릴게요?' 했다. 목소리가 굵어졌다.",
+      "choices": [
+        { "text": "'저예요' 하고 웃는다", "result": "친척 어른이 '언제 이렇게 컸냐'며 놀랐다.", "fx": { "happiness": 1 } },
+        { "text": "그냥 아빠인 척 받는다", "result": "용돈 얘기가 나와서 서둘러 바꿨다." }
+      ]
+    },
+    {
+      "id": "voice_change_class",
+      "group": "voice_change",
+      "sex": "M",
+      "age": [12, 15],
+      "title": "변성기",
+      "zoom": "국어 시간 낭독",
+      "text": "교과서를 소리 내어 읽는데 한 문장 안에서 목소리가 두 번 갈라졌다.",
+      "choices": [
+        { "text": "끝까지 읽는다", "result": "킥킥거리던 애들도 다음 차례에 똑같이 갈라졌다.", "fx": { "mental": 1 } },
+        { "text": "목이 아프다며 멈춘다", "result": "선생님이 다음 사람을 불렀다." }
+      ]
+    },
+    {
+      "id": "menarche_school",
+      "group": "menarche",
+      "sex": "F",
+      "age": [10, 14],
+      "title": "초경",
+      "zoom": "학교 화장실",
+      "text": "쉬는 시간 화장실에서 속옷에 묻은 피를 봤다. 보건 시간에 배운 그것이었다. 심장이 쿵 내려앉았다.",
+      "choices": [
+        {
+          "text": "보건실에 간다",
+          "result": "보건 선생님이 생리대와 담요를 챙겨 주며 '축하할 일이야' 했다.",
+          "fx": { "stress": -1, "happiness": 1 }
+        },
+        { "text": "친한 친구에게 말한다", "result": "친구가 파우치를 열어 보여 줬다. '나도 작년에 그랬어.'", "fx": { "sociability": 1 } }
+      ]
+    },
+    {
+      "id": "menarche_home",
+      "group": "menarche",
+      "sex": "F",
+      "age": [10, 14],
+      "title": "초경",
+      "zoom": "아침 욕실",
+      "text": "아침에 일어나 보니 이불에 작은 얼룩이 있었다. {보호자}에게 말해야 할 것 같았다.",
+      "choices": [
+        { "text": "{보호자}에게 말한다", "result": "그날 저녁 식탁에 케이크가 올라왔다. 조금 부끄럽고 조금 좋았다.", "fx": { "happiness": 2 } },
+        { "text": "혼자 해결한다", "result": "인터넷으로 찾아보며 혼자 해결했다. 생각보다 어른이 된 기분이었다.", "fx": { "mental": 1 } }
+      ]
+    },
+    {
+      "id": "menarche_trip",
+      "group": "menarche",
+      "sex": "F",
+      "age": [10, 14],
+      "title": "초경",
+      "zoom": "수련회 첫날",
+      "text": "수련회 첫날 밤, 배가 아프더니 초경이 시작됐다. 짐에는 아무것도 없었다.",
+      "choices": [
+        { "text": "담당 선생님을 찾아간다", "result": "선생님이 챙겨 온 생리대를 줬다. 어른들은 다 알고 있었다.", "fx": { "stress": -1 } },
+        {
+          "text": "룸메이트에게 도움을 청한다",
+          "result": "룸메이트가 자기 것을 나눠 줬다. 그 뒤로 둘은 단짝이 됐다.",
+          "fx": { "sociability": 2 }
+        }
+      ]
+    },
+    {
+      "id": "growth_spurt_uniform",
+      "group": "growth_spurt",
+      "age": [11, 16],
+      "title": "키가 훌쩍",
+      "zoom": "작아진 교복",
+      "text": "봄에 산 교복 바지가 가을이 되자 발목 위로 올라왔다. 1년 사이 10cm가 컸다.",
+      "choices": [
+        {
+          "text": "새 교복을 산다",
+          "result": "{보호자}가 '내년엔 한 치수 크게 사자'고 했다.",
+          "fx": { "cost": 80000, "happiness": 1 }
+        },
+        { "text": "졸업까지 버틴다", "result": "깡총한 바지가 유행인 척했다." }
+      ]
+    },
+    {
+      "id": "growth_spurt_knee",
+      "group": "growth_spurt",
+      "age": [11, 16],
+      "title": "키가 훌쩍",
+      "zoom": "무릎 통증",
+      "text": "무릎 아래가 툭 튀어나오고 뛸 때마다 아팠다. 성장기에 흔한 통증이라고 했다.",
+      "choices": [
+        { "text": "운동을 잠시 줄인다", "result": "몇 달 뒤 통증이 사라졌다.", "fx": { "health": 1 } },
+        { "text": "참고 계속 뛴다", "result": "더 아파져서 결국 쉬었다.", "fx": { "health": -1 } }
+      ]
+    },
+    {
+      "id": "growth_spurt_measure",
+      "group": "growth_spurt",
+      "age": [11, 16],
+      "title": "키가 훌쩍",
+      "zoom": "신체검사",
+      "text": "학교 신체검사. 작년에 나보다 컸던 친구를 처음으로 내려다봤다.",
+      "choices": [
+        { "text": "어깨를 편다", "result": "괜히 목소리도 낮아졌다.", "fx": { "happiness": 2 } },
+        { "text": "더 크고 싶어 줄넘기를 시작한다", "result": "매일 천 개씩 뛰었다.", "fx": { "stamina": 2 } }
+      ]
+    },
+    {
+      "id": "puberty_acne",
+      "group": "puberty_skin",
+      "age": [12, 18],
+      "title": "사춘기 여드름",
+      "zoom": "거울 앞",
+      "text": "이마와 볼에 여드름이 줄줄이 돋았다. 거울 보는 시간이 늘었다.",
+      "choices": [
+        { "text": "피부과에 다닌다", "result": "약을 바르고 먹으니 조금씩 가라앉았다.", "fx": { "cost": 60000, "looks": 2 } },
+        { "text": "세안만 꼼꼼히 한다", "result": "나았다 났다를 반복했다. 다들 그랬다." },
+        { "text": "손으로 짠다", "result": "흉터가 남았다.", "fx": { "looks": -2 } }
+      ]
+    },
+    {
+      "id": "puberty_odor",
+      "group": "puberty_skin",
+      "age": [11, 16],
+      "title": "땀 냄새",
+      "zoom": "체육 시간 뒤",
+      "text": "체육 시간 뒤 교실에 땀 냄새가 가득했다. 그중 하나가 내 냄새라는 걸 깨달았다.",
+      "choices": [
+        { "text": "데오드란트를 산다", "result": "어른이 된 기분이었다.", "fx": { "cost": 8000, "sociability": 1 } },
+        { "text": "매일 아침 샤워를 한다", "result": "십 분 일찍 일어나는 습관이 생겼다.", "fx": { "health": 1 } }
+      ]
+    },
+    {
+      "id": "puberty_sleep",
+      "group": "teen_sleep",
+      "age": [13, 18],
+      "title": "밤형 인간",
+      "zoom": "새벽 1시",
+      "text": "밤만 되면 정신이 말똥말똥했다. 아침에는 알람 다섯 개도 소용없었다. 청소년기에는 생체시계가 늦춰진다고 했다.",
+      "choices": [
+        { "text": "휴대폰을 거실에 두고 잔다", "result": "열흘쯤 지나자 한 시간 일찍 잠들었다.", "fx": { "health": 2, "stress": -1 } },
+        { "text": "그냥 이대로 산다", "result": "1교시마다 졸았다.", "fx": { "health": -1, "intelligence": -1 } }
+      ]
+    },
+    {
+      "id": "wisdom_tooth",
+      "group": "wisdom_tooth",
+      "age": [17, 30],
+      "title": "사랑니",
+      "zoom": "치과 엑스레이",
+      "text": "어금니 안쪽이 욱신거리고 잇몸이 부었다. 엑스레이를 보니 사랑니가 옆으로 누워 있었다.",
+      "choices": [
+        {
+          "text": "뽑는다",
+          "result": "얼굴이 일주일 동안 호빵처럼 부었다. 대신 다시는 안 아팠다.",
+          "fx": { "cost": 100000, "health": 2, "stress": 2 }
+        },
+        { "text": "버틴다", "result": "아플 때마다 진통제를 먹었다.", "fx": { "health": -1 } }
+      ]
+    },
+    {
+      "id": "first_hangover",
+      "group": "first_drink",
+      "age": [19, 100],
+      "if": "substance.alcohol.usedThisYear && substance.alcohol.novice",
+      "title": "첫 숙취",
+      "zoom": "다음 날 아침",
+      "text": "처음으로 제대로 마신 술. 다음 날 아침, 천장이 빙글빙글 돌았다.",
+      "choices": [
+        { "text": "해장국을 먹으러 간다", "result": "어른들이 왜 해장국을 찾는지 알게 됐다.", "fx": { "cost": 9000 } },
+        {
+          "text": "다시는 안 마신다고 다짐한다",
+          "result": "냉장고 문에 '금주'라고 써 붙였다. 지킬지 말지는 이제 내가 정한다.",
+          "fx": { "add": ["quitting_drinking"] }
+        }
+      ]
+    },
+    {
+      "id": "all_nighter_limit",
+      "group": "all_nighter",
+      "age": [30, 45],
+      "title": "밤샘의 대가",
+      "zoom": "마감 다음 날",
+      "text": "밤을 새우고 나니 사흘이 지나도 몸이 돌아오지 않았다. 스무 살 때와는 달랐다.",
+      "choices": [
+        { "text": "다시는 밤샘을 하지 않기로 한다", "result": "일을 미리미리 하는 사람이 됐다. 조금은.", "fx": { "health": 2 } },
+        { "text": "영양제를 한 움큼 먹는다", "result": "효과는 잘 모르겠다.", "fx": { "cost": 40000 } }
+      ]
+    },
+    {
+      "id": "middle_age_spread",
+      "group": "metabolism",
+      "age": [30, 45],
+      "title": "나잇살",
+      "zoom": "작년 바지",
+      "text": "먹는 양은 그대로인데 작년 바지가 안 잠겼다. 기초대사량이 줄었다는 게 이런 거였다.",
+      "choices": [
+        { "text": "저녁을 가볍게 바꾼다", "result": "석 달에 4kg이 빠졌다.", "fx": { "health": 2, "happiness": -1 } },
+        { "text": "한 치수 큰 바지를 산다", "result": "편했다. 마음도 편했다.", "fx": { "cost": 50000, "health": -1 } }
+      ]
+    },
+    {
+      "id": "metabolism_slow",
+      "group": "metabolism",
+      "age": [40, 55],
+      "title": "느려진 회복",
+      "zoom": "운동 다음 날",
+      "text": "축구 한 게임 뛰었을 뿐인데 사흘 동안 계단을 못 내려갔다.",
+      "choices": [
+        { "text": "꾸준한 근력 운동을 시작한다", "result": "몇 달 뒤 회복이 빨라졌다.", "fx": { "stamina": 2, "health": 1 } },
+        { "text": "운동을 쉰다", "result": "몸이 편해졌다. 대신 더 무거워졌다.", "fx": { "stamina": -1 } }
+      ]
+    },
+    {
+      "id": "first_gray",
+      "group": "gray_hair",
+      "age": [33, 50],
+      "title": "첫 흰머리",
+      "zoom": "욕실 거울",
+      "text": "앞머리 사이로 반짝이는 흰머리 한 가닥을 발견했다.",
+      "choices": [
+        { "text": "뽑는다", "result": "뽑으면 두 개 난다는 말이 떠올랐다. 이미 늦었다." },
+        { "text": "그냥 둔다", "result": "흰머리도 내 머리다.", "fx": { "mental": 1 } },
+        { "text": "염색을 한다", "result": "십 년은 어려 보였다.", "fx": { "cost": 40000, "looks": 1 } }
+      ]
+    },
+    {
+      "id": "hair_thinning_notice",
+      "group": "hair_thinning",
+      "sex": "M",
+      "age": [28, 55],
+      "title": "머리숱",
+      "zoom": "엘리베이터 조명 아래",
+      "text": "엘리베이터 위쪽 조명 아래에서 정수리가 훤히 비쳤다.",
+      "choices": [
+        {
+          "text": "탈모 클리닉에 간다",
+          "result": "초기라 약으로 잡을 수 있다고 했다. 매일 한 알씩 먹기 시작했다.",
+          "fx": { "cost": 100000, "looks": 1 }
+        },
+        { "text": "탈모 샴푸를 산다", "result": "심리적 안정은 됐다.", "fx": { "cost": 30000 } },
+        { "text": "머리를 아예 짧게 민다", "result": "생각보다 잘 어울렸다.", "fx": { "looks": 1, "mental": 1 } }
+      ]
+    },
+    {
+      "id": "hair_thinning_f",
+      "group": "hair_thinning",
+      "sex": "F",
+      "age": [40, 65],
+      "title": "머리숱",
+      "zoom": "가르마",
+      "text": "가르마가 넓어진 것 같았다. 하수구에 머리카락이 한 움큼씩 모였다.",
+      "choices": [
+        {
+          "text": "피부과에서 검사를 받는다",
+          "result": "호르몬 변화 때문이었다. 영양 상태도 함께 챙기라고 했다.",
+          "fx": { "cost": 60000, "health": 1 }
+        },
+        { "text": "앞머리 스타일을 바꾼다", "result": "미용사가 감쪽같이 가려 줬다.", "fx": { "cost": 30000, "looks": 1 } }
+      ]
+    },
+    {
+      "id": "presbyopia_start",
+      "group": "presbyopia",
+      "age": [42, 50],
+      "title": "노안",
+      "zoom": "휴대폰 화면",
+      "text": "휴대폰 글씨를 자꾸 키우게 됐다. 가까운 게 흐릿하다. 안과에서는 '노안이 시작됐네요' 했다.",
+      "choices": [
+        {
+          "text": "다초점 안경을 맞춘다",
+          "result": "처음엔 계단이 울렁거렸다. 일주일 뒤 적응했다.",
+          "fx": { "cost": 300000, "happiness": 1 }
+        },
+        { "text": "글씨 크기만 키운다", "result": "휴대폰 글씨가 아버지 휴대폰처럼 커졌다." }
+      ]
+    },
+    {
+      "id": "menopause_start",
+      "group": "menopause",
+      "sex": "F",
+      "age": [46, 55],
+      "title": "폐경",
+      "zoom": "산부인과 진료실",
+      "text": "생리가 몇 달째 없었다. 밤에 땀이 흥건하고 감정이 널을 뛰었다. 의사가 '폐경 이행기'라고 했다.",
+      "choices": [
+        {
+          "text": "호르몬 치료를 상담받는다",
+          "result": "득과 실을 듣고 치료를 시작했다. 밤이 조금 편해졌다.",
+          "fx": { "cost": 100000, "health": 2, "stress": -2 }
+        },
+        { "text": "운동과 식단으로 관리한다", "result": "걷기와 콩 음식을 늘렸다. 몸이 조금씩 적응했다.", "fx": { "health": 1 } },
+        {
+          "text": "가족에게 지금 상태를 털어놓는다",
+          "result": "가족들이 처음으로 집안일을 나눠 맡았다.",
+          "fx": { "stress": -3, "happiness": 1 }
+        }
+      ]
+    },
+    {
+      "id": "andropause",
+      "group": "andropause",
+      "sex": "M",
+      "age": [50, 62],
+      "title": "남성 갱년기",
+      "zoom": "어느 저녁",
+      "text": "괜히 서운하고 의욕이 없었다. 드라마를 보다 눈물이 났다. 남자도 갱년기가 온다고 했다.",
+      "choices": [
+        {
+          "text": "비뇨의학과에서 호르몬 검사를 받는다",
+          "result": "수치가 조금 낮았다. 운동과 수면을 처방받았다.",
+          "fx": { "cost": 50000, "health": 1 }
+        },
+        { "text": "새 취미를 시작한다", "result": "동네 탁구장에 나가기 시작했다.", "fx": { "happiness": 3, "stamina": 1 } },
+        { "text": "혼자 삭인다", "result": "말수가 줄었다.", "fx": { "stress": 3, "happiness": -2 } }
+      ]
+    },
+    {
+      "id": "bone_density",
+      "group": "bone_density",
+      "age": [55, 80],
+      "title": "골밀도",
+      "zoom": "건강검진 결과지",
+      "text": "골밀도 검사 결과 '골감소증'. 뼈가 스펀지처럼 숭숭해지고 있다고 했다.",
+      "choices": [
+        { "text": "칼슘·비타민D와 근력 운동을 챙긴다", "result": "다음 검사에서 수치가 더 나빠지지 않았다.", "fx": { "health": 2 } },
+        { "text": "넘어지지 않게 조심만 한다", "result": "빙판길이 무서워졌다.", "fx": { "stress": 1 } }
+      ]
+    },
+    {
+      "id": "sarcopenia",
+      "group": "sarcopenia",
+      "age": [65, 95],
+      "title": "근육이 빠진다",
+      "zoom": "페트병 뚜껑",
+      "text": "페트병 뚜껑이 안 열렸다. 다리도 가늘어졌다. 나이가 들면 근육이 빠진다더니.",
+      "choices": [
+        {
+          "text": "노인복지관 근력 교실에 나간다",
+          "result": "고무 밴드로 운동하며 친구도 생겼다.",
+          "fx": { "stamina": 2, "sociability": 2 }
+        },
+        { "text": "단백질을 챙겨 먹는다", "result": "두부와 달걀을 매끼 먹었다.", "fx": { "health": 1 } }
+      ]
+    },
+    {
+      "id": "shrinking",
+      "group": "shrinking",
+      "age": [70, 100],
+      "title": "줄어든 키",
+      "zoom": "병원 신장계",
+      "text": "병원 신장계에 올라섰다. 젊을 때보다 4cm가 줄어 있었다.",
+      "choices": [
+        { "text": "허리를 꼿꼿이 펴고 다닌다", "result": "자세를 신경 쓰니 걸음도 가벼워졌다.", "fx": { "health": 1 } },
+        { "text": "웃어넘긴다", "result": "'늙으면 다 이래' 하고 웃었다." }
+      ]
+    },
+    {
+      "id": "early_waking",
+      "group": "early_waking",
+      "age": [62, 100],
+      "title": "새벽 네 시",
+      "zoom": "새벽",
+      "text": "알람도 없는데 새벽 네 시면 눈이 떠졌다. 나이가 들면 잠이 짧아진다고 했다.",
+      "choices": [
+        {
+          "text": "새벽 산책을 한다",
+          "result": "동네 공원에 같은 시간 나오는 친구들이 생겼다.",
+          "fx": { "stamina": 1, "sociability": 1 }
+        },
+        { "text": "다시 자려고 애쓴다", "result": "뒤척이다 아침이 왔다.", "fx": { "stress": 1 } }
+      ]
+    },
+    {
+      "id": "nocturia",
+      "group": "nocturia",
+      "age": [60, 100],
+      "title": "밤중 화장실",
+      "zoom": "새벽 2시",
+      "text": "밤에 화장실 때문에 세 번이나 깼다. 어두운 복도에서 발을 헛디딜 뻔했다.",
+      "choices": [
+        { "text": "복도에 수면등을 단다", "result": "넘어질 걱정이 줄었다.", "fx": { "cost": 15000, "health": 1 } },
+        { "text": "저녁에 물을 덜 마신다", "result": "한 번은 덜 깼다." }
+      ]
+    },
+    {
+      "id": "hearing_loss",
+      "group": "hearing_loss",
+      "age": [70, 100],
+      "title": "텔레비전 소리",
+      "zoom": "거실",
+      "text": "텔레비전 소리를 자꾸 키웠다. 가족들이 '귀 검사 좀 받아 보라'고 했다.",
+      "choices": [
+        {
+          "text": "보청기를 맞춘다",
+          "result": "처음엔 웅웅거렸지만 곧 익숙해졌다. 대화가 다시 즐거워졌다.",
+          "fx": { "cost": 500000, "happiness": 3, "sociability": 1 }
+        },
+        { "text": "자막을 켜고 본다", "result": "드라마를 자막으로 봤다." }
+      ]
+    },
+    {
+      "id": "senior_appetite",
+      "group": "senior_appetite",
+      "age": [70, 100],
+      "title": "입맛",
+      "zoom": "밥상 앞",
+      "text": "밥 한 공기가 버거워졌다. 입맛이 없고 씹는 것도 힘들다.",
+      "choices": [
+        { "text": "죽과 부드러운 반찬으로 바꾼다", "result": "조금씩이라도 끼니를 거르지 않았다.", "fx": { "health": 1 } },
+        {
+          "text": "치과에 간다",
+          "result": "틀니를 새로 맞추니 고기도 씹을 수 있게 됐다.",
+          "fx": { "cost": 800000, "health": 2, "happiness": 2 }
+        }
+      ]
+    },
+    {
+      "id": "seasonal_blues",
+      "group": "seasonal",
+      "age": [15, 100],
+      "title": "겨울 우울",
+      "zoom": "오후 다섯 시의 어둠",
+      "text": "오후 다섯 시인데 벌써 깜깜했다. 해가 짧아지자 기분도 같이 가라앉았다.",
+      "choices": [
+        { "text": "점심때 햇볕을 쬐며 걷는다", "result": "하루 20분 산책이 기분을 바꿨다.", "fx": { "happiness": 2, "health": 1 } },
+        { "text": "이불 속에 파묻힌다", "result": "겨울잠 자는 곰처럼 지냈다.", "fx": { "happiness": -1, "stress": 1 } }
+      ]
+    },
+    {
+      "id": "spring_fatigue",
+      "group": "seasonal",
+      "age": [10, 100],
+      "title": "춘곤증",
+      "zoom": "4월 오후",
+      "text": "벚꽃이 피자 이유 없이 나른하고 졸렸다. 오후만 되면 눈이 감겼다.",
+      "choices": [
+        { "text": "봄나물로 밥상을 바꾼다", "result": "달래, 냉이, 두릅. 입맛이 돌아왔다.", "fx": { "health": 1, "happiness": 1 } },
+        { "text": "커피를 늘린다", "result": "잠은 깼는데 밤에 잠이 안 왔다." }
+      ]
+    },
+    {
+      "id": "jet_lag",
+      "group": "jet_lag",
+      "age": [15, 85],
+      "title": "시차",
+      "zoom": "해외여행 다녀온 다음 날",
+      "text": "열 시간 비행 뒤 돌아왔다. 새벽 세 시에 눈이 말똥말똥하고 낮에는 좀비가 됐다.",
+      "if": "!legal.inPrison && !military.serving && money.cash > 3000000",
+      "choices": [
+        { "text": "아침 햇볕을 쬐며 버틴다", "result": "사흘 만에 시계가 돌아왔다." },
+        { "text": "낮잠을 실컷 잔다", "result": "일주일 동안 밤낮이 뒤바뀌었다.", "fx": { "stress": 1 } }
+      ]
+    },
+    {
+      "id": "heat_exhaustion",
+      "group": "heat",
+      "age": [10, 100],
+      "title": "더위 먹음",
+      "zoom": "35도 한낮",
+      "text": "35도 땡볕 아래 있었더니 머리가 띵하고 속이 메스꺼웠다. 더위를 먹었다.",
+      "choices": [
+        { "text": "그늘에서 이온 음료를 마신다", "result": "한 시간 쉬자 나아졌다.", "fx": { "health": 1 } },
+        {
+          "text": "참고 하던 일을 계속한다",
+          "check": ["stamina", 55],
+          "result": "버텼다. 저녁에 녹초가 됐다.",
+          "fail": "주저앉았다. 열사병 직전이었다.",
+          "failFx": { "health": -4, "stress": 2 }
+        }
+      ]
+    },
+    {
+      "id": "cold_snap_body",
+      "group": "cold",
+      "age": [10, 100],
+      "title": "한파",
+      "zoom": "영하 15도 아침",
+      "text": "영하 15도. 코털이 얼어붙고 귀가 떨어져 나갈 것 같았다.",
+      "choices": [
+        { "text": "내복을 꺼내 입는다", "result": "세상 따뜻했다. 왜 이제 입었나 싶었다.", "fx": { "health": 1 } },
+        { "text": "멋을 위해 버틴다", "result": "멋은 있었다. 감기도 걸렸다.", "fx": { "health": -2, "looks": 1 } }
+      ]
+    }
+  ]
+}

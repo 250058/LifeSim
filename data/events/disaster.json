@@ -1,0 +1,607 @@
+{
+  "stage": "재난·사고: 화재(주택·공장·다중이용시설), 지진, 태풍, 집중호우(반지하·지하차도), 폭염, 한파, 산불, 미세먼지, 통신 장애, 군중 밀집, 묻지마 범죄",
+  "events": [
+    {
+      "id": "house_fire",
+      "type": "random",
+      "motif": "주택 화재 원인 1위는 부주의(음식물 조리·담배꽁초·전기 과열) (소방청 국가화재정보시스템)",
+      "title": "연기",
+      "text": "타는 냄새에 눈을 떴다. 부엌 쪽에서 검은 연기가 복도를 타고 기어 온다. 화재경보기가 이제야 울린다.",
+      "tone": "tragedy",
+      "impact": 35,
+      "trigger": { "age": [6, 110], "if": "!legal.inPrison && !military.serving" },
+      "weight": {
+        "base": 0.0005,
+        "modifiers": [
+          { "if": "flags.smoker", "x": 1.6 },
+          { "if": "age >= 70 && !family.married", "x": 1.5 },
+          { "if": "family.wealth <= 2", "x": 1.3 },
+          { "if": "world.news.coldwave", "x": 1.3 }
+        ]
+      },
+      "limit": { "max": 2, "cooldown": 10 },
+      "choices": [
+        {
+          "text": "소화기를 들고 불을 끈다",
+          "check": { "stats": ["mental", "intelligence"], "dc": 50 },
+          "onSuccess": {
+            "text": "안전핀을 뽑고 불길 아래쪽을 쐈다. 주방 벽이 새카매졌지만 불은 꺼졌다.",
+            "effects": { "money": { "cash": -2000000 }, "stats": { "stress": 8, "mental": 3 } }
+          },
+          "onFail": {
+            "text": "소화기는 몇 초 만에 비었다. 불길이 커튼으로 옮겨붙었다. 맨발로 뛰쳐나왔다.",
+            "effects": {
+              "addFlags": ["disaster_victim"],
+              "money": { "cashPct": -0.3, "realEstatePct": -0.25 },
+              "stats": { "health": -8, "stress": 18 }
+            }
+          }
+        },
+        {
+          "text": "젖은 수건으로 입을 막고 바로 대피한다",
+          "result": "계단으로 내려와 119에 신고했다. 집은 반쯤 탔지만 다친 사람은 없다.",
+          "effects": {
+            "addFlags": ["disaster_victim"],
+            "money": { "cashPct": -0.2, "realEstatePct": -0.2 },
+            "stats": { "stress": 12 }
+          }
+        },
+        {
+          "text": "안에 있는 가족을 깨우러 들어간다",
+          "if": "family.livesWithParents || family.married || family.children > 0 || flags.has_pet",
+          "check": { "stats": ["stamina", "luck"], "dc": 55 },
+          "onSuccess": {
+            "text": "연기 속을 더듬어 모두를 깨워 나왔다. 소방관이 내 어깨를 두드렸다.",
+            "effects": {
+              "addFlags": ["hero", "disaster_victim"],
+              "money": { "cashPct": -0.2, "realEstatePct": -0.2 },
+              "stats": { "reputation": 6, "health": -5 }
+            }
+          },
+          "onFail": {
+            "text": "다들 나왔지만 내 팔에 화상이 남았다. 몇 달 동안 피부 이식 수술을 받았다.",
+            "effects": {
+              "addFlags": ["burn_survivor", "disaster_victim"],
+              "money": { "cash": -8000000, "realEstatePct": -0.2 },
+              "stats": { "health": -20, "looks": -6, "mental": -6 }
+            }
+          }
+        }
+      ]
+    },
+    {
+      "id": "workplace_fire",
+      "type": "random",
+      "motif": "2024년 화성 리튬 배터리 공장 화재(23명 사망), 2020년 이천 물류창고 화재(38명 사망)",
+      "zoom": "공장 2층 · 오전 10시 31분",
+      "title": "공장 화재",
+      "text": "배터리 더미에서 '펑' 소리가 났다. 흰 연기가 순식간에 천장을 덮는다. 비상구는 반대편 끝에 있다.",
+      "tone": "tragedy",
+      "impact": 45,
+      "trigger": {
+        "age": [16, 70],
+        "if": "job.id == 'factory' || job.id == 'public_tech' || job.id == 'chef' || flags.industrial_injury"
+      },
+      "weight": { "base": 0.0015 },
+      "limit": { "oncePerLife": true },
+      "choices": [
+        {
+          "text": "낮게 엎드려 비상구로 기어간다",
+          "check": { "stats": ["luck", "stamina"], "dc": 40 },
+          "onSuccess": {
+            "text": "계단에서 쓰러지기 직전에 바깥 공기를 마셨다. 같은 층 동료 몇 명은 나오지 못했다.",
+            "effects": { "stats": { "stress": 20, "mental": -10, "health": -5 }, "addFlags": ["ptsd"] }
+          },
+          "onFail": {
+            "text": "연기를 많이 마셨다. 사흘 뒤 중환자실에서 눈을 떴다.",
+            "effects": { "stats": { "health": -25, "mental": -10 }, "addFlags": ["ptsd"] }
+          }
+        },
+        {
+          "text": "길을 모르는 외국인 동료들을 이끌고 나간다",
+          "check": { "stats": ["stamina", "mental"], "dc": 58 },
+          "onSuccess": {
+            "text": "손을 잡고 줄지어 나왔다. 그날 나온 사람들 중 셋은 내가 끌고 나왔다.",
+            "effects": {
+              "addFlags": ["hero", "ptsd"],
+              "stats": { "reputation": 12, "morality": 10, "health": -8 }
+            }
+          },
+          "onFail": {
+            "text": "되돌아 들어간 길에서 불길이 막아섰다.",
+            "next": [{ "event": "fire_burns", "w": 0.85 }, { "event": "fire_death", "w": 0.15 }]
+          }
+        },
+        {
+          "text": "소화기를 집어 든다",
+          "result": "리튬 배터리 화재는 소화기로 꺼지지 않았다. 바로 돌아서서 뛰었다.",
+          "effects": { "stats": { "health": -10, "stress": 15 } }
+        }
+      ]
+    },
+    {
+      "id": "fire_burns",
+      "type": "chain",
+      "zoom": "화상 전문병원",
+      "title": "화상",
+      "text": "전신 30% 화상. 피부 이식 수술을 일곱 번 받았다. 거울을 보는 데 1년이 걸렸다.",
+      "tone": "tragedy",
+      "impact": 40,
+      "effects": {
+        "addFlags": ["burn_survivor", "ptsd"],
+        "stats": { "health": -30, "looks": -15, "mental": -10, "happiness": -12 }
+      },
+      "choices": [
+        {
+          "text": "산재 신청을 한다",
+          "result": "산업재해 인정을 받았다. 치료비와 휴업급여가 나왔다.",
+          "effects": { "money": { "cash": 30000000 } }
+        },
+        {
+          "text": "화상 환자 자조 모임에 나간다",
+          "result": "나보다 먼저 이 길을 걸은 사람들이 있었다.",
+          "effects": { "stats": { "mental": 8, "sociability": 3 } }
+        }
+      ]
+    },
+    {
+      "id": "fire_death",
+      "type": "chain",
+      "title": "돌아오지 못했다",
+      "text": "동료를 찾으러 다시 들어간 사람은 나오지 못했다. 장례식장에는 내가 구한 동료들이 끝까지 서 있었다.",
+      "tone": "tragedy",
+      "impact": 100,
+      "effects": { "death": "화재 (공장)" }
+    },
+    {
+      "id": "public_building_fire",
+      "type": "random",
+      "motif": "2017년 제천 스포츠센터 화재, 2018년 밀양 세종병원 화재: 막힌 비상구와 가연성 외장재",
+      "title": "비상구",
+      "text": "사우나 2층에 연기가 들어찼다. 비상구 앞에는 물건이 쌓여 있다. 사람들이 출입구 한 곳으로 몰린다.",
+      "tone": "tragedy",
+      "impact": 35,
+      "trigger": { "age": [8, 100], "if": "!legal.inPrison && !military.serving" },
+      "weight": { "base": 0.0001 },
+      "limit": { "oncePerLife": true },
+      "choices": [
+        {
+          "text": "비상구 앞 짐을 치운다",
+          "check": { "stat": "stamina", "dc": 50 },
+          "onSuccess": {
+            "text": "상자를 걷어차고 문을 열었다. 뒤에 있던 스무 명이 그 문으로 빠져나갔다.",
+            "effects": { "addFlags": ["hero"], "stats": { "reputation": 10, "health": -5, "stress": 12 } }
+          },
+          "onFail": {
+            "text": "문은 밖에서 잠겨 있었다. 결국 창문 쪽으로 가 구조를 기다렸다.",
+            "effects": { "stats": { "health": -15, "mental": -8, "stress": 15 } }
+          }
+        },
+        {
+          "text": "창가로 가 구조를 기다린다",
+          "check": { "stat": "luck", "dc": 45 },
+          "onSuccess": { "text": "고가사다리차가 창문에 닿았다.", "effects": { "stats": { "stress": 12, "health": -4 } } },
+          "onFail": {
+            "text": "사다리차가 오는 데 40분이 걸렸다. 그동안 연기를 마셨다.",
+            "effects": { "stats": { "health": -18, "mental": -8 } }
+          }
+        }
+      ]
+    },
+    {
+      "id": "earthquake",
+      "type": "world",
+      "motif": "2016년 경주 지진(규모 5.8), 2017년 포항 지진(규모 5.4)",
+      "title": "흔들림",
+      "text": "책상 위 컵이 떨어졌다. 바닥이 파도처럼 출렁인다. 재난문자는 흔들림이 멈춘 뒤에야 왔다.",
+      "tone": "tragedy",
+      "impact": 30,
+      "trigger": { "age": [3, 120], "if": "world.news.quake" },
+      "weight": { "base": 0.12, "noMode": true, "modifiers": [{ "if": "region.quake", "x": 5 }] },
+      "limit": { "cooldown": 3 },
+      "choices": [
+        {
+          "text": "책상 밑으로 들어가 머리를 감싼다",
+          "result": "흔들림이 멈출 때까지 기다렸다가 계단으로 나갔다. 학교 운동장에 동네 사람들이 다 모여 있었다.",
+          "effects": { "stats": { "stress": 10 } }
+        },
+        {
+          "text": "곧장 계단으로 뛰어나간다",
+          "check": { "stat": "luck", "dc": 45 },
+          "onSuccess": { "text": "무사히 밖으로 나왔다. 뒤에서 외벽 타일이 떨어졌다.", "effects": { "stats": { "stress": 12 } } },
+          "onFail": { "text": "계단에서 넘어져 발목이 부러졌다.", "effects": { "stats": { "health": -12, "stress": 12 } } }
+        },
+        {
+          "text": "집에 금이 간 걸 확인한다",
+          "if": "flags.homeowner",
+          "result": "거실 벽에 손가락이 들어갈 만한 금이 갔다. 정밀안전진단 결과 '보수 필요'.",
+          "effects": {
+            "addFlags": ["disaster_victim"],
+            "money": { "realEstatePct": -0.15 },
+            "stats": { "stress": 15 }
+          }
+        }
+      ]
+    },
+    {
+      "id": "typhoon",
+      "type": "world",
+      "motif": "2022년 태풍 힌남노: 포항 아파트 지하주차장 침수로 주민 사망",
+      "title": "태풍",
+      "text": "태풍이 상륙했다. 베란다 유리창이 휜다. 관리사무소 방송이 지하주차장 차를 빼라고 한다.",
+      "tone": "drama",
+      "impact": 25,
+      "trigger": { "age": [6, 120], "if": "world.news.typhoon && !legal.inPrison" },
+      "weight": { "base": 0.06, "noMode": true, "modifiers": [{ "if": "region.coastal", "x": 3 }] },
+      "limit": { "cooldown": 3 },
+      "choices": [
+        {
+          "text": "창문에서 떨어져 집 안에 있는다",
+          "result": "정전이 됐다. 손전등을 켜고 밤을 새웠다. 아침에 보니 아파트 앞 가로수가 다 쓰러져 있었다.",
+          "effects": { "stats": { "stress": 8 } }
+        },
+        {
+          "text": "지하주차장에 차를 빼러 간다",
+          "if": "age >= 20",
+          "check": { "stat": "luck", "dc": 55 },
+          "onSuccess": {
+            "text": "물이 발목까지 찼을 때 차를 빼서 나왔다. 10분 뒤 주차장은 천장까지 잠겼다.",
+            "effects": { "stats": { "stress": 15 } }
+          },
+          "onFail": {
+            "text": "순식간에 물이 허리까지 찼다. 배관을 붙잡고 버티다 구조됐다.",
+            "effects": { "addFlags": ["ptsd"], "stats": { "health": -15, "mental": -10, "stress": 20 } }
+          }
+        },
+        {
+          "text": "유리창에 테이프를 X자로 붙인다",
+          "result": "테이프는 아무 소용이 없었다. 다음 날 뉴스에서 '창틀 고정이 더 중요하다'고 했다.",
+          "effects": { "stats": { "intelligence": 1, "stress": 6 } }
+        }
+      ]
+    },
+    {
+      "id": "banjiha_flood",
+      "type": "world",
+      "motif": "2022년 8월 수도권 집중호우: 반지하 주택 침수로 일가족 사망",
+      "zoom": "새벽 1시 · 반지하 방",
+      "title": "물이 차오른다",
+      "text": "밤사이 300mm가 쏟아졌다. 반지하 창문 높이까지 물이 찼다. 현관문은 수압 때문에 열리지 않는다.",
+      "tone": "tragedy",
+      "impact": 40,
+      "trigger": {
+        "age": [19, 90],
+        "if": "world.news.flood && region.lowland && family.wealth <= 2 && !family.livesWithParents && !flags.homeowner && !legal.inPrison && !military.serving"
+      },
+      "weight": { "base": 0.04, "noMode": true },
+      "limit": { "oncePerLife": true },
+      "choices": [
+        {
+          "text": "창문 방범창을 뜯고 나간다",
+          "check": { "stat": "stamina", "dc": 55 },
+          "onSuccess": {
+            "text": "손이 찢어지도록 방범창을 흔들었다. 이웃이 밖에서 잡아당겼다.",
+            "effects": {
+              "addFlags": ["disaster_victim"],
+              "money": { "cashPct": -0.5 },
+              "stats": { "health": -6, "stress": 20 }
+            }
+          },
+          "onFail": {
+            "text": "물이 목까지 찼을 때 소방관이 창문을 깼다.",
+            "effects": {
+              "addFlags": ["disaster_victim", "ptsd"],
+              "money": { "cashPct": -0.6 },
+              "stats": { "health": -15, "mental": -12, "stress": 25 }
+            }
+          }
+        },
+        {
+          "text": "휴대폰으로 119와 이웃에게 동시에 연락한다",
+          "check": { "stat": "luck", "dc": 45 },
+          "onSuccess": {
+            "text": "윗집 사람이 내려와 문을 같이 밀어 줬다. 둘이서 겨우 열었다.",
+            "effects": {
+              "addFlags": ["disaster_victim"],
+              "money": { "cashPct": -0.5 },
+              "stats": { "stress": 18 }
+            }
+          },
+          "onFail": {
+            "text": "전화가 연결되지 않았다. 의자 위에 올라가 세 시간을 버텼다.",
+            "effects": {
+              "addFlags": ["disaster_victim", "ptsd"],
+              "money": { "cashPct": -0.6 },
+              "stats": { "health": -12, "mental": -12 }
+            }
+          }
+        }
+      ]
+    },
+    {
+      "id": "underpass_flood",
+      "type": "world",
+      "motif": "2023년 오송 궁평2지하차도 참사: 미호천 범람으로 지하차도 침수",
+      "title": "지하차도",
+      "text": "출근길 지하차도에 흙탕물이 밀려 들어온다. 앞차가 멈췄다. 물이 바퀴 반까지 올라왔다.",
+      "tone": "tragedy",
+      "impact": 35,
+      "trigger": { "age": [20, 80], "if": "world.news.flood && job.employed && !military.serving" },
+      "weight": { "base": 0.01, "noMode": true, "modifiers": [{ "if": "region.lowland", "x": 2 }] },
+      "limit": { "oncePerLife": true },
+      "choices": [
+        {
+          "text": "차를 버리고 출구 쪽으로 걷는다",
+          "check": { "stat": "stamina", "dc": 45 },
+          "onSuccess": {
+            "text": "가슴까지 차오른 물을 헤치고 나왔다. 뒤를 돌아보니 지하차도가 다 잠겨 있었다.",
+            "effects": { "addFlags": ["ptsd"], "stats": { "stress": 20, "mental": -8 } }
+          },
+          "onFail": {
+            "text": "물살에 휩쓸렸다. 난간을 붙잡고 있다가 구조됐다.",
+            "effects": { "addFlags": ["ptsd"], "stats": { "health": -15, "mental": -12 } }
+          }
+        },
+        {
+          "text": "버스에 갇힌 사람들 창문을 깨 준다",
+          "check": { "stats": ["stamina", "luck"], "dc": 58 },
+          "onSuccess": {
+            "text": "버스 창문을 깨고 할머니 한 분을 끌어냈다. 뉴스는 나를 '의인'이라고 불렀다.",
+            "effects": {
+              "addFlags": ["hero", "ptsd"],
+              "stats": { "reputation": 12, "morality": 8, "stress": 15 }
+            }
+          },
+          "onFail": {
+            "text": "유리는 깨지지 않았다. 그 장면이 몇 년 동안 꿈에 나왔다.",
+            "effects": { "addFlags": ["ptsd"], "stats": { "mental": -15, "stress": 20 } }
+          }
+        }
+      ]
+    },
+    {
+      "id": "heatwave",
+      "type": "world",
+      "motif": "2018년 폭염: 온열질환자 4,500여 명, 홍천 41도 관측 이래 최고",
+      "title": "폭염",
+      "text": "폭염경보 열흘째. 낮 기온 39도. 에어컨 실외기에서 뜨거운 바람이 나온다. 전기요금 고지서가 무섭다.",
+      "tone": "neutral",
+      "impact": 10,
+      "trigger": { "age": [6, 120], "if": "world.news.heatwave && !legal.inPrison" },
+      "weight": {
+        "base": 0.08,
+        "noMode": true,
+        "modifiers": [
+          { "if": "age >= 70", "x": 3 },
+          { "if": "job.id == 'delivery_rider' || job.id == 'factory'", "x": 2 }
+        ]
+      },
+      "limit": { "cooldown": 3 },
+      "choices": [
+        {
+          "text": "주민센터 무더위쉼터에 간다",
+          "result": "경로당 에어컨 아래 다들 모여 있었다. 수박을 나눠 먹었다.",
+          "effects": { "stats": { "sociability": 2, "health": 1 } }
+        },
+        {
+          "text": "에어컨을 하루 종일 튼다",
+          "result": "시원했다. 다음 달 전기요금이 30만 원 나왔다.",
+          "effects": { "money": { "cash": -300000 }, "stats": { "happiness": 2 } }
+        },
+        {
+          "text": "선풍기로 버틴다",
+          "check": { "stat": "health", "dc": 45 },
+          "onSuccess": { "text": "찬물 샤워를 하루 다섯 번 했다.", "effects": { "stats": { "stress": 4 } } },
+          "onFail": { "text": "어지러워 쓰러졌다. 응급실에서 열사병 진단을 받았다.", "effects": { "stats": { "health": -12 } } }
+        }
+      ]
+    },
+    {
+      "id": "coldwave",
+      "type": "world",
+      "title": "한파",
+      "text": "영하 18도. 아침에 수도꼭지를 틀었더니 물이 나오지 않는다. 계량기가 얼어 터졌다.",
+      "tone": "neutral",
+      "impact": 8,
+      "trigger": {
+        "age": [19, 120],
+        "if": "world.news.coldwave && !family.livesWithParents && !legal.inPrison && !military.serving"
+      },
+      "weight": { "base": 0.08, "noMode": true, "modifiers": [{ "if": "family.wealth <= 2", "x": 2 }] },
+      "limit": { "cooldown": 3 },
+      "choices": [
+        {
+          "text": "헤어드라이어로 녹인다",
+          "result": "한 시간 만에 물이 나왔다. 손이 얼어 감각이 없다.",
+          "effects": { "stats": { "stress": 4 } }
+        },
+        { "text": "관리실에 수리를 부른다", "result": "계량기 교체비 15만 원.", "effects": { "money": { "cash": -150000 } } },
+        {
+          "text": "찜질방으로 피신한다",
+          "result": "식혜와 맥반석 달걀로 하루를 버텼다.",
+          "effects": { "money": { "cash": -30000 }, "stats": { "happiness": 2 } }
+        }
+      ]
+    },
+    {
+      "id": "wildfire",
+      "type": "world",
+      "motif": "2022년 울진·삼척 산불, 2025년 경북 의성·안동 대형 산불",
+      "zoom": "대피 문자 · 오후 5시 12분",
+      "title": "산불",
+      "text": "산 너머가 붉다. 강풍을 탄 불씨가 마을 쪽으로 날아온다. 대피 문자가 왔다. '즉시 마을회관으로.'",
+      "tone": "tragedy",
+      "impact": 35,
+      "trigger": { "age": [6, 120], "if": "world.news.wildfire && region.wildfire && !legal.inPrison" },
+      "weight": { "base": 0.1, "noMode": true, "modifiers": [{ "if": "!region.metro", "x": 1.5 }] },
+      "limit": { "cooldown": 5 },
+      "choices": [
+        {
+          "text": "바로 대피한다",
+          "result": "체육관 이재민 대피소에서 일주일을 보냈다. 돌아가 보니 우리 집 담장까지 탔다.",
+          "effects": {
+            "addFlags": ["disaster_victim"],
+            "money": { "realEstatePct": -0.3 },
+            "stats": { "stress": 15 }
+          }
+        },
+        {
+          "text": "집에 물을 뿌리며 지킨다",
+          "check": { "stat": "luck", "dc": 55 },
+          "onSuccess": { "text": "바람이 방향을 바꿨다. 우리 집은 남았다.", "effects": { "stats": { "stress": 15 } } },
+          "onFail": {
+            "text": "불이 지붕으로 옮겨붙었다. 소방대원이 나를 끌고 나왔다.",
+            "effects": {
+              "addFlags": ["disaster_victim"],
+              "money": { "realEstatePct": -0.6, "cashPct": -0.3 },
+              "stats": { "health": -10, "mental": -10 }
+            }
+          }
+        },
+        {
+          "text": "혼자 사는 옆집 어르신을 업고 나간다",
+          "check": { "stat": "stamina", "dc": 50 },
+          "onSuccess": {
+            "text": "연기 속을 2킬로미터 걸었다. 어르신이 내 손을 놓지 않았다.",
+            "effects": {
+              "addFlags": ["hero", "disaster_victim"],
+              "money": { "realEstatePct": -0.3 },
+              "stats": { "reputation": 10, "morality": 8 }
+            }
+          },
+          "onFail": {
+            "text": "중간에 다리가 풀렸다. 마침 지나던 소방차가 둘을 태웠다.",
+            "effects": {
+              "addFlags": ["disaster_victim"],
+              "money": { "realEstatePct": -0.3 },
+              "stats": { "health": -8, "morality": 6 }
+            }
+          }
+        }
+      ]
+    },
+    {
+      "id": "fine_dust",
+      "type": "random",
+      "filler": true,
+      "title": "미세먼지",
+      "text": "미세먼지 '매우 나쁨'. 창밖 아파트가 뿌옇게 지워졌다. 목이 칼칼하다.",
+      "tone": "neutral",
+      "impact": 3,
+      "trigger": { "age": [5, 110], "if": "world.news.fineDust" },
+      "weight": { "base": 0.2, "noMode": true },
+      "limit": { "max": 3, "cooldown": 4 },
+      "choices": [
+        { "text": "KF94 마스크를 쓴다", "result": "숨이 좀 답답하지만 목은 덜 아프다.", "effects": { "stats": { "health": 1 } } },
+        {
+          "text": "공기청정기를 산다",
+          "if": "age >= 19",
+          "result": "필터 교체 알림이 석 달마다 온다.",
+          "effects": { "money": { "cash": -400000 }, "stats": { "health": 1, "happiness": 1 } }
+        },
+        { "text": "그냥 나간다", "result": "저녁에 기침이 났다.", "effects": { "stats": { "health": -1 } } }
+      ]
+    },
+    {
+      "id": "messenger_outage",
+      "type": "random",
+      "filler": true,
+      "motif": "2022년 데이터센터 화재로 국민 메신저·간편결제 장애",
+      "title": "먹통",
+      "text": "메신저가 안 된다. 택시 호출도, 간편결제도, 회사 단톡방도. 뉴스는 데이터센터 화재라고 한다.",
+      "tone": "neutral",
+      "impact": 4,
+      "trigger": { "age": [10, 90], "if": "world.news.outage" },
+      "weight": { "base": 0.6, "noMode": true },
+      "limit": { "cooldown": 5 },
+      "choices": [
+        {
+          "text": "오랜만에 문자와 전화로 연락한다",
+          "result": "엄마와 30분 통화했다. 메신저가 돌아온 뒤에도 가끔 전화하기로 했다.",
+          "effects": { "stats": { "sociability": 1, "happiness": 2 } }
+        },
+        {
+          "text": "이 기회에 하루 푹 쉰다",
+          "result": "아무도 연락하지 않는 하루는 생각보다 길었다.",
+          "effects": { "stats": { "stress": -5 } }
+        }
+      ]
+    },
+    {
+      "id": "crowd_crush",
+      "type": "random",
+      "motif": "2022년 10월 핼러윈 군중 밀집 참사 (159명 사망). 이후 다중 인파 안전관리 제도 정비",
+      "zoom": "축제 골목 · 밤 10시 15분",
+      "title": "인파",
+      "text": "좁은 골목으로 사람이 계속 밀려든다. 발이 땅에 닿지 않는다. 숨을 쉬려고 고개를 들었다.",
+      "tone": "tragedy",
+      "impact": 40,
+      "trigger": { "age": [15, 40], "if": "!legal.inPrison && !military.serving" },
+      "weight": { "base": 0.00003 },
+      "limit": { "oncePerLife": true },
+      "choices": [
+        {
+          "text": "벽 쪽으로 붙어 가게 안으로 들어간다",
+          "check": { "stats": ["luck", "stamina"], "dc": 45 },
+          "onSuccess": {
+            "text": "가게 주인이 문을 열어 줬다. 몇 사람을 더 안으로 당겼다.",
+            "effects": { "addFlags": ["ptsd"], "stats": { "mental": -12, "stress": 20 } }
+          },
+          "onFail": {
+            "text": "갈비뼈 두 대가 부러졌다. 그날 밤의 소리는 오래 남았다.",
+            "effects": { "addFlags": ["ptsd"], "stats": { "health": -18, "mental": -18, "stress": 25 } }
+          }
+        },
+        {
+          "text": "\"뒤로! 뒤로!\" 하고 계속 외친다",
+          "check": { "stat": "sociability", "dc": 55 },
+          "onSuccess": {
+            "text": "뒤쪽 사람들이 하나둘 따라 외쳤다. 우리 쪽 줄이 조금씩 풀렸다.",
+            "effects": { "addFlags": ["hero", "ptsd"], "stats": { "reputation": 6, "mental": -10 } }
+          },
+          "onFail": {
+            "text": "목소리는 음악 소리에 묻혔다.",
+            "effects": { "addFlags": ["ptsd"], "stats": { "mental": -15, "stress": 20 } }
+          }
+        }
+      ]
+    },
+    {
+      "id": "random_attack",
+      "type": "random",
+      "motif": "2023년 신림역·서현역 흉기 난동 사건 이후 이상동기 범죄 대책",
+      "title": "비명",
+      "text": "역 앞에서 비명이 들렸다. 사람들이 이쪽으로 뛰어온다. 누군가 '칼!'이라고 외쳤다.",
+      "tone": "tragedy",
+      "impact": 35,
+      "trigger": { "age": [12, 85], "if": "!legal.inPrison && !military.serving" },
+      "weight": { "base": 0.00004, "modifiers": [{ "if": "region.metro", "x": 1.5 }] },
+      "limit": { "oncePerLife": true },
+      "effects": { "do": [{ "type": "crime", "op": "open", "scene": "random_attack" }] },
+      "choices": [
+        {
+          "text": "같이 뛰어 가게 안으로 숨는다",
+          "result": "편의점 창고에서 경찰 사이렌을 들었다. 그 뒤로 그 역에서 내리지 못한다.",
+          "effects": { "stats": { "mental": -8, "stress": 15 }, "do": [{ "type": "crime", "op": "respond", "act": "avoid" }] }
+        },
+        {
+          "text": "쓰러진 사람을 끌고 피한다",
+          "check": { "stats": ["stamina", "luck"], "dc": 55 },
+          "onSuccess": {
+            "text": "피를 흘리던 대학생을 지하 통로까지 끌고 갔다. 그 학생은 살았다.",
+            "effects": { "addFlags": ["hero"], "stats": { "reputation": 10, "morality": 10, "mental": -6 }, "do": [{ "type": "crime", "op": "respond", "act": "intervene" }] }
+          },
+          "onFail": {
+            "text": "팔을 베였다. 열여섯 바늘을 꿰맸다. {결과}",
+            "effects": { "stats": { "health": -15, "mental": -10 }, "do": [{ "type": "crime", "op": "respond", "act": "hurt" }] }
+          }
+        },
+        {
+          "text": "112에 신고하며 위치를 알린다",
+          "result": "가장 먼저 신고한 사람 중 하나였다. 범인은 4분 만에 제압됐다.",
+          "effects": { "stats": { "morality": 4, "stress": 10 }, "do": [{ "type": "crime", "op": "respond", "act": "report" }] }
+        }
+      ]
+    }
+  ]
+}

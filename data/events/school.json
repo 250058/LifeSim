@@ -1,0 +1,692 @@
+{
+  "stage": "고입과 학교 유형: 일반고·과학고·외고·자사고·영재학교·예술고·체육고·특성화고·마이스터고·대안학교, 수시, 자퇴·검정고시",
+  "events": [
+    {
+      "id": "gifted_school_exam",
+      "type": "milestone",
+      "motif": "영재학교: 중학생 대상 3단계 선발(서류·영재성 검사·캠프), 경쟁률 10:1 안팎",
+      "title": "영재학교 원서",
+      "text": "중3 봄. 수학 선생님이 영재학교 원서를 내밀었다. \"너라면 해 볼 만해.\" 서류, 영재성 검사, 합숙 캠프까지 세 단계다.",
+      "tone": "drama",
+      "impact": 12,
+      "trigger": {
+        "age": [15, 15],
+        "if": "edu.status == 'middle' && (found.math || traits.genius) && stats.intelligence >= 78 && edu.grade >= 80"
+      },
+      "limit": { "oncePerLife": true },
+      "choices": [
+        {
+          "text": "지원한다",
+          "check": { "stats": ["intelligence", "edu.grade"], "dc": 95 },
+          "onSuccess": {
+            "text": "캠프 마지막 날, 합격자 명단에 내 이름이 있었다. 내년 봄 영재학교에 입학한다.",
+            "effects": { "addFlags": ["gifted_admit"], "stats": { "happiness": 8, "reputation": 3 } }
+          },
+          "onFail": {
+            "text": "2단계 영재성 검사에서 떨어졌다. 처음 보는 유형의 문제 앞에서 처음으로 막막했다.",
+            "effects": { "stats": { "happiness": -4, "stress": 4 } }
+          }
+        },
+        { "text": "평범하게 고입을 준비한다", "result": "원서는 서랍에 넣었다." }
+      ]
+    },
+    {
+      "id": "gifted_entry",
+      "type": "milestone",
+      "title": "영재학교 입학",
+      "text": "기숙사 방에 짐을 풀었다. 같은 반 절반이 올림피아드 수상자다. 첫 수업부터 대학 미적분이다.",
+      "tone": "positive",
+      "impact": 15,
+      "trigger": { "age": [16, 16], "flags": ["gifted_admit"], "if": "edu.status == 'middle'" },
+      "limit": { "oncePerLife": true },
+      "effects": {
+        "do": [{ "type": "enroll", "school": "high", "highType": "gifted" }],
+        "removeFlags": ["gifted_admit"],
+        "stats": { "stress": 8 }
+      },
+      "choices": [
+        {
+          "text": "실험실에 붙어 산다",
+          "result": "밤 11시 점호 직전까지 실험실 불이 켜져 있었다.",
+          "effects": {
+            "stats": { "intelligence": 3, "stress": 5 },
+            "do": [{ "type": "discoverTalent", "talent": "math" }]
+          }
+        },
+        {
+          "text": "동아리부터 찾는다",
+          "result": "천문 동아리에 들었다. 옥상에서 별을 보며 친구가 생겼다.",
+          "effects": { "stats": { "sociability": 3, "happiness": 3 }, "do": [{ "type": "addFriend" }] }
+        }
+      ]
+    },
+    {
+      "id": "high_school_choice",
+      "type": "milestone",
+      "motif": "고입: 과학고 전기(8월), 외고·국제고·자사고 후기(12월), 일반고는 컴퓨터 추첨 배정",
+      "title": "고입 원서",
+      "text": "중3 겨울. 담임이 원서를 나눠 준다. 내 내신은 {내신}. 어느 고등학교로 갈지 정해야 한다.",
+      "tone": "neutral",
+      "impact": 10,
+      "trigger": { "age": [16, 16], "notFlags": ["gifted_admit"], "if": "edu.status == 'middle'" },
+      "limit": { "oncePerLife": true },
+      "choices": [
+        {
+          "text": "집 근처 일반고에 간다",
+          "result": "컴퓨터 추첨으로 배정됐다. 익숙한 얼굴이 절반이다.",
+          "effects": { "do": [{ "type": "enroll", "school": "high", "highType": "general" }] }
+        },
+        {
+          "text": "특목고·자사고에 원서를 낸다",
+          "if": "edu.grade >= 55 || stats.intelligence >= 65",
+          "next": "elite_application"
+        },
+        {
+          "text": "예고·체고 실기를 본다",
+          "if": "found.music || found.art || found.sports",
+          "next": "arts_application"
+        },
+        { "text": "특성화고·마이스터고에서 기술을 배운다", "next": "vocational_application" },
+        {
+          "text": "대안학교를 알아본다",
+          "if": "flags.bullying_victim || flags.bullying_active || stats.happiness < 35",
+          "result": "시험 대신 토론과 텃밭이 있는 학교. 처음으로 학교 가는 길이 무섭지 않았다.",
+          "effects": {
+            "do": [{ "type": "enroll", "school": "high", "highType": "alternative" }],
+            "stats": { "stress": -8, "happiness": 4 }
+          }
+        }
+      ]
+    },
+    {
+      "id": "elite_application",
+      "type": "chain",
+      "zoom": "고입 원서 접수",
+      "title": "어느 학교에 낼까",
+      "text": "과학고는 여름에, 외고와 자사고는 겨울에 전형이 있다. 떨어지면 후기 일반고로 배정된다.",
+      "tone": "drama",
+      "impact": 8,
+      "choices": [
+        {
+          "text": "과학고 (자기주도학습전형)",
+          "if": "(found.math && stats.intelligence >= 65) || stats.intelligence >= 75",
+          "check": { "stats": ["edu.grade", "intelligence"], "dc": 80 },
+          "onSuccess": {
+            "text": "면접에서 탐구 보고서 질문이 나왔다. 합격. 2년 만에 조기졸업하는 선배가 많다고 한다.",
+            "effects": {
+              "do": [{ "type": "enroll", "school": "high", "highType": "science" }],
+              "stats": { "happiness": 6, "stress": 6 }
+            }
+          },
+          "onFail": {
+            "text": "불합격. 후기 일반고 배정을 받았다.",
+            "effects": {
+              "do": [{ "type": "enroll", "school": "high", "highType": "general" }],
+              "stats": { "happiness": -4 }
+            }
+          }
+        },
+        {
+          "text": "외고·국제고",
+          "check": { "stats": ["edu.grade", "intelligence"], "dc": 70 },
+          "onSuccess": {
+            "text": "영어 내신과 면접으로 합격했다. 전공어는 중국어다.",
+            "effects": {
+              "do": [
+                { "type": "enroll", "school": "high", "highType": "foreign" },
+                { "type": "discoverTalent", "talent": "language" }
+              ],
+              "stats": { "happiness": 5, "stress": 5 }
+            }
+          },
+          "onFail": {
+            "text": "면접에서 말이 꼬였다. 일반고로 간다.",
+            "effects": {
+              "do": [{ "type": "enroll", "school": "high", "highType": "general" }],
+              "stats": { "happiness": -4 }
+            }
+          }
+        },
+        {
+          "text": "전국단위 자사고",
+          "if": "family.wealth >= 4",
+          "check": { "stats": ["edu.grade", "intelligence"], "dc": 64 },
+          "onSuccess": {
+            "text": "합격. 1년 학비와 기숙사비가 천만 원을 넘는다. 부모님은 아무렇지 않은 척했다.",
+            "effects": {
+              "do": [{ "type": "enroll", "school": "high", "highType": "autonomous" }],
+              "stats": { "happiness": 5, "stress": 6 }
+            }
+          },
+          "onFail": {
+            "text": "서류에서 떨어졌다. 일반고로 간다.",
+            "effects": {
+              "do": [{ "type": "enroll", "school": "high", "highType": "general" }],
+              "stats": { "happiness": -3 }
+            }
+          }
+        },
+        {
+          "text": "지역 자사고 (추첨)",
+          "if": "family.wealth >= 3",
+          "check": { "stat": "luck", "dc": 40 },
+          "onSuccess": {
+            "text": "추첨에 붙었다. 학비는 일반고의 세 배쯤 된다.",
+            "effects": {
+              "do": [{ "type": "enroll", "school": "high", "highType": "autonomous" }],
+              "stats": { "stress": 4 }
+            }
+          },
+          "onFail": {
+            "text": "추첨에서 떨어졌다. 일반고로 간다.",
+            "effects": { "do": [{ "type": "enroll", "school": "high", "highType": "general" }] }
+          }
+        }
+      ]
+    },
+    {
+      "id": "arts_application",
+      "type": "chain",
+      "zoom": "실기 시험장 대기실",
+      "title": "실기",
+      "text": "번호표를 받고 순서를 기다린다. 앞사람의 소리가 문틈으로 새어 나온다.",
+      "tone": "drama",
+      "impact": 8,
+      "choices": [
+        {
+          "text": "예술고 실기를 본다",
+          "if": "found.music || found.art",
+          "check": { "stats": ["luck", "edu.grade"], "dc": 48 },
+          "onSuccess": {
+            "text": "합격. 하루의 절반은 연습실이다.",
+            "effects": {
+              "do": [{ "type": "enroll", "school": "high", "highType": "arts" }],
+              "stats": { "happiness": 8 }
+            }
+          },
+          "onFail": {
+            "text": "실기에서 떨어졌다. 일반고에 가서 학원으로 계속하기로 했다.",
+            "effects": {
+              "do": [{ "type": "enroll", "school": "high", "highType": "general" }],
+              "stats": { "happiness": -4 }
+            }
+          }
+        },
+        {
+          "text": "체육고에 간다",
+          "if": "found.sports",
+          "check": { "stat": "stamina", "dc": 60 },
+          "onSuccess": {
+            "text": "합격. 새벽 6시 운동장 열 바퀴로 하루가 시작된다.",
+            "effects": {
+              "do": [{ "type": "enroll", "school": "high", "highType": "sports" }],
+              "stats": { "stamina": 4, "happiness": 5 }
+            }
+          },
+          "onFail": {
+            "text": "기록이 0.3초 모자랐다. 일반고 운동부로 간다.",
+            "effects": {
+              "do": [{ "type": "enroll", "school": "high", "highType": "general" }],
+              "stats": { "happiness": -4 }
+            }
+          }
+        }
+      ]
+    },
+    {
+      "id": "vocational_application",
+      "type": "chain",
+      "zoom": "고입 원서 접수",
+      "title": "기술",
+      "text": "취업률 표가 붙은 학교 홍보 책자를 펼쳤다. 조리, IT, 디자인, 기계, 전기.",
+      "tone": "neutral",
+      "impact": 6,
+      "choices": [
+        {
+          "text": "특성화고",
+          "result": "3학년이 되면 현장실습을 나간다. 일하면서 대학에 가는 '선취업 후진학' 제도도 있다고 한다.",
+          "effects": {
+            "do": [
+              { "type": "enroll", "school": "high", "highType": "vocational" },
+              { "type": "discoverTalent", "talent": "craft" }
+            ]
+          }
+        },
+        {
+          "text": "마이스터고",
+          "check": { "stats": ["edu.grade", "stamina"], "dc": 55 },
+          "onSuccess": {
+            "text": "합격. 학비와 기숙사비가 전액 지원된다. 졸업생 대부분이 공기업과 대기업 기술직으로 간다.",
+            "effects": {
+              "do": [{ "type": "enroll", "school": "high", "highType": "meister" }],
+              "stats": { "happiness": 6 }
+            }
+          },
+          "onFail": {
+            "text": "면접에서 떨어졌다. 특성화고로 간다.",
+            "effects": { "do": [{ "type": "enroll", "school": "high", "highType": "vocational" }] }
+          }
+        }
+      ]
+    },
+    {
+      "id": "grade_hell",
+      "type": "random",
+      "motif": "특목고·자사고 학생의 내신 경쟁, 학업 중단 후 정시 준비 증가",
+      "title": "내신 지옥",
+      "text": "중학교 땐 전교 1등이었다. 여기선 반에서 중간이다. 1등급은 열 명 중 한 명도 안 된다.",
+      "tone": "drama",
+      "impact": 18,
+      "trigger": { "age": [16, 17], "if": "edu.status == 'high' && edu.elite" },
+      "weight": { "base": 0.5, "noMode": true, "modifiers": [{ "if": "edu.grade < 50", "x": 1.5 }] },
+      "limit": { "oncePerLife": true },
+      "choices": [
+        {
+          "text": "이를 악물고 버틴다",
+          "result": "새벽 2시까지 자습실에 있었다. 내신이 조금 올랐다.",
+          "effects": { "do": [{ "type": "grade", "delta": 6 }], "stats": { "stress": 12, "health": -2 } }
+        },
+        {
+          "text": "내신은 버리고 수능에 건다",
+          "result": "학교 시험은 적당히, 수능 기출만 팠다.",
+          "effects": { "do": [{ "type": "grade", "delta": -5 }], "stats": { "intelligence": 2, "stress": 4 } }
+        },
+        {
+          "text": "자퇴하고 정시를 준비한다",
+          "result": "자퇴서를 냈다. 학원 재종반에 등록했다. 검정고시부터 봐야 한다.",
+          "effects": {
+            "do": [{ "type": "enroll", "school": "dropout" }],
+            "addFlags": ["dropout"],
+            "stats": { "stress": -6 }
+          }
+        }
+      ]
+    },
+    {
+      "id": "gifted_research",
+      "type": "random",
+      "title": "R&E 연구",
+      "text": "교수님 연구실에 1년 동안 드나들며 논문을 한 편 같이 썼다. 저자 순서는 다섯 번째다.",
+      "tone": "positive",
+      "impact": 10,
+      "trigger": {
+        "age": [16, 18],
+        "if": "edu.status == 'high' && (edu.highType == 'gifted' || edu.highType == 'science')"
+      },
+      "weight": { "base": 0.35, "noMode": true },
+      "limit": { "oncePerLife": true },
+      "choices": [
+        {
+          "text": "연구를 더 깊이 판다",
+          "result": "방학에도 연구실에 나갔다. 교수님이 대학원에 오라고 했다.",
+          "effects": {
+            "stats": { "intelligence": 3, "stress": 5 },
+            "do": [{ "type": "discoverTalent", "talent": "math" }]
+          }
+        },
+        {
+          "text": "국제 올림피아드에 도전한다",
+          "check": { "stat": "intelligence", "dc": 82 },
+          "onSuccess": {
+            "text": "국가대표로 뽑혔다. 국제 올림피아드 은메달. 학교 정문에 현수막이 걸렸다.",
+            "effects": { "addFlags": ["olympiad_medal"], "stats": { "reputation": 10, "happiness": 10 } }
+          },
+          "onFail": { "text": "국가대표 선발 2차에서 떨어졌다. 장려상을 받았다.", "effects": { "stats": { "happiness": -2 } } }
+        }
+      ]
+    },
+    {
+      "id": "science_early_grad",
+      "type": "milestone",
+      "motif": "과학고 2학년 조기졸업 후 과학기술원 진학",
+      "title": "조기졸업",
+      "text": "2학년 가을. 과학기술원 조기진학 전형 공고가 났다. 붙으면 3학년 없이 대학생이 된다.",
+      "tone": "drama",
+      "impact": 15,
+      "trigger": { "age": [17, 17], "if": "edu.status == 'high' && edu.highType == 'science'" },
+      "limit": { "oncePerLife": true },
+      "choices": [
+        {
+          "text": "{과기원} 조기진학에 지원한다",
+          "check": { "stats": ["intelligence", "edu.grade"], "dc": 62 },
+          "onSuccess": {
+            "text": "합격. 열여덟 살 새내기가 된다.",
+            "effects": {
+              "do": [{ "type": "graduate" }, { "type": "enterUniversity" }],
+              "stats": { "happiness": 10, "reputation": 3 }
+            }
+          },
+          "onFail": { "text": "면접에서 떨어졌다. 3학년을 마치고 다시 도전한다.", "effects": { "stats": { "happiness": -5 } } }
+        },
+        { "text": "3학년까지 다닌다", "result": "친구들과 졸업 사진을 찍고 싶었다." }
+      ]
+    },
+    {
+      "id": "gifted_univ",
+      "type": "milestone",
+      "title": "과학기술원 원서",
+      "text": "영재학교 3학년 가을. 동기 대부분이 과학기술원과 의대 사이에서 고민한다.",
+      "tone": "drama",
+      "impact": 12,
+      "order": 0,
+      "trigger": {
+        "age": [18, 18],
+        "if": "edu.status == 'high' && (edu.highType == 'gifted' || edu.highType == 'science') && !edu.earlyAdmitted"
+      },
+      "limit": { "oncePerLife": true },
+      "choices": [
+        {
+          "text": "{과기원}에 지원한다",
+          "check": { "stats": ["intelligence", "edu.grade"], "dc": 58 },
+          "onSuccess": {
+            "text": "합격. 수능 없이 진학한다.",
+            "effects": { "do": [{ "type": "earlyAdmit" }], "stats": { "happiness": 8 } }
+          },
+          "onFail": { "text": "떨어졌다. 수능으로 다시 간다.", "effects": { "stats": { "happiness": -4, "stress": 6 } } }
+        },
+        { "text": "의대를 노리고 수능을 본다", "result": "실험복을 벗고 수능 문제집을 폈다.", "effects": { "stats": { "stress": 8 } } }
+      ]
+    },
+    {
+      "id": "foreign_exchange",
+      "type": "random",
+      "title": "교환학생",
+      "text": "해외 자매학교 교환 프로그램 선발 공고가 떴다. 한 학기 동안 다른 나라에서 산다.",
+      "tone": "positive",
+      "impact": 8,
+      "trigger": { "age": [16, 17], "if": "edu.status == 'high' && edu.highType == 'foreign'" },
+      "weight": { "base": 0.4, "noMode": true },
+      "limit": { "oncePerLife": true },
+      "choices": [
+        {
+          "text": "지원한다",
+          "if": "family.wealth >= 3",
+          "check": { "stats": ["intelligence", "sociability"], "dc": 55 },
+          "onSuccess": {
+            "text": "한 학기 동안 홈스테이를 했다. 돌아오니 꿈도 영어로 꾼다.",
+            "effects": {
+              "stats": { "sociability": 3, "happiness": 6 },
+              "do": [{ "type": "discoverTalent", "talent": "language" }, { "type": "addFriend" }]
+            }
+          },
+          "onFail": { "text": "선발되지 못했다.", "effects": { "stats": { "happiness": -2 } } }
+        },
+        {
+          "text": "내신 관리에 집중한다",
+          "result": "그 한 학기 동안 내신이 올랐다.",
+          "effects": { "do": [{ "type": "grade", "delta": 4 }], "stats": { "stress": 4 } }
+        }
+      ]
+    },
+    {
+      "id": "arts_contest",
+      "type": "random",
+      "title": "실기 대회",
+      "text": "전국 학생 실기 대회 결선. 무대 조명이 생각보다 뜨겁다.",
+      "tone": "drama",
+      "impact": 10,
+      "trigger": { "age": [16, 18], "if": "edu.status == 'high' && edu.highType == 'arts'" },
+      "weight": { "base": 0.4, "noMode": true },
+      "limit": { "max": 2, "cooldown": 1 },
+      "choices": [
+        {
+          "text": "연습한 대로 한다",
+          "check": { "stats": ["mental", "luck"], "dc": 55 },
+          "onSuccess": {
+            "text": "금상. 예대 입시에서 가산점이 붙는다.",
+            "effects": { "addFlags": ["arts_award"], "stats": { "reputation": 5, "happiness": 6 } }
+          },
+          "onFail": { "text": "실수 한 번에 입상권에서 멀어졌다.", "effects": { "stats": { "happiness": -4 } } }
+        },
+        {
+          "text": "즉흥으로 바꾼다",
+          "check": { "stat": "luck", "dc": 65 },
+          "onSuccess": {
+            "text": "심사위원 한 명이 일어서서 박수를 쳤다. 대상.",
+            "effects": { "addFlags": ["arts_award"], "stats": { "reputation": 8, "happiness": 8 } }
+          },
+          "onFail": { "text": "무대 위에서 길을 잃었다.", "effects": { "stats": { "happiness": -6, "stress": 4 } } }
+        }
+      ]
+    },
+    {
+      "id": "arts_univ_audition",
+      "type": "milestone",
+      "zoom": "예대 실기 · 대기실",
+      "title": "예대 입시",
+      "text": "번호표 214번. 3분 안에 3년을 보여 줘야 한다.",
+      "tone": "drama",
+      "impact": 15,
+      "order": 0,
+      "trigger": { "age": [18, 18], "if": "edu.status == 'high' && edu.highType == 'arts'" },
+      "limit": { "oncePerLife": true },
+      "choices": [
+        {
+          "text": "{예대} 실기에 모든 걸 건다",
+          "check": { "stats": ["mental", "luck"], "dc": 48 },
+          "onSuccess": {
+            "text": "합격. 수능 최저만 넘기면 된다.",
+            "effects": { "do": [{ "type": "earlyAdmit" }], "stats": { "happiness": 10 } }
+          },
+          "onFail": {
+            "text": "떨어졌다. 수능 점수로 다른 길을 찾아야 한다.",
+            "effects": { "stats": { "happiness": -6, "stress": 6 } }
+          }
+        },
+        { "text": "예대 대신 수능에 집중한다", "result": "악기 케이스를 닫고 문제집을 폈다.", "effects": { "stats": { "stress": 6 } } }
+      ]
+    },
+    {
+      "id": "sports_scout",
+      "type": "milestone",
+      "zoom": "드래프트 당일",
+      "title": "지명",
+      "text": "체고 3학년 가을. 프로 신인 드래프트와 체육특기자 대학 입시가 같은 달에 몰려 있다.",
+      "tone": "drama",
+      "impact": 15,
+      "order": 0,
+      "trigger": { "age": [18, 18], "if": "edu.status == 'high' && edu.highType == 'sports'" },
+      "limit": { "oncePerLife": true },
+      "choices": [
+        {
+          "text": "프로 드래프트에 나간다",
+          "check": { "stats": ["stamina", "luck"], "dc": 62 },
+          "onSuccess": {
+            "text": "2라운드 지명. 계약금을 받고 프로 유니폼을 입었다.",
+            "effects": {
+              "do": [{ "type": "graduate" }, { "type": "getJob", "job": "athlete" }],
+              "stats": { "happiness": 12, "reputation": 8 }
+            }
+          },
+          "onFail": { "text": "끝까지 이름이 불리지 않았다.", "effects": { "stats": { "happiness": -8, "stress": 6 } } }
+        },
+        {
+          "text": "{체대}에 체육특기자로 지원한다",
+          "check": { "stat": "stamina", "dc": 50 },
+          "onSuccess": {
+            "text": "합격. 대학 팀에서 4년을 더 뛴다.",
+            "effects": { "do": [{ "type": "earlyAdmit" }], "stats": { "happiness": 6 } }
+          },
+          "onFail": { "text": "떨어졌다. 수능을 봐야 한다.", "effects": { "stats": { "happiness": -4 } } }
+        }
+      ]
+    },
+    {
+      "id": "sports_injury",
+      "type": "random",
+      "title": "부상",
+      "text": "착지하는 순간 무릎에서 '뚝' 소리가 났다. 전방십자인대 파열.",
+      "tone": "tragedy",
+      "impact": 25,
+      "trigger": {
+        "age": [16, 35],
+        "if": "(edu.status == 'high' && edu.highType == 'sports') || job.id == 'athlete'"
+      },
+      "weight": { "base": 0.08, "noMode": true },
+      "limit": { "max": 2, "cooldown": 2 },
+      "effects": { "stats": { "health": -10, "stamina": -8, "happiness": -8 } },
+      "choices": [
+        {
+          "text": "수술받고 재활한다",
+          "result": "재활 9개월. 다시 뛰긴 했지만 예전 같지 않다.",
+          "effects": { "stats": { "mental": 4, "stamina": 3 } }
+        },
+        {
+          "text": "진통제를 맞고 계속 뛴다",
+          "result": "시즌은 마쳤다. 무릎은 평생 날씨를 알려 준다.",
+          "effects": { "stats": { "health": -6, "reputation": 2 } }
+        }
+      ]
+    },
+    {
+      "id": "meister_hire",
+      "type": "milestone",
+      "motif": "마이스터고 졸업생의 공기업·대기업 기술직 채용",
+      "title": "공기업 채용",
+      "text": "3학년 2학기. 공기업 고졸 기술직 채용 공고가 났다. 학교 게시판에 선배들 합격 사진이 붙어 있다.",
+      "tone": "drama",
+      "impact": 12,
+      "trigger": { "age": [18, 18], "if": "edu.status == 'high' && edu.highType == 'meister'" },
+      "limit": { "oncePerLife": true },
+      "choices": [
+        {
+          "text": "필기와 실기를 본다",
+          "check": { "stats": ["edu.grade", "stamina"], "dc": 50 },
+          "onSuccess": {
+            "text": "합격. 졸업식 다음 주부터 발전소 교대 근무다.",
+            "effects": {
+              "do": [{ "type": "graduate" }, { "type": "getJob", "job": "public_tech" }],
+              "stats": { "happiness": 10 }
+            }
+          },
+          "onFail": {
+            "text": "떨어졌다. 학교가 연결해 준 중견기업 생산직으로 간다.",
+            "effects": {
+              "do": [{ "type": "graduate" }, { "type": "getJob", "job": "factory" }],
+              "stats": { "happiness": -3 }
+            }
+          }
+        },
+        {
+          "text": "대학에 먼저 간다",
+          "result": "취업 대신 수능을 보기로 했다. 선생님이 아쉬워했다.",
+          "effects": { "do": [{ "type": "graduate" }], "addFlags": ["retake"] }
+        }
+      ]
+    },
+    {
+      "id": "alternative_life",
+      "type": "random",
+      "filler": true,
+      "title": "대안학교의 하루",
+      "text": "1교시는 텃밭, 2교시는 토론, 3교시는 각자 정한 프로젝트. 시험 대신 1년에 한 번 발표회가 있다.",
+      "tone": "positive",
+      "impact": 6,
+      "trigger": { "age": [16, 18], "if": "edu.status == 'high' && edu.highType == 'alternative'" },
+      "weight": { "base": 0.5, "noMode": true },
+      "limit": { "max": 2, "cooldown": 1 },
+      "choices": [
+        {
+          "text": "프로젝트로 영상을 만든다",
+          "result": "발표회 날 강당이 웃음으로 찼다.",
+          "effects": {
+            "stats": { "sociability": 2, "happiness": 4 },
+            "do": [{ "type": "discoverTalent", "talent": "art" }]
+          }
+        },
+        { "text": "검정고시 공부를 같이 한다", "result": "대학에 가고 싶어졌다.", "effects": { "stats": { "intelligence": 2 } } }
+      ]
+    },
+    {
+      "id": "susi_application",
+      "type": "milestone",
+      "motif": "대입 수시 학생부종합전형 (원서 최대 6장)",
+      "title": "수시 원서",
+      "text": "고3 9월. 원서는 여섯 장까지 낼 수 있다. 생활기록부를 다시 읽어 본다. 내 내신은 {내신}.",
+      "tone": "drama",
+      "impact": 12,
+      "order": 0,
+      "trigger": {
+        "age": [18, 18],
+        "if": "edu.status == 'high' && edu.grade >= 70 && edu.highType != 'vocational' && edu.highType != 'meister' && edu.highType != 'arts' && edu.highType != 'sports' && !edu.earlyAdmitted"
+      },
+      "limit": { "oncePerLife": true },
+      "choices": [
+        {
+          "text": "{수시목표}에 학생부종합으로 지원한다",
+          "check": { "stats": ["edu.grade", "sociability"], "dc": 66 },
+          "onSuccess": {
+            "text": "면접에서 웃으며 나왔다. 12월, 최초합격 문자가 왔다. 수능 최저만 맞추면 된다.",
+            "effects": { "do": [{ "type": "earlyAdmit" }], "stats": { "happiness": 8 } }
+          },
+          "onFail": {
+            "text": "여섯 장 모두 떨어졌다. 이제 정시뿐이다.",
+            "effects": { "stats": { "happiness": -6, "stress": 6 } }
+          }
+        },
+        {
+          "text": "정시에 올인한다",
+          "result": "수시 원서를 쓰지 않았다. 남은 두 달, 기출만 판다.",
+          "effects": { "stats": { "stress": 4 } }
+        }
+      ]
+    },
+    {
+      "id": "ged_exam",
+      "type": "milestone",
+      "motif": "고졸 학력 검정고시 (연 2회, 과목 평균 60점 이상 합격)",
+      "title": "검정고시",
+      "text": "고졸 학력 검정고시 날. 교실에는 나 같은 10대부터 머리 희끗한 어르신까지 앉아 있다.",
+      "tone": "neutral",
+      "impact": 8,
+      "trigger": {
+        "age": [15, 70],
+        "if": "edu.status == 'dropout' && edu.degree != 'high' && !legal.inPrison"
+      },
+      "choices": [
+        {
+          "text": "시험을 본다",
+          "check": { "stat": "intelligence", "dc": 32 },
+          "onSuccess": {
+            "text": "평균 78점. 이제 고졸 학력이다. 수능도 볼 수 있다.",
+            "effects": { "do": [{ "type": "passGed" }], "stats": { "happiness": 5 } }
+          },
+          "onFail": { "text": "두 과목이 과락이었다. 다음 회차에 다시 본다.", "effects": { "stats": { "happiness": -3 } } }
+        },
+        { "text": "올해는 건너뛴다", "result": "책은 펴 보지도 않았다." }
+      ]
+    },
+    {
+      "id": "out_of_school",
+      "type": "random",
+      "motif": "학교밖청소년지원센터 '꿈드림' (여성가족부): 검정고시·진로·직업훈련 지원",
+      "title": "학교 밖",
+      "text": "평일 낮에 거리를 걸으면 사람들이 쳐다본다. \"학생, 학교 안 가?\" 주민센터 게시판에 학교밖청소년지원센터 안내문이 붙어 있다.",
+      "tone": "drama",
+      "impact": 10,
+      "trigger": { "age": [14, 19], "if": "edu.status == 'dropout'" },
+      "weight": { "base": 0.5, "noMode": true },
+      "limit": { "oncePerLife": true },
+      "choices": [
+        {
+          "text": "꿈드림 센터에 가 본다",
+          "result": "검정고시 무료 강의와 진로 상담을 받았다. 비슷한 처지의 친구들이 있었다.",
+          "effects": {
+            "stats": { "intelligence": 2, "sociability": 2, "happiness": 4 },
+            "do": [{ "type": "addFriend" }]
+          }
+        },
+        {
+          "text": "직업훈련 과정에 등록한다",
+          "result": "바리스타 자격증 과정을 마쳤다. 첫 출근은 동네 카페다.",
+          "effects": { "addFlags": ["certified"], "stats": { "happiness": 3 } }
+        },
+        {
+          "text": "혼자 지낸다",
+          "result": "낮과 밤이 바뀌었다.",
+          "effects": { "stats": { "happiness": -4, "stress": -2 } }
+        }
+      ]
+    }
+  ]
+}

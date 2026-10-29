@@ -1,0 +1,209 @@
+{
+  "stage": "초등 7~12세. 학폭 피해 응답이 가장 높은 시기",
+  "events": [
+    {
+      "id": "elementary_entry",
+      "type": "milestone",
+      "title": "초등학교 입학",
+      "text": "{지역}의 한 초등학교 운동장. 이름표를 단 1학년들이 줄을 섰다. 교장 선생님 말씀이 끝도 없이 길다.",
+      "tone": "neutral",
+      "impact": 5,
+      "trigger": { "age": [7, 7] },
+      "limit": { "oncePerLife": true },
+      "effects": { "do": [{ "type": "enroll", "school": "elementary" }] },
+      "choices": [
+        {
+          "text": "옆에 선 아이에게 먼저 말을 건다",
+          "check": { "stat": "sociability", "dc": 45 },
+          "onSuccess": {
+            "text": "{친구}. 오늘부터 짝꿍이다.",
+            "effects": { "stats": { "sociability": 2, "happiness": 2 }, "do": [{ "type": "addFriend" }] }
+          },
+          "onFail": { "text": "대답이 없었다. 그 아이도 긴장했나 보다.", "effects": { "stats": { "sociability": 1 } } }
+        },
+        {
+          "text": "교장 선생님 말씀을 끝까지 듣는다",
+          "result": "담임 선생님이 줄을 제일 잘 선 아이라며 칭찬 스티커를 줬다.",
+          "effects": { "stats": { "intelligence": 1, "happiness": 1 } }
+        }
+      ]
+    },
+    {
+      "id": "first_smartphone",
+      "type": "random",
+      "title": "스마트폰",
+      "text": "반에서 스마트폰이 없는 사람이 나 혼자다. 단톡방에서 무슨 얘기가 오가는지 아무도 알려 주지 않는다.",
+      "tone": "neutral",
+      "impact": 6,
+      "trigger": { "age": [8, 12], "if": "family.type != 'facility'" },
+      "weight": { "base": 0.25, "noMode": true },
+      "limit": { "oncePerLife": true },
+      "choices": [
+        {
+          "text": "생일 선물로 사 달라고 조른다",
+          "check": { "stat": "family.support", "dc": 45 },
+          "onSuccess": {
+            "text": "최신 기종은 아니지만 내 것이 생겼다. 그날 밤 이불 속에서 새벽 2시까지 유튜브를 봤다.",
+            "effects": { "stats": { "happiness": 5, "sociability": 2, "stress": -2 } }
+          },
+          "onFail": {
+            "text": "\"중학교 가면 사 줄게.\" 그 말을 세 번째 들었다.",
+            "effects": { "stats": { "happiness": -3, "sociability": -1 } }
+          }
+        },
+        {
+          "text": "없어도 괜찮다고 한다",
+          "result": "대신 도서관 책을 더 빌렸다.",
+          "effects": { "stats": { "intelligence": 1, "sociability": -1 } }
+        }
+      ],
+      "filler": true
+    },
+    {
+      "id": "class_president",
+      "type": "milestone",
+      "title": "반장 선거",
+      "text": "4학년 첫 학급회의. 선생님이 반장 후보를 받는다. 몇몇이 나를 쳐다본다.",
+      "tone": "neutral",
+      "impact": 8,
+      "trigger": { "age": [10, 10], "if": "edu.status == 'elementary'" },
+      "limit": { "oncePerLife": true },
+      "choices": [
+        {
+          "text": "손을 들고 출마한다",
+          "check": { "stats": ["sociability", "intelligence"], "dc": 55 },
+          "onSuccess": {
+            "text": "25표 중 14표. 반장이 됐다.",
+            "effects": {
+              "stats": { "happiness": 5, "sociability": 3, "reputation": 2 },
+              "addFlags": ["class_president"],
+              "do": [{ "type": "discoverTalent", "talent": "leadership" }]
+            }
+          },
+          "onFail": { "text": "3표. 그중 하나는 내 표였다.", "effects": { "stats": { "happiness": -3 } } }
+        },
+        {
+          "text": "친한 친구를 추천한다",
+          "result": "친구가 반장이 됐다. 떡볶이를 얻어먹었다.",
+          "effects": { "stats": { "sociability": 2, "happiness": 1 } }
+        },
+        { "text": "고개를 숙인다", "result": "부반장 선거까지 무사히 넘겼다." }
+      ]
+    },
+    {
+      "id": "transfer_school",
+      "type": "random",
+      "title": "전학",
+      "text": "{부모}의 직장 때문에 이사를 가게 됐다. 다음 주부터 낯선 학교에 다닌다.",
+      "tone": "drama",
+      "impact": 15,
+      "trigger": { "age": [7, 15], "if": "family.type != 'facility' && family.parentsAlive > 0" },
+      "weight": { "base": 0.035, "noMode": true, "modifiers": [{ "if": "family.wealth <= 2", "x": 1.3 }] },
+      "limit": { "max": 2, "cooldown": 3 },
+      "effects": { "addFlags": ["transferred"], "do": [{ "type": "moveRegion" }, { "type": "loseFriend" }] },
+      "choices": [
+        {
+          "text": "첫날 자기소개를 크게 한다",
+          "check": { "stat": "sociability", "dc": 50 },
+          "onSuccess": {
+            "text": "쉬는 시간에 몇 명이 말을 걸어왔다.",
+            "effects": { "stats": { "sociability": 2 }, "do": [{ "type": "addFriend" }] }
+          },
+          "onFail": {
+            "text": "목소리가 떨렸다. 누군가 내 말투를 따라 하며 웃었다.",
+            "effects": { "stats": { "happiness": -3, "stress": 4 } }
+          }
+        },
+        {
+          "text": "조용히 지켜본다",
+          "result": "한 달이 지나도 점심은 혼자 먹었다.",
+          "effects": { "stats": { "happiness": -2, "sociability": -1 } }
+        }
+      ]
+    },
+    {
+      "id": "talent_discovery",
+      "type": "random",
+      "title": "숨은 재능",
+      "text": "{재능장면}",
+      "tone": "positive",
+      "impact": 10,
+      "trigger": { "age": [6, 16], "if": "talents.hiddenCount > 0" },
+      "weight": { "base": 0.07 },
+      "limit": { "max": 3, "cooldown": 1 },
+      "effects": { "do": [{ "type": "discoverTalent" }] },
+      "choices": [
+        {
+          "text": "제대로 배우고 싶다고 조른다",
+          "if": "family.wealth >= 2 && family.type != 'facility'",
+          "result": "{보호자}이/가 학원을 알아봤다. 한 달에 20만 원이 넘는다. 그래도 보내 주기로 했다.",
+          "effects": { "stats": { "happiness": 4, "stress": 2 } }
+        },
+        {
+          "text": "혼자 연습한다",
+          "result": "누가 시키지 않아도 매일 조금씩 했다.",
+          "effects": { "stats": { "happiness": 3, "mental": 2 } }
+        },
+        { "text": "별로 관심 없다", "result": "재능은 그대로 묻혔다. 가끔 생각날 뿐이다." }
+      ],
+      "filler": true
+    },
+    {
+      "id": "hagwon_rounds",
+      "type": "random",
+      "motif": "초중고 사교육 참여율 약 80% (통계청 2024 초중고 사교육비조사)",
+      "title": "학원 뺑뺑이",
+      "text": "{보호자}이/가 영어, 수학, 논술 학원을 한꺼번에 등록했다. 수업이 끝나면 밤 10시다.",
+      "tone": "neutral",
+      "impact": 8,
+      "trigger": {
+        "age": [8, 17],
+        "if": "family.wealth >= 2 && family.type != 'facility' && (edu.status == 'elementary' || edu.status == 'middle' || edu.status == 'high')"
+      },
+      "weight": {
+        "base": 0.22,
+        "modifiers": [
+          { "if": "family.wealth >= 4", "x": 1.5 },
+          { "if": "region.id == 'seoul'", "x": 1.3 },
+          { "if": "family.style == 'authoritarian'", "x": 1.4 }
+        ]
+      },
+      "limit": { "max": 2, "cooldown": 3 },
+      "choices": [
+        {
+          "text": "꾹 참고 다닌다",
+          "result": "숙제가 끝나면 자정이었다. 성적은 조금 올랐다.",
+          "effects": {
+            "stats": { "intelligence": 3, "stress": 10, "happiness": -4 },
+            "do": [{ "type": "grade", "delta": 5 }]
+          }
+        },
+        {
+          "text": "수학 학원을 빼먹고 PC방에 간다",
+          "check": { "stat": "luck", "dc": 50 },
+          "onSuccess": {
+            "text": "아무도 몰랐다. 레벨이 3 올랐다.",
+            "effects": { "stats": { "happiness": 5, "stress": -5 } }
+          },
+          "onFail": {
+            "text": "학원에서 집으로 결석 문자가 갔다. 휴대폰을 압수당했다.",
+            "effects": {
+              "stats": { "happiness": -6, "stress": 6 },
+              "do": [{ "type": "npcCloseness", "role": "parents", "delta": -5 }]
+            }
+          }
+        },
+        {
+          "text": "하나만 줄여 달라고 말한다",
+          "check": { "stat": "family.support", "dc": 50 },
+          "onSuccess": {
+            "text": "논술을 끊기로 했다. 저녁 먹을 시간이 생겼다.",
+            "effects": { "stats": { "stress": -4, "happiness": 2 } }
+          },
+          "onFail": { "text": "\"다른 애들은 네 개씩 다녀.\" 대화는 거기서 끝났다.", "effects": { "stats": { "stress": 4 } } }
+        }
+      ],
+      "filler": true
+    }
+  ]
+}

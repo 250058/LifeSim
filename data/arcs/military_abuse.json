@@ -1,0 +1,118 @@
+{
+  "arc": "군대 부조리",
+  "motif": "간부의 가혹행위를 면회 온 가족이 국방헬프콜 1303으로 신고한 사건 (2023) https://v.daum.net/v/20230206062105956",
+  "events": [
+    {
+      "id": "mil_abuse_start",
+      "type": "chain_start",
+      "arc": "military_abuse",
+      "motif": "국방헬프콜 1303. 부대의 숨은 '분위기' 값이 나쁘면 확률이 오른다",
+      "title": "사적 지시",
+      "text": "분대장이 빨래와 PX 심부름을 시키기 시작했다. 한 번 거절하자 밤마다 '군기 교육'이 이어진다. 폭언, 얼차려, 그리고 오늘은 정강이를 걷어찼다.",
+      "tone": "tragedy",
+      "impact": 35,
+      "trigger": { "sex": "M", "if": "military.serving && military.branch != 'social'" },
+      "weight": {
+        "base": 0.08,
+        "modifiers": [
+          { "if": "military.unitMood < 40", "x": 3 },
+          { "if": "military.unitMood > 70", "x": 0.3 },
+          { "if": "stats.sociability < 40", "x": 1.3 }
+        ]
+      },
+      "limit": { "oncePerLife": true },
+      "choices": [
+        {
+          "text": "전역할 때까지 참는다",
+          "result": "달력에 X를 그었다. 매일 밤 남은 날짜를 셌다.",
+          "effects": {
+            "addFlags": ["hazing_victim"],
+            "stats": { "mental": -10, "happiness": -10, "stress": 15, "health": -3 },
+            "later": [{ "event": "mil_abuse_legacy", "inYears": 1 }]
+          }
+        },
+        {
+          "text": "국방헬프콜 1303에 신고한다",
+          "result": "공중전화 수화기를 든 손이 떨렸다. 상담관이 이름과 부대를 받아 적었다.",
+          "next": "mil_abuse_report"
+        },
+        {
+          "text": "면회 온 가족에게 털어놓는다",
+          "if": "family.parentsAlive > 0 || family.siblings > 0",
+          "result": "면회실에서 내 정강이를 본 가족이 그 자리에서 1303에 전화했다.",
+          "next": "mil_abuse_report"
+        },
+        {
+          "text": "탈영한다",
+          "result": "사흘 만에 군사경찰에게 붙잡혔다. 그래도 그 사흘은 숨을 쉴 수 있었다.",
+          "effects": {
+            "addFlags": ["hazing_victim", "deserter"],
+            "stats": { "stress": 10 },
+            "do": [{ "type": "prosecute", "crime": "desertion" }]
+          }
+        }
+      ]
+    },
+    {
+      "id": "mil_abuse_report",
+      "type": "chain",
+      "arc": "military_abuse",
+      "zoom": "신고 사흘 뒤 · 중대장실",
+      "title": "은폐",
+      "text": "신고 사흘 뒤, 중대장이 나를 따로 불렀다. \"서로 오해가 있었던 것 같은데, 일 키우지 말자. 너도 다음 휴가 나가야지.\"",
+      "tone": "drama",
+      "impact": 25,
+      "choices": [
+        {
+          "text": "진술서를 그대로 유지한다",
+          "check": { "stat": "mental", "dc": 50 },
+          "onSuccess": {
+            "text": "사단 감찰이 내려왔다. 분대장은 징계와 형사 입건, 은폐를 시도한 중대장은 보직 해임됐다.",
+            "effects": {
+              "addFlags": ["hazing_reported"],
+              "stats": { "mental": 8, "reputation": 3, "stress": -5 }
+            }
+          },
+          "onFail": {
+            "text": "버티는 동안 '관심병사'로 분류됐다. 조사는 시작됐지만 남은 복무 내내 따가운 눈초리를 받았다.",
+            "effects": {
+              "addFlags": ["hazing_reported", "hazing_victim"],
+              "stats": { "mental": -6, "stress": 12, "happiness": -6 }
+            }
+          }
+        },
+        {
+          "text": "진술을 철회한다",
+          "result": "모든 게 없던 일이 됐다. 분대장은 아무렇지 않게 다음 날도 나를 불렀다.",
+          "effects": {
+            "addFlags": ["hazing_victim"],
+            "stats": { "mental": -12, "happiness": -10, "stress": 15 },
+            "later": [{ "event": "mil_abuse_legacy", "inYears": 1 }]
+          }
+        }
+      ]
+    },
+    {
+      "id": "mil_abuse_legacy",
+      "type": "chain",
+      "arc": "military_abuse",
+      "title": "이제 내가 병장이다",
+      "text": "신병이 들어왔다. 실수투성이다. 동기가 말한다. \"우리도 당했잖아. 쟤도 좀 굴려야지.\"",
+      "tone": "drama",
+      "impact": 15,
+      "trigger": { "if": "military.serving" },
+      "choices": [
+        {
+          "text": "받은 대로 돌려준다",
+          "result": "그날 밤 신병이 화장실에서 우는 소리를 들었다.",
+          "effects": { "addFlags": ["hazing_perpetrator"], "stats": { "morality": -15, "stress": -3 } }
+        },
+        {
+          "text": "여기서 끊는다",
+          "result": "\"우리 때는 우리 때고.\" 신병이 처음으로 웃었다.",
+          "effects": { "stats": { "morality": 8, "mental": 4, "reputation": 2 } }
+        }
+      ]
+    }
+  ]
+}

@@ -1,0 +1,574 @@
+{
+  "stage": "성인기의 술·담배·약물: 회식 권유, 다음 날 아침, 흡연 권유와 흡연 장소, 냄새와 가족, 금연·금주 중 갈망, 불법 약물 권유, 치료 프로그램, 재발과 다시 도움 요청, 적발과 응급실. 사용은 본인이 고른 선택에서만 기록된다 (substances.ts)",
+  "events": [
+    {
+      "id": "sub_hoesik",
+      "type": "random",
+      "motif": "회식 음주 권유 → 수락·거절 → 다음 날 컨디션 → 동료 관계 (개정 계획 '성인기의 술 담배와 약물')",
+      "title": "회식",
+      "text": "분기 마감 회식. 고깃집 테이블에 소주병이 줄지어 섰다. 부장님이 내 잔부터 채우려고 병을 들었다.",
+      "tone": "neutral",
+      "impact": 6,
+      "adult": true,
+      "trigger": {
+        "age": [19, 70],
+        "if": "job.employed && !job.business && !military.serving && !legal.inPrison"
+      },
+      "weight": {
+        "base": 0.1,
+        "noMode": true,
+        "modifiers": [
+          { "if": "job.stress >= 60", "x": 1.3 },
+          { "if": "substance.alcohol.quitting", "x": 1.2 }
+        ]
+      },
+      "limit": { "cooldown": 3 },
+      "effects": { "do": [{ "type": "substance", "substance": "alcohol", "act": "offered" }] },
+      "choices": [
+        {
+          "text": "잔을 받고 끝까지 함께 마신다",
+          "result": "2차, 3차. 부장님이 내 어깨를 두 번 두드렸다. 택시 안에서 기억이 끊겼다.",
+          "effects": {
+            "stats": { "stress": -4, "sociability": 1 },
+            "money": { "network": 2 },
+            "do": [{ "type": "substance", "substance": "alcohol", "act": "use", "amount": 0.5 }]
+          },
+          "next": "sub_next_morning"
+        },
+        {
+          "text": "첫 잔만 받고 물로 바꾼다",
+          "result": "건배는 같이 했다. 그다음부터는 물잔을 들고 고기를 구웠다.",
+          "effects": { "do": [{ "type": "substance", "substance": "alcohol", "act": "use", "amount": 0.25 }] }
+        },
+        {
+          "text": "정중히 거절하고 사이다를 따른다",
+          "check": { "stat": "sociability", "dc": 45 },
+          "effects": { "do": [{ "type": "substance", "substance": "alcohol", "act": "refuse" }] },
+          "onSuccess": {
+            "text": "\"요즘은 다 그래.\" 부장님이 웃으며 사이다 병을 넘겼다.",
+            "effects": { "stats": { "stress": -1 } }
+          },
+          "onFail": {
+            "text": "\"한 잔도 못 받아?\" 테이블이 잠깐 조용해졌다. 다음 날 팀 단톡방이 어색했다.",
+            "effects": { "stats": { "stress": 4, "reputation": -1 } }
+          }
+        },
+        {
+          "text": "금주 중이라고 솔직하게 말한다",
+          "if": "substance.alcohol.quitting",
+          "check": { "stat": "mental", "dc": 45 },
+          "effects": { "do": [{ "type": "substance", "substance": "alcohol", "act": "refuse" }] },
+          "onSuccess": {
+            "text": "\"대단하네.\" 옆자리 대리가 자기도 줄이는 중이라고 했다. 버틴 하루가 하나 늘었다.",
+            "effects": {
+              "stats": { "mental": 2 },
+              "do": [{ "type": "substance", "substance": "alcohol", "act": "resist" }]
+            }
+          },
+          "onFail": { "text": "말은 했지만 술 냄새에 마음이 흔들렸다. 일찍 자리를 떴다.", "effects": { "stats": { "stress": 5 } } }
+        }
+      ]
+    },
+    {
+      "id": "sub_next_morning",
+      "type": "chain",
+      "title": "다음 날 아침",
+      "zoom": "출근 50분 전",
+      "text": "알람이 세 번째 울렸다. 머리가 깨질 듯하고 입안이 바싹 말랐다. 오늘 오전에 보고가 있다.",
+      "tone": "neutral",
+      "impact": 4,
+      "trigger": { "if": "substance.alcohol.usedThisYear && job.employed" },
+      "choices": [
+        {
+          "text": "해장국을 먹고 버티며 출근한다",
+          "check": { "stat": "stamina", "dc": 45 },
+          "onSuccess": {
+            "text": "보고는 무사히 끝났다. 점심때까지 커피를 세 잔 마셨다.",
+            "effects": { "stats": { "stress": 2 }, "money": { "cash2026": -9000 } }
+          },
+          "onFail": {
+            "text": "보고 중에 숫자를 두 번 틀렸다. 팀장님이 \"어제 많이 마셨어?\" 하고 물었다.",
+            "effects": { "stats": { "stress": 6, "reputation": -2 }, "money": { "cash2026": -9000 } }
+          }
+        },
+        {
+          "text": "반차를 쓴다",
+          "result": "오후에 출근했다. 보고는 대리가 대신 했다. 고맙다고 커피를 샀다.",
+          "effects": { "stats": { "stress": -2, "reputation": -1 }, "money": { "cash2026": -5000 } }
+        },
+        {
+          "text": "숙취해소제를 마시고 그대로 나간다",
+          "result": "효과가 있는지는 모르겠지만 어쨌든 하루가 갔다.",
+          "effects": { "stats": { "health": -1, "stress": 3 }, "money": { "cash2026": -5000 } }
+        }
+      ]
+    },
+    {
+      "id": "sub_smoke_break",
+      "type": "random",
+      "motif": "직장 흡연 권유: 비흡연 성인의 흡연 시작·거절 경로",
+      "title": "흡연 구역",
+      "text": "오후 세 시. 옆자리 {지인}이/가 라이터를 흔들며 일어섰다. \"바람 좀 쐬러 갈래요? 한 대 줄까요?\"",
+      "tone": "neutral",
+      "impact": 5,
+      "adult": true,
+      "trigger": {
+        "age": [19, 70],
+        "if": "job.employed && !substance.tobacco.current && !military.serving && !legal.inPrison"
+      },
+      "weight": {
+        "base": 0.02,
+        "noMode": true,
+        "modifiers": [
+          { "if": "state.stress > 65", "x": 1.5 },
+          { "if": "substance.tobacco.ever", "x": 1.5 },
+          { "if": "substance.tobacco.quitting", "x": 1.5 }
+        ]
+      },
+      "limit": { "cooldown": 6 },
+      "effects": { "do": [{ "type": "substance", "substance": "tobacco", "act": "offered" }] },
+      "choices": [
+        {
+          "text": "한 대 받아 피운다",
+          "result": "목이 따가웠다. 그래도 연기 너머로 {지인}와/과 회사 얘기를 오래 했다.",
+          "effects": {
+            "stats": { "stress": -3, "sociability": 1, "health": -1 },
+            "do": [
+              {
+                "type": "substance",
+                "substance": "tobacco",
+                "act": "use",
+                "amount": 0.5,
+                "product": "cigarette"
+              }
+            ]
+          }
+        },
+        {
+          "text": "커피만 들고 따라 나간다",
+          "result": "연기를 피해 바람 부는 쪽에 섰다. 흡연 구역에서 듣는 소문이 제일 빨랐다.",
+          "effects": {
+            "stats": { "sociability": 1 },
+            "do": [{ "type": "substance", "substance": "tobacco", "act": "refuse" }]
+          }
+        },
+        {
+          "text": "괜찮다며 자리에 남는다",
+          "result": "\"그래요, 안 피우는 게 낫죠.\" {지인}이/가 혼자 나갔다.",
+          "effects": { "do": [{ "type": "substance", "substance": "tobacco", "act": "refuse" }] }
+        }
+      ]
+    },
+    {
+      "id": "sub_smoking_area",
+      "type": "consequence",
+      "motif": "국민건강증진법: 금연구역에서 흡연하면 과태료 10만 원",
+      "title": "금연 구역",
+      "text": "비가 온다. 흡연 구역은 건물 반대편 끝이다. 건물 뒤 '금연 구역' 표지판 아래에 꽁초가 수북하다.",
+      "tone": "neutral",
+      "impact": 3,
+      "adult": true,
+      "trigger": {
+        "age": [19, 110],
+        "if": "substance.tobacco.current && !substance.tobacco.quitting && !legal.inPrison"
+      },
+      "weight": { "base": 0.08, "noMode": true },
+      "limit": { "cooldown": 4 },
+      "choices": [
+        {
+          "text": "우산을 쓰고 흡연 구역까지 간다",
+          "result": "왕복 10분. 젖은 바짓단으로 자리에 돌아왔다.",
+          "effects": { "stats": { "stress": 1 } }
+        },
+        {
+          "text": "표지판 아래에서 몰래 피운다",
+          "check": { "stat": "luck", "dc": 55 },
+          "onSuccess": { "text": "아무도 보지 않았다. 꽁초가 하나 더 쌓였다.", "effects": { "stats": { "morality": -1 } } },
+          "onFail": {
+            "text": "단속 공무원이 사진을 찍었다. 과태료 10만 원 고지서가 날아왔다.",
+            "effects": { "money": { "cash2026": -100000 }, "stats": { "stress": 3 } }
+          }
+        },
+        {
+          "text": "오늘은 참는다",
+          "result": "손이 자꾸 주머니로 갔다. 그래도 오후를 넘겼다.",
+          "effects": {
+            "stats": { "stress": 2 },
+            "do": [{ "type": "substance", "substance": "tobacco", "act": "resist" }]
+          }
+        }
+      ]
+    },
+    {
+      "id": "sub_smoke_smell",
+      "type": "consequence",
+      "motif": "냄새·간접흡연을 둘러싼 가족 관계",
+      "title": "베란다 문",
+      "text": "{짝}이/가 베란다 문을 닫으며 말했다. \"옷에서 냄새가 나. 집 안까지 들어와.\"",
+      "tone": "drama",
+      "impact": 6,
+      "adult": true,
+      "trigger": {
+        "age": [19, 110],
+        "if": "substance.tobacco.band >= 1 && !substance.tobacco.quitting && (family.hasPartner || family.married) && !legal.inPrison"
+      },
+      "weight": {
+        "base": 0.1,
+        "noMode": true,
+        "modifiers": [{ "if": "family.youngestChildAge >= 0 && family.youngestChildAge < 13", "x": 1.8 }]
+      },
+      "limit": { "cooldown": 4 },
+      "choices": [
+        {
+          "text": "밖에서만 피우겠다고 한다",
+          "result": "현관 밖 계단참이 내 자리가 됐다.",
+          "effects": {
+            "stats": { "stress": 1 },
+            "do": [
+              { "type": "npcCloseness", "role": "spouse", "delta": 2 },
+              { "type": "npcCloseness", "role": "partner", "delta": 2 }
+            ]
+          }
+        },
+        {
+          "text": "끊어 보겠다고 약속한다",
+          "result": "그날 밤 남은 담배를 버렸다. 약속을 지키는 건 이제 내 몫이다.",
+          "effects": {
+            "do": [
+              { "type": "substance", "substance": "tobacco", "act": "quit" },
+              { "type": "npcCloseness", "role": "spouse", "delta": 5 },
+              { "type": "npcCloseness", "role": "partner", "delta": 5 }
+            ]
+          }
+        },
+        {
+          "text": "신경 쓰지 말라고 한다",
+          "result": "그날 저녁은 각자 휴대폰만 봤다.",
+          "effects": {
+            "stats": { "stress": 3 },
+            "do": [
+              { "type": "npcCloseness", "role": "spouse", "delta": -6 },
+              { "type": "npcCloseness", "role": "partner", "delta": -6 }
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "id": "sub_quit_craving",
+      "type": "consequence",
+      "motif": "금연 시도 중 갈망: 참기·한 대·도움 요청 (금연상담전화 1544-9030)",
+      "title": "한 대만",
+      "text": "담배를 끊은 뒤로 가장 긴 하루였다. 편의점 앞을 지나는데 계산대 뒤 담배 진열장이 눈에 들어왔다.",
+      "tone": "drama",
+      "impact": 6,
+      "adult": true,
+      "trigger": {
+        "age": [19, 110],
+        "if": "substance.tobacco.quitting && substance.tobacco.craving >= 15 && !legal.inPrison"
+      },
+      "weight": { "base": 0.35, "noMode": true, "modifiers": [{ "if": "state.stress > 60", "x": 1.4 }] },
+      "limit": { "cooldown": 1 },
+      "choices": [
+        {
+          "text": "껌을 씹으며 그냥 지나간다",
+          "check": { "stat": "mental", "dc": 50 },
+          "onSuccess": {
+            "text": "집까지 걸었다. 10분쯤 버티니 갈망이 지나갔다.",
+            "effects": {
+              "stats": { "mental": 2 },
+              "do": [{ "type": "substance", "substance": "tobacco", "act": "resist" }]
+            }
+          },
+          "onFail": {
+            "text": "세 번을 지나쳤다가 네 번째에 들어갔다. 한 갑을 샀다.",
+            "effects": { "do": [{ "type": "substance", "substance": "tobacco", "act": "use" }] }
+          }
+        },
+        {
+          "text": "딱 한 대만 피운다",
+          "result": "한 대는 한 갑이 됐다. 끊은 날짜를 다시 세야 한다.",
+          "effects": {
+            "stats": { "stress": -4 },
+            "do": [{ "type": "substance", "substance": "tobacco", "act": "use" }]
+          }
+        },
+        {
+          "text": "금연상담전화(1544-9030)에 건다",
+          "result": "상담사가 갈망은 길어야 몇 분이라고 했다. 보건소 금연클리닉 예약도 잡았다.",
+          "effects": { "do": [{ "type": "substance", "substance": "tobacco", "act": "treat" }] }
+        }
+      ]
+    },
+    {
+      "id": "sub_sober_craving",
+      "type": "consequence",
+      "motif": "금주 중 갈망: 참기·한 잔·도움 요청 (중독관리통합지원센터)",
+      "title": "금요일 밤",
+      "text": "술을 끊고 맞는 금요일 밤. 단톡방에 '오늘 한잔?'이 올라왔다. 냉장고를 열 때마다 빈 칸이 보인다.",
+      "tone": "drama",
+      "impact": 6,
+      "adult": true,
+      "trigger": {
+        "age": [19, 110],
+        "if": "substance.alcohol.quitting && substance.alcohol.craving >= 15 && !legal.inPrison"
+      },
+      "weight": { "base": 0.35, "noMode": true, "modifiers": [{ "if": "state.stress > 60", "x": 1.4 }] },
+      "limit": { "cooldown": 1 },
+      "choices": [
+        {
+          "text": "운동복을 입고 밖으로 나간다",
+          "check": { "stat": "mental", "dc": 50 },
+          "onSuccess": {
+            "text": "동네를 크게 두 바퀴 돌고 왔다. 땀이 식자 술 생각도 식었다.",
+            "effects": {
+              "stats": { "stamina": 1, "mental": 2 },
+              "do": [{ "type": "substance", "substance": "alcohol", "act": "resist" }]
+            }
+          },
+          "onFail": {
+            "text": "한 바퀴를 돌고 편의점에 들렀다. 캔 하나가 여섯 캔이 됐다.",
+            "effects": { "do": [{ "type": "substance", "substance": "alcohol", "act": "use" }] }
+          }
+        },
+        {
+          "text": "딱 한 잔만 마신다",
+          "result": "한 잔에서 멈추지 못했다. 다음 날 아침, 끊은 날짜를 다시 셌다.",
+          "effects": {
+            "stats": { "stress": -3 },
+            "do": [{ "type": "substance", "substance": "alcohol", "act": "use" }]
+          }
+        },
+        {
+          "text": "중독관리통합지원센터에 전화한다",
+          "result": "상담 선생님이 다음 주 화요일로 상담을 잡아 줬다. 무료라고 했다.",
+          "effects": { "do": [{ "type": "substance", "substance": "alcohol", "act": "treat" }] }
+        }
+      ]
+    },
+    {
+      "id": "sub_family_worry",
+      "type": "consequence",
+      "motif": "과음과 가족 관계: 걱정 → 상담·줄이기·외면",
+      "title": "빈 병",
+      "text": "{짝}이/가 현관에 빈 병들을 모아 놓고 기다리고 있었다. \"이번 달에만 몇 병인지 알아?\"",
+      "tone": "drama",
+      "impact": 8,
+      "adult": true,
+      "trigger": {
+        "age": [19, 110],
+        "if": "substance.alcohol.band >= 3 && !substance.alcohol.quitting && (family.hasPartner || family.married) && !legal.inPrison"
+      },
+      "weight": { "base": 0.25, "noMode": true },
+      "limit": { "cooldown": 3 },
+      "choices": [
+        {
+          "text": "상담을 받아 보겠다고 한다",
+          "result": "다음 날 중독관리통합지원센터에 같이 갔다. {짝}이/가 대기실에서 손을 잡아 줬다.",
+          "effects": {
+            "do": [
+              { "type": "substance", "substance": "alcohol", "act": "treat" },
+              { "type": "npcCloseness", "role": "spouse", "delta": 6 },
+              { "type": "npcCloseness", "role": "partner", "delta": 6 }
+            ]
+          }
+        },
+        {
+          "text": "줄이겠다고 약속한다",
+          "result": "주말에만 마시기로 했다. 지킬 수 있을지는 나도 모르겠다.",
+          "effects": {
+            "do": [
+              { "type": "substance", "substance": "alcohol", "act": "cutDown" },
+              { "type": "npcCloseness", "role": "spouse", "delta": 2 },
+              { "type": "npcCloseness", "role": "partner", "delta": 2 }
+            ]
+          }
+        },
+        {
+          "text": "내 돈으로 내가 마신다고 한다",
+          "result": "문이 쾅 닫혔다. 그날 밤은 소파에서 잤다.",
+          "effects": {
+            "stats": { "stress": 4 },
+            "do": [
+              { "type": "npcCloseness", "role": "spouse", "delta": -8 },
+              { "type": "npcCloseness", "role": "partner", "delta": -8 }
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "id": "sub_drug_offer",
+      "type": "random",
+      "motif": "마약류 관리에 관한 법률: 불법 약물의 투약·소지는 처벌 대상이다. 처음 권하는 사람은 아는 사람인 경우가 많다",
+      "title": "작은 봉투",
+      "text": "오랜만에 만난 {지인}이/가 테이블 아래로 작은 봉투를 내밀었다. \"한 번은 괜찮아. 다 잊혀.\" 무엇인지는 묻지 않아도 알았다.",
+      "tone": "drama",
+      "impact": 14,
+      "adult": true,
+      "trigger": { "age": [19, 60], "if": "!legal.inPrison && !military.serving && !substance.drug.current" },
+      "weight": {
+        "base": 0.0015,
+        "modifiers": [
+          { "if": "state.stress > 70", "x": 1.6 },
+          { "if": "hidden.morality < 40", "x": 1.5 },
+          { "if": "region.metro", "x": 1.2 },
+          { "if": "substance.drug.quitting", "x": 2 }
+        ]
+      },
+      "limit": { "cooldown": 8 },
+      "effects": { "do": [{ "type": "substance", "substance": "drug", "act": "offered" }] },
+      "choices": [
+        {
+          "text": "거절하고 자리를 뜬다",
+          "result": "\"재미없긴.\" 등 뒤에서 들린 말은 무시했다. 그날 밤 {지인}의 번호를 지웠다.",
+          "effects": {
+            "stats": { "morality": 2 },
+            "do": [{ "type": "substance", "substance": "drug", "act": "refuse" }]
+          }
+        },
+        {
+          "text": "거절하고 그만두라고 말한다",
+          "check": { "stat": "sociability", "dc": 55 },
+          "effects": { "do": [{ "type": "substance", "substance": "drug", "act": "refuse" }] },
+          "onSuccess": {
+            "text": "{지인}이/가 한참 말이 없다가 고개를 끄덕였다. 몇 달 뒤 치료를 받기 시작했다는 문자가 왔다.",
+            "effects": { "stats": { "morality": 4, "mental": 2 } }
+          },
+          "onFail": { "text": "\"너나 잘해.\" {지인}이/가 자리를 박차고 나갔다.", "effects": { "stats": { "stress": 3 } } }
+        },
+        {
+          "text": "한 번만 해 본다",
+          "result": "{결과}",
+          "effects": {
+            "stats": { "morality": -4, "health": -2 },
+            "do": [{ "type": "substance", "substance": "drug", "act": "use" }]
+          }
+        }
+      ]
+    },
+    {
+      "id": "sub_treatment_program",
+      "type": "consequence",
+      "motif": "치료·상담·자조 모임: 시간과 주변 지원이 회복을 돕는다",
+      "title": "회복 프로그램",
+      "text": "월요일 저녁 상담실. 둥글게 놓인 의자에 비슷한 사정의 사람들이 앉아 있다. 오늘은 내가 이야기할 차례다.",
+      "tone": "recovery",
+      "impact": 8,
+      "adult": true,
+      "trigger": { "age": [19, 110], "if": "substance.inTreatment && !legal.inPrison" },
+      "weight": { "base": 0.5, "noMode": true },
+      "limit": { "cooldown": 1 },
+      "choices": [
+        {
+          "text": "빠지지 않고 끝까지 다닌다",
+          "check": { "stat": "personality.conscientiousness", "dc": 45 },
+          "onSuccess": {
+            "text": "열두 번을 다 채웠다. 마지막 날 선생님이 '이제부터가 진짜'라고 했다.",
+            "effects": {
+              "stats": { "mental": 4, "stress": -4 },
+              "do": [{ "type": "substance", "act": "completeTreatment" }]
+            }
+          },
+          "onFail": {
+            "text": "석 달째에 야근이 겹쳤다. 한 번 빠지니 다시 가기가 어려웠다.",
+            "effects": { "stats": { "stress": 3 }, "do": [{ "type": "substance", "act": "dropTreatment" }] }
+          }
+        },
+        {
+          "text": "자조 모임에도 나가 본다",
+          "result": "같은 이야기를 하는 사람들이 있다는 게 생각보다 힘이 됐다.",
+          "effects": {
+            "stats": { "sociability": 2, "mental": 3 },
+            "do": [{ "type": "substance", "act": "resist" }]
+          }
+        },
+        {
+          "text": "바쁘다는 핑계로 그만둔다",
+          "result": "상담실 번호는 휴대폰에 그대로 남겨 뒀다.",
+          "effects": { "do": [{ "type": "substance", "act": "dropTreatment" }] }
+        }
+      ]
+    },
+    {
+      "id": "sub_relapse",
+      "type": "chain",
+      "title": "다시",
+      "text": "{물질}을/를 끊고 버틴 날들이 한순간에 끝났다. 처음 한 번이 어렵지, 그다음은 금방이었다.",
+      "tone": "drama",
+      "impact": 12,
+      "choices": [
+        {
+          "text": "다시 도움을 요청한다",
+          "result": "상담실에 다시 전화를 걸었다. \"다시 오는 것도 회복이에요.\" 그 말에 조금 울었다.",
+          "effects": { "do": [{ "type": "substance", "substance": "ctx", "act": "treat" }] }
+        },
+        {
+          "text": "혼자 다시 끊어 본다",
+          "result": "달력에 오늘 날짜를 다시 적었다.",
+          "effects": { "do": [{ "type": "substance", "substance": "ctx", "act": "quit" }] }
+        },
+        {
+          "text": "이번엔 그냥 둔다",
+          "result": "언젠가 다시 끊을 수 있을 거라고 생각했다. 아직은 아니다.",
+          "effects": {
+            "stats": { "stress": -2 },
+            "do": [{ "type": "substance", "substance": "ctx", "act": "dropTreatment" }]
+          }
+        }
+      ]
+    },
+    {
+      "id": "sub_drug_arrest",
+      "type": "chain",
+      "title": "감정 결과",
+      "text": "{혐의} 혐의로 경찰서에 불려 왔다. 형사가 감정 결과지를 책상 위에 올려놓았다.",
+      "tone": "drama",
+      "impact": 28,
+      "trigger": { "if": "!legal.inPrison" },
+      "choices": [
+        {
+          "text": "사실을 인정하고 치료를 받겠다고 한다",
+          "result": "{판결} 치료 기관 안내문도 함께 받았다.",
+          "effects": {
+            "stats": { "morality": 3 },
+            "do": [
+              { "type": "prosecute", "crime": "ctx", "lenient": true },
+              { "type": "substance", "substance": "drug", "act": "treat" }
+            ]
+          }
+        },
+        {
+          "text": "끝까지 부인한다",
+          "check": { "stat": "luck", "dc": 75 },
+          "onSuccess": { "text": "증거가 부족했다. 무혐의로 풀려났다.", "effects": { "stats": { "morality": -3 } } },
+          "onFail": {
+            "text": "감정 결과는 분명했다. {판결}",
+            "effects": { "do": [{ "type": "prosecute", "crime": "ctx" }] }
+          }
+        }
+      ]
+    },
+    {
+      "id": "sub_drug_emergency",
+      "type": "chain",
+      "title": "응급실",
+      "text": "눈을 떠 보니 응급실 천장이었다. 심장이 아직도 빠르게 뛰었다. 의료진이 무엇을 했는지 몇 번이나 물었다.",
+      "tone": "tragedy",
+      "impact": 25,
+      "effects": { "stats": { "health": -12, "stress": 10 }, "money": { "cash2026": -800000 } },
+      "choices": [
+        {
+          "text": "사실대로 말하고 치료를 받겠다고 한다",
+          "result": "중독 치료 기관 연락처를 받았다. 퇴원하는 길에 정신건강위기상담전화(1577-0199)를 휴대폰에 저장했다.",
+          "effects": { "do": [{ "type": "substance", "substance": "drug", "act": "treat" }] }
+        },
+        {
+          "text": "아무 일 없던 것으로 하고 퇴원한다",
+          "result": "퇴원 서류에 서명하고 나왔다. 손이 계속 떨렸다.",
+          "effects": { "stats": { "mental": -4 } }
+        }
+      ]
+    }
+  ]
+}

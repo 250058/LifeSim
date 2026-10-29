@@ -1,0 +1,7 @@
+node_modules/
+dist/
+dist-artifact/
+*.log
+.DS_Store
+tools/simulator/report.json
+.claude/worktrees/

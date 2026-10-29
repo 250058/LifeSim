@@ -1,0 +1,134 @@
+{
+  "stage": "병역: 병역판정검사 → 현역·사회복무요원·면제. 복무기간은 실제 기준 (육군·해병대 18개월, 해군 20개월, 공군·사회복무 21개월 → 게임에서는 2년 턴)",
+  "events": [
+    {
+      "id": "military_exam",
+      "type": "milestone",
+      "motif": "병역판정검사: 신체등급 1~3급 현역, 4급 사회복무요원, 5급 전시근로역, 6급 면제",
+      "title": "병역판정검사",
+      "text": "병무청에서 등기가 왔다. 혈액검사, 심리검사, 키와 몸무게, 시력. 하루 종일 줄을 섰다. 결과는 {신체등급}급.",
+      "tone": "neutral",
+      "impact": 10,
+      "order": 2,
+      "trigger": { "age": [19, 19], "sex": "M", "if": "military.status == 'none'" },
+      "limit": { "oncePerLife": true },
+      "effects": { "do": [{ "type": "militaryExam" }] },
+      "choices": [
+        {
+          "text": "내년에 바로 입대한다",
+          "if": "military.grade <= 3",
+          "result": "내년 봄 입영으로 신청했다. 남은 1년이 아깝기도 하고, 빨리 끝내고 싶기도 하다.",
+          "effects": { "do": [{ "type": "enlist", "branch": "army", "inYears": 1 }] }
+        },
+        {
+          "text": "해병대에 지원한다",
+          "if": "military.grade <= 2",
+          "check": { "stat": "stamina", "dc": 50 },
+          "onSuccess": {
+            "text": "합격. 빨간 명찰을 단다.",
+            "effects": { "do": [{ "type": "enlist", "branch": "marines", "inYears": 1 }] }
+          },
+          "onFail": {
+            "text": "체력 검정에서 떨어졌다. 육군으로 가게 됐다.",
+            "effects": { "do": [{ "type": "enlist", "branch": "army", "inYears": 1 }] }
+          }
+        },
+        {
+          "text": "공군에 지원한다",
+          "if": "military.grade <= 3",
+          "check": { "stat": "edu.grade", "dc": 50 },
+          "onSuccess": {
+            "text": "합격. 복무기간은 21개월로 조금 길다.",
+            "effects": { "do": [{ "type": "enlist", "branch": "airforce", "inYears": 1 }] }
+          },
+          "onFail": {
+            "text": "서류 점수가 모자랐다. 육군으로 간다.",
+            "effects": { "do": [{ "type": "enlist", "branch": "army", "inYears": 1 }] }
+          }
+        },
+        {
+          "text": "대학 2학년을 마치고 간다",
+          "if": "military.grade <= 3 && edu.status == 'university'",
+          "result": "입영 연기 신청서를 냈다.",
+          "effects": { "do": [{ "type": "enlist", "branch": "army", "inYears": 2 }] }
+        },
+        {
+          "text": "결과를 받아들인다",
+          "if": "military.grade >= 4",
+          "result": "4급이면 사회복무요원, 5급 이상이면 현역 대신 다른 길이다. 이유를 설명하는 게 귀찮아질 것 같다.",
+          "effects": { "do": [{ "type": "enlist", "branch": "social", "inYears": 1 }] }
+        }
+      ]
+    },
+    {
+      "id": "enlistment",
+      "type": "milestone",
+      "zoom": "입영 첫날 · {입영지}",
+      "title": "입대",
+      "text": "머리를 짧게 깎았다. 연병장에서 가족에게 마지막으로 손을 흔들고 돌아섰다. 오늘부터 군인이다.",
+      "tone": "drama",
+      "impact": 18,
+      "order": 1,
+      "trigger": { "sex": "M", "if": "military.enlistNow && military.branch != 'social' && !legal.inPrison" },
+      "effects": { "do": [{ "type": "startService" }] },
+      "choices": [
+        {
+          "text": "동기들과 빨리 친해진다",
+          "check": { "stat": "sociability", "dc": 45 },
+          "onSuccess": {
+            "text": "같은 생활관 동기 셋과 평생 갈 단톡방이 생겼다.",
+            "effects": { "stats": { "sociability": 2, "stress": -3 }, "do": [{ "type": "addFriend" }] }
+          },
+          "onFail": { "text": "다들 지쳐서 말이 없었다. 첫날 밤 천장만 봤다.", "effects": { "stats": { "stress": 4 } } }
+        },
+        {
+          "text": "말없이 버틴다",
+          "result": "각 잡힌 모포와 점호. 하루가 이렇게 길 수 있다는 걸 알았다.",
+          "effects": { "stats": { "stamina": 2, "mental": 2 } }
+        }
+      ]
+    },
+    {
+      "id": "social_service",
+      "type": "milestone",
+      "title": "사회복무요원 소집",
+      "text": "4주 기초군사훈련을 마치고 구청 민원실로 출근한다. 출퇴근하는 군 복무, 복무기간은 21개월.",
+      "tone": "neutral",
+      "impact": 10,
+      "order": 1,
+      "trigger": { "sex": "M", "if": "military.enlistNow && military.branch == 'social' && !legal.inPrison" },
+      "effects": { "do": [{ "type": "startService" }] },
+      "choices": [
+        {
+          "text": "성실하게 일한다",
+          "result": "민원인에게 고맙다는 말을 처음 들었다.",
+          "effects": { "stats": { "sociability": 2 } }
+        },
+        { "text": "시간만 채운다", "result": "점심시간이 하루의 전부였다.", "effects": { "stats": { "stress": -2 } } }
+      ]
+    },
+    {
+      "id": "discharge",
+      "type": "milestone",
+      "title": "전역",
+      "text": "마지막 아침 점호. 전투복에 붙은 계급장을 떼어 후임에게 줬다. 위병소를 나서자 하늘이 넓다.",
+      "tone": "positive",
+      "impact": 12,
+      "order": 0,
+      "trigger": { "sex": "M", "if": "military.dischargeNow" },
+      "effects": {
+        "do": [{ "type": "discharge" }],
+        "addFlags": ["military_done"],
+        "stats": { "happiness": 8, "stress": -15 }
+      },
+      "choices": [
+        { "text": "부대 쪽으로는 고개도 돌리지 않겠다고 다짐한다", "result": "그래 놓고 첫 예비군 훈련 날 조금 반가웠다." },
+        {
+          "text": "후임들에게 치킨을 돌린다",
+          "result": "열두 마리. 통장이 가벼워졌지만 기분은 좋았다.",
+          "effects": { "money": { "cash": -300000 }, "stats": { "reputation": 1 } }
+        }
+      ]
+    }
+  ]
+}

@@ -1,0 +1,351 @@
+{
+  "arc": "학교폭력",
+  "motif": "2025년 1차 학교폭력 실태조사: 피해응답률 2.5% (초 5.0%, 중 2.1%, 고 0.7%), 2013년 이후 최고. https://www.nocutnews.co.kr/news/6400755",
+  "events": [
+    {
+      "id": "sv_start",
+      "type": "chain_start",
+      "arc": "school_violence",
+      "motif": "2025년 1차 학교폭력 실태조사 피해응답률 2.5%. 나이 곡선 = 학교급별 응답률 ÷ 전체 (초 2.0, 중 0.84, 고 0.28). https://www.nocutnews.co.kr/news/6400755",
+      "title": "단톡방",
+      "text": "반 단톡방에서 나만 빠진 새 방이 만들어졌다. 다음 날부터 아무도 내 쪽을 보지 않는다. 책상 서랍에 누가 우유를 부어 놓았다.",
+      "tone": "tragedy",
+      "impact": 35,
+      "trigger": {
+        "age": [10, 18],
+        "notFlags": ["bullying_active", "bully"],
+        "if": "edu.status == 'elementary' || edu.status == 'middle' || edu.status == 'high'"
+      },
+      "weight": {
+        "base": 0.025,
+        "ageCurve": { "10": 2, "12": 2, "13": 0.84, "15": 0.84, "16": 0.28, "18": 0.28 },
+        "modifiers": [
+          { "if": "flags.transferred", "x": 2 },
+          { "if": "stats.sociability < 40", "x": 1.5 },
+          { "if": "family.friends == 0", "x": 1.5 },
+          { "if": "flags.bullying_victim", "x": 1.5 }
+        ]
+      },
+      "limit": { "oncePerLife": true },
+      "choices": [
+        {
+          "text": "참는다",
+          "result": "곧 지나가겠지. 쉬는 시간마다 화장실에 숨었다.",
+          "effects": {
+            "addFlags": ["bullying_active"],
+            "stats": { "happiness": -8, "stress": 10, "mental": -3 },
+            "later": [{ "event": "sv_escalate", "inYears": 1 }]
+          }
+        },
+        {
+          "text": "{보호자}에게 말한다",
+          "check": { "stat": "family.support", "dc": 50 },
+          "onSuccess": {
+            "text": "{보호자}이/가 다음 날 바로 학교에 찾아갔다. 담임이 주동자들을 불렀고 단톡방이 사라졌다.",
+            "effects": {
+              "addFlags": ["bullying_victim"],
+              "stats": { "happiness": 2, "stress": -5 },
+              "do": [{ "type": "npcCloseness", "role": "parents", "delta": 8 }]
+            }
+          },
+          "onFail": {
+            "text": "\"애들끼리 그럴 수도 있지. 네가 먼저 다가가 봐.\" 그 말이 더 아팠다.",
+            "effects": {
+              "addFlags": ["bullying_active"],
+              "stats": { "happiness": -10, "stress": 10, "mental": -4 },
+              "later": [{ "event": "sv_escalate", "inYears": 1 }],
+              "do": [{ "type": "npcCloseness", "role": "parents", "delta": -6 }]
+            }
+          }
+        },
+        {
+          "text": "117에 신고한다",
+          "result": "학교폭력 신고센터 상담원이 차분하게 받아 적었다. 학교에 통보가 갔다.",
+          "next": "sv_committee",
+          "effects": { "addFlags": ["bullying_victim", "bullying_active"] }
+        },
+        {
+          "text": "주동자에게 맞선다",
+          "check": { "stats": ["stamina", "mental"], "dc": 60 },
+          "onSuccess": {
+            "text": "복도에서 정면으로 붙었다. 그 뒤로 아무도 건드리지 않았다. 둘 다 학폭위에 불려 갈 뻔했다.",
+            "effects": {
+              "addFlags": ["bullying_overcome"],
+              "stats": { "happiness": 4, "mental": 8, "reputation": 2 }
+            }
+          },
+          "onFail": {
+            "text": "셋이 한꺼번에 덤볐다. 코피가 터졌고, 다음 날 단톡방에 그 사진이 올라왔다.",
+            "effects": {
+              "addFlags": ["bullying_active"],
+              "stats": { "health": -5, "happiness": -10, "stress": 12 },
+              "later": [{ "event": "sv_escalate", "inYears": 1 }]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "id": "sv_escalate",
+      "type": "chain",
+      "arc": "school_violence",
+      "title": "심해졌다",
+      "text": "체육복이 가위로 잘려 있다. 단톡방에는 내 사진에 낙서한 이미지가 돈다. 밤마다 모르는 번호로 메시지가 온다.",
+      "tone": "tragedy",
+      "impact": 30,
+      "trigger": {
+        "flags": ["bullying_active"],
+        "if": "edu.status == 'elementary' || edu.status == 'middle' || edu.status == 'high'"
+      },
+      "limit": { "max": 3 },
+      "choices": [
+        {
+          "text": "계속 참는다",
+          "result": "학교 가는 길에 배가 아팠다. 성적이 떨어졌다.",
+          "effects": {
+            "addFlags": ["bullying_victim"],
+            "stats": { "happiness": -12, "mental": -8, "health": -3, "stress": 12 },
+            "do": [{ "type": "grade", "delta": -8 }],
+            "later": [{ "event": "sv_escalate", "inYears": 1 }]
+          }
+        },
+        {
+          "text": "캡처를 모아 담임에게 낸다",
+          "check": { "stat": "intelligence", "dc": 45 },
+          "onSuccess": {
+            "text": "날짜별로 정리한 캡처 서른 장. 담임이 학교폭력 사안으로 접수했다.",
+            "next": "sv_committee",
+            "effects": { "addFlags": ["bullying_victim", "sv_evidence"] }
+          },
+          "onFail": {
+            "text": "담임은 \"서로 오해가 있었던 것 같다\"며 화해를 시켰다. 다음 날 더 심해졌다.",
+            "effects": {
+              "addFlags": ["bullying_victim"],
+              "stats": { "happiness": -8, "stress": 8 },
+              "later": [{ "event": "sv_escalate", "inYears": 1 }]
+            }
+          }
+        },
+        {
+          "text": "117에 신고한다",
+          "result": "신고가 접수됐다. 이제 학교가 움직여야 한다.",
+          "next": "sv_committee",
+          "effects": { "addFlags": ["bullying_victim"] }
+        },
+        {
+          "text": "전학을 보내 달라고 한다",
+          "if": "family.type != 'facility' && family.parentsAlive > 0",
+          "result": "도망치는 것 같아 싫었다. 그래도 새 학교 교문을 지나며 숨이 쉬어졌다.",
+          "effects": {
+            "removeFlags": ["bullying_active"],
+            "addFlags": ["bullying_victim", "transferred"],
+            "do": [{ "type": "moveRegion" }, { "type": "loseFriend" }],
+            "stats": { "stress": -6 }
+          }
+        }
+      ]
+    },
+    {
+      "id": "sv_committee",
+      "type": "chain",
+      "arc": "school_violence",
+      "zoom": "학교폭력대책심의위원회 · 교육지원청 회의실",
+      "title": "학폭위",
+      "text": "긴 책상 맞은편에 위원 다섯 명이 앉았다. 가해 학생 부모는 변호사를 데려왔다. 내 차례다.",
+      "tone": "drama",
+      "impact": 20,
+      "choices": [
+        {
+          "text": "준비한 증거를 하나씩 낸다",
+          "if": "flags.sv_evidence",
+          "check": { "stat": "intelligence", "dc": 40 },
+          "onSuccess": {
+            "text": "출석정지 10일과 학급 교체 처분이 나왔다. 가해 학생 생활기록부에 기록이 남는다.",
+            "effects": {
+              "removeFlags": ["bullying_active", "sv_evidence"],
+              "stats": { "happiness": 6, "mental": 6, "stress": -10 }
+            }
+          },
+          "onFail": {
+            "text": "가해자 측 변호사가 캡처의 앞뒤 맥락을 문제 삼았다. 서면사과 처분에 그쳤다.",
+            "effects": {
+              "removeFlags": ["bullying_active", "sv_evidence"],
+              "stats": { "happiness": -4, "stress": -2 }
+            }
+          }
+        },
+        {
+          "text": "있었던 일을 그대로 말한다",
+          "check": { "stats": ["mental", "sociability"], "dc": 55 },
+          "onSuccess": {
+            "text": "목소리가 떨렸지만 끝까지 말했다. 접촉 금지와 특별교육 처분이 나왔다.",
+            "effects": { "removeFlags": ["bullying_active"], "stats": { "mental": 6, "stress": -8 } }
+          },
+          "onFail": {
+            "text": "증거 불충분. '조치 없음'. 복도에서 마주친 그 애가 웃었다.",
+            "effects": {
+              "stats": { "happiness": -12, "mental": -8, "stress": 10 },
+              "later": [{ "event": "sv_escalate", "inYears": 1 }]
+            }
+          }
+        },
+        {
+          "text": "가해자 부모의 합의금을 받는다",
+          "result": "300만 원과 사과 편지. 처분 없이 끝났다. 그 애는 그대로 같은 반이다.",
+          "effects": {
+            "money": { "cash": 3000000 },
+            "removeFlags": ["bullying_active", "sv_evidence"],
+            "stats": { "happiness": -3, "morality": -2 }
+          }
+        }
+      ]
+    },
+    {
+      "id": "sv_bystander",
+      "type": "chain_start",
+      "arc": "school_violence",
+      "title": "구경꾼",
+      "text": "반에서 제일 조용한 아이가 또 단톡방에 불려 나왔다. 주동자가 나에게도 한마디 하라고 한다. 다들 내 답을 기다린다.",
+      "tone": "drama",
+      "impact": 15,
+      "trigger": {
+        "age": [10, 17],
+        "notFlags": ["bullying_active"],
+        "if": "edu.status == 'elementary' || edu.status == 'middle' || edu.status == 'high'"
+      },
+      "weight": {
+        "base": 0.05,
+        "ageCurve": { "10": 1.5, "13": 1, "16": 0.4 },
+        "modifiers": [{ "if": "hidden.morality < 40", "x": 1.5 }]
+      },
+      "limit": { "oncePerLife": true },
+      "choices": [
+        {
+          "text": "웃는 이모티콘을 보낸다",
+          "result": "다들 'ㅋㅋㅋ'를 쳤다. 그 아이는 다음 날 결석했다.",
+          "effects": { "stats": { "morality": -6, "sociability": 2 }, "addFlags": ["bystander"] }
+        },
+        {
+          "text": "주동자 편에 선다",
+          "result": "나도 그 아이 사물함에 낙서를 했다. 무리에 끼니 학교가 편해졌다.",
+          "effects": {
+            "stats": { "morality": -15, "sociability": 3, "reputation": 1 },
+            "addFlags": ["bully"]
+          }
+        },
+        {
+          "text": "단톡방을 나간다",
+          "result": "다음 날부터 나도 무리에서 빠졌다. 조금 외로워졌다.",
+          "effects": { "stats": { "morality": 4, "sociability": -2 } }
+        },
+        {
+          "text": "선생님께 몰래 알린다",
+          "check": { "stat": "luck", "dc": 45 },
+          "onSuccess": {
+            "text": "담임이 조용히 상담을 시작했다. 누가 알렸는지는 아무도 모른다.",
+            "effects": { "stats": { "morality": 8, "happiness": 2 } }
+          },
+          "onFail": {
+            "text": "'고자질한 애'가 누군지 소문이 돌았다. 이제 내가 표적이다.",
+            "effects": {
+              "stats": { "morality": 8, "happiness": -6 },
+              "addFlags": ["bullying_active"],
+              "later": [{ "event": "sv_escalate", "inYears": 1 }]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "id": "sv_return_victim",
+      "type": "consequence",
+      "arc": "school_violence",
+      "title": "그 이름",
+      "text": "뉴스를 넘기다 손이 멈췄다. 학교 다닐 때 나를 괴롭히던 {지인}이/가 화면 속에서 웃고 있다. 무슨 상을 받았다고 한다.",
+      "tone": "drama",
+      "impact": 25,
+      "trigger": { "age": [25, 60], "anyFlags": ["bullying_victim", "bullying_overcome"] },
+      "weight": { "base": 0.015, "modifiers": [{ "if": "state.reputation > 50", "x": 2 }] },
+      "limit": { "oncePerLife": true },
+      "choices": [
+        {
+          "text": "커뮤니티에 폭로 글을 쓴다",
+          "check": { "stat": "intelligence", "dc": 55 },
+          "onSuccess": {
+            "text": "당시 담임의 확인과 동창들의 댓글이 이어졌다. {지인}이/가 사과문을 올렸다.",
+            "effects": {
+              "stats": { "mental": 10, "happiness": 6, "stress": -5 },
+              "removeFlags": ["bullying_victim"],
+              "addFlags": ["bullying_overcome"]
+            }
+          },
+          "onFail": {
+            "text": "증거가 없었다. 명예훼손 고소장이 날아왔다. 사실을 말해도 처벌받을 수 있다는 걸 처음 알았다.",
+            "effects": { "stats": { "stress": 15, "happiness": -8 }, "money": { "cash": -3000000 } }
+          }
+        },
+        {
+          "text": "묻어 둔다",
+          "result": "그날 밤 오래 잠들지 못했다.",
+          "effects": { "stats": { "mental": -4, "stress": 6 } }
+        },
+        {
+          "text": "상담을 받으러 간다",
+          "result": "\"그건 당신 잘못이 아니었어요.\" 처음 들어 보는 말이었다.",
+          "effects": {
+            "stats": { "mental": 10, "stress": -10 },
+            "money": { "cash": -600000 },
+            "removeFlags": ["bullying_victim"],
+            "addFlags": ["bullying_overcome"]
+          }
+        }
+      ]
+    },
+    {
+      "id": "sv_return_bully",
+      "type": "consequence",
+      "arc": "school_violence",
+      "title": "학폭 폭로",
+      "text": "새벽에 알림이 쏟아졌다. 누군가 커뮤니티에 내 실명과 졸업 사진을 올렸다. 제목은 '학폭 가해자였던 사람'.",
+      "tone": "tragedy",
+      "impact": 35,
+      "trigger": { "age": [22, 60], "flags": ["bully"] },
+      "weight": {
+        "base": 0.02,
+        "modifiers": [
+          { "if": "state.reputation > 50", "x": 4 },
+          { "if": "flags.celebrity || flags.lawmaker", "x": 5 }
+        ]
+      },
+      "limit": { "oncePerLife": true },
+      "choices": [
+        {
+          "text": "실명으로 사과문을 올린다",
+          "result": "직장에서 면담이 잡혔다. 그 아이에게서 짧은 답장이 왔다. \"사과는 받을게.\"",
+          "effects": {
+            "stats": { "reputation": -10, "morality": 10, "stress": 10 },
+            "removeFlags": ["bully"],
+            "addFlags": ["bully_apologized"]
+          }
+        },
+        {
+          "text": "기억나지 않는다며 부인한다",
+          "check": { "stat": "luck", "dc": 60 },
+          "onSuccess": { "text": "글은 일주일 만에 묻혔다.", "effects": { "stats": { "morality": -5, "stress": 8 } } },
+          "onFail": {
+            "text": "동창 세 명이 증언 글을 올렸다. 회사가 나를 대기발령했다.",
+            "effects": {
+              "stats": { "reputation": -25, "stress": 20, "happiness": -10 },
+              "do": [{ "type": "loseJob" }]
+            }
+          }
+        },
+        {
+          "text": "명예훼손으로 고소한다",
+          "result": "법적으로는 이길 수도 있다. 하지만 인터넷은 이미 결론을 냈다.",
+          "effects": { "stats": { "reputation": -15, "stress": 15 }, "money": { "cash": -5000000 } }
+        }
+      ]
+    }
+  ]
+}

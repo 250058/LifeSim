@@ -1,0 +1,547 @@
+{
+  "arc": "전쟁·포로",
+  "motif": "기획서 대형 사건 아크 6: 남북 긴장도가 쌓인 끝에 국지전 또는 전면전. 신분별로 동원·피난·귀국이 갈리고, 고문은 상황·고통·선택·후유증 중심으로만 쓴다. 전쟁 결말(휴전·통일)이 이후의 세계를 바꾼다",
+  "events": [
+    {
+      "id": "missile_alert",
+      "type": "world",
+      "motif": "2023년 5월 서울 경계경보 오발령",
+      "title": "경계경보",
+      "text": "새벽 6시 32분, 휴대폰이 요란하게 울렸다. '경계경보 발령. 국민 여러분께서는 대피할 준비를 하시고...' 어디로 가라는 말은 없다.",
+      "tone": "drama",
+      "impact": 8,
+      "trigger": { "age": [8, 110], "if": "world.news.provocation && !world.war" },
+      "weight": { "base": 0.3, "noMode": true, "modifiers": [{ "if": "region.front", "x": 2 }] },
+      "limit": { "cooldown": 3 },
+      "choices": [
+        {
+          "text": "가까운 대피소를 검색해 본다",
+          "result": "아파트 지하주차장이 민방위 대피소였다. 20분 뒤 '오발령'이라는 문자가 왔다.",
+          "effects": { "stats": { "stress": 2, "intelligence": 1 } }
+        },
+        {
+          "text": "가방에 물과 라면을 챙긴다",
+          "result": "현관 앞에 가방을 두고 한참을 서 있었다. 그날 이후로 그 가방은 그대로 있다.",
+          "effects": { "stats": { "stress": 4 } }
+        },
+        { "text": "다시 잔다", "result": "이 나라에서 이런 일로 놀라면 못 산다고 생각했다." }
+      ]
+    },
+    {
+      "id": "skirmish_soldier",
+      "type": "world",
+      "motif": "1999·2002 연평해전, 2010 연평도 포격전",
+      "zoom": "서해 북방한계선 · 교전 15분",
+      "title": "교전",
+      "text": "경계 근무 중 북쪽에서 포탄이 날아왔다. 대응 사격 명령이 떨어진다. 연습이 아니다.",
+      "tone": "tragedy",
+      "impact": 35,
+      "trigger": {
+        "sex": "M",
+        "if": "world.news.skirmish && military.serving && military.branch != 'social'"
+      },
+      "weight": {
+        "base": 0.35,
+        "noMode": true,
+        "modifiers": [{ "if": "military.branch == 'marines' || military.branch == 'navy'", "x": 2 }]
+      },
+      "limit": { "oncePerLife": true },
+      "choices": [
+        {
+          "text": "포상 진지에서 대응 사격을 한다",
+          "check": { "stats": ["mental", "stamina"], "dc": 52 },
+          "onSuccess": {
+            "text": "15분 만에 교전이 끝났다. 손이 한 시간 동안 떨렸다. 대통령 표창이 나왔다.",
+            "effects": { "addFlags": ["veteran"], "stats": { "reputation": 8, "mental": -4 } }
+          },
+          "onFail": {
+            "text": "파편이 어깨를 스쳤다. 국군수도병원으로 후송됐다.",
+            "effects": { "addFlags": ["veteran"], "stats": { "health": -18, "mental": -8 } }
+          }
+        },
+        {
+          "text": "쓰러진 후임을 엄폐물 뒤로 끌어온다",
+          "check": { "stats": ["stamina", "luck"], "dc": 55 },
+          "onSuccess": {
+            "text": "후임은 살았다. 그날 밤 후임 어머니에게서 전화가 왔다.",
+            "effects": { "addFlags": ["veteran", "hero"], "stats": { "reputation": 12, "morality": 6 } }
+          },
+          "onFail": {
+            "text": "둘 다 다쳤다. 그래도 둘 다 살았다.",
+            "effects": { "addFlags": ["veteran"], "stats": { "health": -20, "mental": -6 } }
+          }
+        }
+      ]
+    },
+    {
+      "id": "skirmish_border",
+      "type": "world",
+      "motif": "2010년 연평도 포격 당시 주민 대피",
+      "title": "포성",
+      "text": "오후 2시 반, 쿵 하는 소리와 함께 창문이 흔들렸다. 마을 방송이 대피소로 가라고 한다. 산 너머로 검은 연기가 오른다.",
+      "tone": "drama",
+      "impact": 25,
+      "trigger": { "if": "world.news.skirmish && region.front && !military.serving && !legal.inPrison" },
+      "weight": { "base": 0.12, "noMode": true },
+      "limit": { "oncePerLife": true },
+      "choices": [
+        {
+          "text": "대피소로 뛴다",
+          "result": "콘크리트 대피소에서 밤을 새웠다. 컵라면을 나눠 먹으며 아무도 잠들지 못했다.",
+          "effects": { "stats": { "stress": 10, "mental": -3 } }
+        },
+        {
+          "text": "가족부터 챙겨서 간다",
+          "check": { "stat": "luck", "dc": 40 },
+          "onSuccess": { "text": "다 같이 대피소에 도착했다.", "effects": { "stats": { "stress": 8 } } },
+          "onFail": { "text": "골목에서 넘어져 다리를 다쳤다.", "effects": { "stats": { "health": -8, "stress": 12 } } }
+        },
+        {
+          "text": "육지로 이사하기로 한다",
+          "result": "포격 일주일 뒤, 섬을 떠나는 배에 짐을 실었다.",
+          "effects": { "do": [{ "type": "moveRegion" }], "stats": { "stress": 5 } }
+        }
+      ]
+    },
+    {
+      "id": "war_outbreak_child",
+      "type": "world",
+      "title": "사이렌",
+      "text": "새벽에 사이렌이 울렸다. {보호자}이/가 이불째로 나를 안고 뛰었다. 텔레비전에서 '북한군이 휴전선을 넘었다'는 말이 계속 나온다.",
+      "tone": "tragedy",
+      "impact": 45,
+      "trigger": { "age": [0, 14], "if": "world.news.warStart" },
+      "weight": { "base": 0.95, "noMode": true },
+      "limit": { "cooldown": 5 },
+      "choices": [
+        { "text": "{보호자} 손을 꼭 잡는다", "next": "war_refugee" },
+        { "text": "인형을 챙긴다", "result": "곰 인형 하나만 들고 나왔다. 그게 집에서 가져온 전부다.", "next": "war_refugee" }
+      ]
+    },
+    {
+      "id": "war_outbreak",
+      "type": "world",
+      "zoom": "개전 첫날 · 새벽 4시",
+      "title": "전쟁",
+      "text": "재난문자가 울린다. '북한군 전면 남침. 국가비상사태 선포. 가까운 대피소로 이동하십시오.' 북쪽 하늘이 번쩍인다. 몇 초 뒤 소리가 따라온다.",
+      "tone": "tragedy",
+      "impact": 50,
+      "trigger": { "age": [15, 120], "if": "world.news.warStart && !legal.inPrison" },
+      "weight": { "base": 0.95, "noMode": true },
+      "limit": { "cooldown": 5 },
+      "choices": [
+        {
+          "text": "부대로 복귀한다",
+          "if": "military.serving",
+          "result": "휴가 복귀 버스는 이미 끊겼다. 헌병 트럭을 얻어 타고 부대로 갔다.",
+          "next": "war_combat"
+        },
+        {
+          "text": "동원 소집에 응한다",
+          "if": "military.reservist",
+          "result": "예비군 동원 문자가 왔다. 군복을 꺼내 입으니 몸에 맞지 않는다.",
+          "next": "war_combat"
+        },
+        {
+          "text": "동원을 피해 숨는다",
+          "if": "military.reservist",
+          "result": "지하실에서 석 달을 숨어 지냈다. 전쟁이 끝나자 경찰이 찾아왔다. {판결}",
+          "effects": {
+            "stats": { "morality": -12, "stress": 15 },
+            "do": [{ "type": "prosecute", "crime": "draft_evasion" }]
+          }
+        },
+        {
+          "text": "자원입대한다",
+          "if": "age >= 18 && age <= 40 && !military.serving && !military.reservist",
+          "result": "병무청 앞 줄이 골목을 돌아 나갔다.",
+          "effects": { "addFlags": ["volunteer_soldier"] },
+          "next": "war_combat"
+        },
+        { "text": "가족과 남쪽으로 피난한다", "if": "!military.serving && !military.reservist", "next": "war_refugee" },
+        {
+          "text": "집에 남는다",
+          "if": "!military.serving && !military.reservist",
+          "check": { "stat": "luck", "dc": 45 },
+          "onSuccess": { "text": "포성은 일주일 내내 들렸지만 우리 동네는 비켜 갔다.", "effects": { "stats": { "stress": 15 } } },
+          "onFail": {
+            "text": "옆 건물이 무너졌다. 잔해에 깔린 다리를 구조대가 꺼내 줬다.",
+            "effects": { "stats": { "health": -20, "stress": 20, "mental": -8 } }
+          }
+        },
+        {
+          "text": "해외로 빠져나간다",
+          "if": "money.cash >= 30000000 && age >= 19 && !military.serving && !military.reservist && (sex == 'F' || age > 45 || military.status == 'exempt')",
+          "result": "공항은 아수라장이었다. 마지막 비행기 표를 세 배 값에 샀다.",
+          "effects": {
+            "addFlags": ["war_abroad"],
+            "money": { "cashPct": -0.3 },
+            "stats": { "stress": 10, "morality": -3 }
+          }
+        }
+      ]
+    },
+    {
+      "id": "war_combat",
+      "type": "chain",
+      "zoom": "전선 · 개전 사흘째",
+      "title": "진지",
+      "text": "포탄이 떨어질 때마다 참호 벽에서 흙이 쏟아진다. 무전기에서 '진지를 사수하라'는 명령이 반복된다. 옆의 동기가 떨고 있다.",
+      "tone": "tragedy",
+      "impact": 45,
+      "effects": { "addFlags": ["veteran"] },
+      "choices": [
+        {
+          "text": "진지를 지킨다",
+          "check": { "stats": ["mental", "stamina"], "dc": 55 },
+          "onSuccess": {
+            "text": "사흘 밤낮을 버텼다. 적의 진격이 그 고개에서 멈췄다. 무공훈장이 나왔다.",
+            "effects": { "addFlags": ["war_medal"], "stats": { "reputation": 12, "mental": -6 } }
+          },
+          "onFail": {
+            "text": "진지가 무너졌다.",
+            "next": [
+              { "event": "war_wounded", "w": 0.6 },
+              { "event": "war_pow", "w": 0.3 },
+              { "event": "war_kia", "w": 0.1 }
+            ]
+          }
+        },
+        {
+          "text": "부상당한 전우를 업고 후퇴한다",
+          "check": { "stats": ["stamina", "luck"], "dc": 58 },
+          "onSuccess": {
+            "text": "포탄 사이로 200미터를 뛰었다. 전우는 살았다.",
+            "effects": { "addFlags": ["war_medal", "hero"], "stats": { "reputation": 15, "morality": 10 } }
+          },
+          "onFail": {
+            "text": "몇 걸음 못 가 쓰러졌다.",
+            "next": [
+              { "event": "war_wounded", "w": 0.75 },
+              { "event": "war_pow", "w": 0.15 },
+              { "event": "war_kia", "w": 0.1 }
+            ]
+          }
+        },
+        {
+          "text": "명령을 어기고 몸을 숨긴다",
+          "result": "살아남았다. 전쟁이 끝나자 군사법원이 기다리고 있었다. {판결}",
+          "effects": {
+            "addFlags": ["deserter"],
+            "stats": { "morality": -15, "mental": -8 },
+            "do": [{ "type": "prosecute", "crime": "wartime_desertion" }]
+          }
+        }
+      ]
+    },
+    {
+      "id": "war_wounded",
+      "type": "chain",
+      "zoom": "야전병원 천막",
+      "title": "부상",
+      "text": "파편이 다리를 관통했다. 천막 안에는 비명과 소독약 냄새뿐이다. 군의관이 내 다리를 보더니 고개를 끄덕였다. 자를 필요는 없다는 뜻이었다.",
+      "tone": "tragedy",
+      "impact": 35,
+      "effects": { "stats": { "health": -28, "stamina": -15, "mental": -8 } },
+      "choices": [
+        {
+          "text": "후방 병원에서 재활한다",
+          "result": "목발을 짚고 걷는 데 넉 달이 걸렸다. 상이용사 등록을 했다.",
+          "effects": { "stats": { "mental": 3 } }
+        },
+        {
+          "text": "다시 전선으로 보내 달라고 한다",
+          "check": { "stat": "stamina", "dc": 50 },
+          "onSuccess": {
+            "text": "절뚝이며 부대로 돌아갔다. 소대원들이 말없이 경례했다.",
+            "effects": { "addFlags": ["war_medal"], "stats": { "reputation": 8 } }
+          },
+          "onFail": { "text": "군의관이 서류에 '복귀 불가'라고 썼다.", "effects": { "stats": { "happiness": -4 } } }
+        }
+      ]
+    },
+    {
+      "id": "war_pow",
+      "type": "chain",
+      "zoom": "포로수용소 · 억류 41일째",
+      "title": "심문",
+      "text": "눈가리개가 벗겨졌다. 콘크리트 방, 철제 의자 하나. 심문관이 같은 질문을 백 번째 반복한다. 부대 위치, 지휘관 이름, 암호.",
+      "tone": "tragedy",
+      "impact": 50,
+      "effects": { "stats": { "health": -12, "mental": -10, "happiness": -15 } },
+      "choices": [
+        {
+          "text": "끝까지 버틴다",
+          "check": { "stat": "mental", "dc": 55 },
+          "onSuccess": {
+            "text": "아무것도 말하지 않았다. 몸은 망가졌지만 나를 지켰다.",
+            "effects": { "stats": { "health": -15, "mental": 6 } },
+            "next": "war_pow_return"
+          },
+          "onFail": {
+            "text": "기억이 끊긴 날들이 있다. 무엇을 말했는지 확실하지 않다.",
+            "effects": { "stats": { "health": -20, "mental": -15 } },
+            "next": "war_pow_return"
+          }
+        },
+        {
+          "text": "부대 정보를 넘긴다",
+          "result": "그날부터 독방에서 나왔다. 대신 그 대가는 전쟁이 끝난 뒤에 왔다.",
+          "effects": { "addFlags": ["collaborator"], "stats": { "morality": -20, "health": -5 } },
+          "next": "war_pow_return"
+        },
+        {
+          "text": "탈출을 시도한다",
+          "check": { "stats": ["stamina", "luck"], "dc": 68 },
+          "onSuccess": {
+            "text": "철조망 아래를 기어 나와 사흘 동안 남쪽으로 걸었다. 아군 초소의 불빛이 보였다.",
+            "effects": { "addFlags": ["hero"], "stats": { "reputation": 15 } },
+            "next": "war_pow_return"
+          },
+          "onFail": {
+            "text": "붙잡혔다. 그 뒤의 일은 쓰고 싶지 않다.",
+            "effects": { "stats": { "health": -25, "mental": -15 } },
+            "next": "war_pow_return"
+          }
+        }
+      ]
+    },
+    {
+      "id": "war_pow_return",
+      "type": "chain",
+      "zoom": "판문점 · 포로 교환",
+      "title": "귀환",
+      "text": "포로 교환 명단에 내 이름이 있었다. 다리를 건너는 동안 아무도 말을 하지 않았다. 건너편에서 누군가 내 이름을 불렀다.",
+      "tone": "recovery",
+      "impact": 30,
+      "effects": { "addFlags": ["pow_survivor", "veteran", "ptsd"] },
+      "choices": [
+        {
+          "text": "가족에게 먼저 전화한다",
+          "result": "신호음이 한 번 가자마자 받았다. 아무 말도 못 하고 울기만 했다.",
+          "effects": { "stats": { "happiness": 10, "mental": 4 } }
+        },
+        {
+          "text": "방송 인터뷰에 응한다",
+          "if": "!flags.collaborator",
+          "result": "포로수용소에서 버틴 이야기가 뉴스 첫 꼭지에 나갔다. 훈장 수여식에 대통령이 왔다.",
+          "effects": { "addFlags": ["war_medal"], "stats": { "reputation": 20, "stress": 8 } }
+        },
+        {
+          "text": "조사에 협조한다",
+          "if": "flags.collaborator",
+          "result": "군 조사관 앞에서 모든 걸 말했다. 처벌은 피했지만 '배신자'라는 말은 따라다녔다.",
+          "effects": { "stats": { "reputation": -20, "mental": -6 } }
+        }
+      ]
+    },
+    {
+      "id": "war_kia",
+      "type": "chain",
+      "title": "전사",
+      "text": "{연도}년, {나이}세. 이름은 국립현충원 묘비에 새겨졌다. 유품 상자에는 휴대폰과 반쯤 쓴 편지가 들어 있었다.",
+      "tone": "tragedy",
+      "impact": 100,
+      "effects": { "death": "전사" }
+    },
+    {
+      "id": "war_refugee",
+      "type": "chain",
+      "zoom": "피난길 · 경부고속도로",
+      "title": "피난",
+      "text": "남쪽으로 가는 모든 길이 막혔다. 차를 버리고 걷는 사람들, 등에 업힌 노인, 우는 아이들. 휴대폰 신호가 끊겼다 이어졌다 한다.",
+      "tone": "tragedy",
+      "impact": 40,
+      "effects": { "addFlags": ["war_refugee"], "stats": { "happiness": -10, "stress": 15 } },
+      "choices": [
+        {
+          "text": "피난 열차를 탄다",
+          "check": { "stat": "luck", "dc": 50 },
+          "onSuccess": {
+            "text": "부산행 열차에 겨우 몸을 실었다. 통로에 서서 열두 시간을 갔다.",
+            "effects": { "do": [{ "type": "moveRegion", "region": "busan" }] }
+          },
+          "onFail": {
+            "text": "열차는 떠났다. 사흘을 걸어서 대전에 닿았다.",
+            "effects": { "stats": { "health": -8 }, "do": [{ "type": "moveRegion", "region": "daejeon" }] }
+          }
+        },
+        {
+          "text": "가족과 손목을 끈으로 묶고 걷는다",
+          "result": "끈으로 손목을 묶고 걸었다. 아무도 잃지 않았다.",
+          "effects": { "stats": { "health": -5 }, "do": [{ "type": "moveRegion", "region": "daegu" }] }
+        },
+        {
+          "text": "길을 나눠 따로 간다",
+          "result": "다시 만나기로 한 대구역 광장. {헤어진가족}은/는 오지 않았다.",
+          "effects": {
+            "do": [{ "type": "separateFamily" }, { "type": "moveRegion", "region": "daegu" }],
+            "stats": { "happiness": -12, "mental": -8 }
+          }
+        }
+      ]
+    },
+    {
+      "id": "war_home_front",
+      "type": "world",
+      "title": "전시 생활",
+      "text": "배급표, 정전, 하루 세 번의 공습경보. 슈퍼 진열대가 텅 비었다. 라디오에서는 전선 소식이 끊이지 않는다.",
+      "tone": "drama",
+      "impact": 20,
+      "trigger": {
+        "age": [6, 120],
+        "if": "world.news.warOngoing && !military.serving && !flags.war_abroad && !legal.inPrison"
+      },
+      "weight": { "base": 0.9, "noMode": true },
+      "limit": { "cooldown": 1 },
+      "choices": [
+        {
+          "text": "대피소에서 봉사한다",
+          "result": "부상자 이름을 명단에 적었다. 아는 이름이 나올까 봐 손이 떨렸다.",
+          "effects": { "stats": { "morality": 6, "sociability": 3, "stress": 6 } }
+        },
+        {
+          "text": "생필품을 사재기한다",
+          "if": "money.cash >= 1000000",
+          "result": "라면과 생수를 방 한가득 쌓았다. 옆집 아이가 문 앞에서 쳐다봤다.",
+          "effects": { "money": { "cash": -1000000 }, "stats": { "morality": -5, "stress": -4 } }
+        },
+        {
+          "text": "하루하루 버틴다",
+          "result": "끼니를 한 번씩 걸렀다.",
+          "effects": { "stats": { "health": -4, "stress": 8 } }
+        }
+      ]
+    },
+    {
+      "id": "defense_stocks",
+      "type": "world",
+      "title": "방산주",
+      "text": "전쟁이 길어지자 방위산업 주가가 하루에 20%씩 오른다. 증권사 앱 알림이 쉬지 않는다.",
+      "tone": "drama",
+      "impact": 10,
+      "trigger": {
+        "age": [20, 90],
+        "if": "world.war && money.cash >= 10000000 && !military.serving && !legal.inPrison"
+      },
+      "weight": { "base": 0.5, "noMode": true },
+      "limit": { "oncePerLife": true },
+      "choices": [
+        {
+          "text": "방산주를 산다",
+          "result": "{결과}",
+          "effects": { "do": [{ "type": "gamble", "stakePct": 0.4, "winChance": 0.65, "winMult": 2.5 }] }
+        },
+        { "text": "전쟁으로 돈을 벌고 싶지 않다", "result": "앱을 지웠다.", "effects": { "stats": { "morality": 4 } } }
+      ]
+    },
+    {
+      "id": "war_end_armistice",
+      "type": "world",
+      "title": "휴전",
+      "text": "정전협정이 발표됐다. 포성이 멈춘 첫날 밤, 이상하게 아무도 잠들지 못했다. 휴전선은 몇 킬로미터 옮겨졌을 뿐이다.",
+      "tone": "recovery",
+      "impact": 25,
+      "trigger": { "if": "world.news.warEnd && world.warOutcome == 'armistice'" },
+      "weight": { "base": 0.95, "noMode": true },
+      "limit": { "cooldown": 5 },
+      "choices": [
+        {
+          "text": "살던 집으로 돌아간다",
+          "result": "집은 반쯤 무너져 있었다. 그래도 문패는 그대로였다.",
+          "effects": { "removeFlags": ["war_abroad"], "stats": { "happiness": 6, "stress": -10 } }
+        },
+        {
+          "text": "피난 온 도시에 정착한다",
+          "result": "여기서 다시 시작하기로 했다.",
+          "effects": { "removeFlags": ["war_abroad"], "stats": { "happiness": 4, "stress": -8 } }
+        }
+      ]
+    },
+    {
+      "id": "war_end_unification",
+      "type": "world",
+      "title": "통일",
+      "text": "북한 정권이 무너졌다. 휴전선 철조망이 걷히는 장면을 생중계로 봤다. 기쁨과 불안이 동시에 밀려온다. 통일 비용 이야기가 벌써 나온다.",
+      "tone": "positive",
+      "impact": 30,
+      "trigger": { "if": "world.news.warEnd && world.warOutcome == 'unification'" },
+      "weight": { "base": 0.95, "noMode": true },
+      "limit": { "oncePerLife": true },
+      "choices": [
+        {
+          "text": "북쪽에서 새 기회를 찾는다",
+          "if": "age >= 20 && age <= 60",
+          "result": "평양행 첫 KTX 표를 샀다. 모든 게 처음부터 다시 만들어지고 있었다.",
+          "effects": {
+            "do": [{ "type": "gamble", "stakePct": 0.3, "winChance": 0.55, "winMult": 2.5 }],
+            "stats": { "happiness": 8 }
+          }
+        },
+        {
+          "text": "실향민 할아버지의 고향을 찾아간다",
+          "result": "할아버지가 말하던 그 마을 이름이 지도에 그대로 있었다.",
+          "effects": { "removeFlags": ["war_abroad"], "stats": { "happiness": 12, "mental": 6 } }
+        },
+        {
+          "text": "통일세 고지서를 걱정한다",
+          "result": "월급 명세서에 '통일 재건세' 항목이 생겼다.",
+          "effects": { "removeFlags": ["war_abroad"], "stats": { "stress": 4 } }
+        }
+      ]
+    },
+    {
+      "id": "veteran_ptsd",
+      "type": "consequence",
+      "title": "악몽",
+      "text": "새벽 3시에 또 깼다. 천둥소리에 몸이 먼저 땅에 엎드린다. 가족이 놀란 얼굴로 쳐다본다.",
+      "tone": "tragedy",
+      "impact": 20,
+      "trigger": {
+        "anyFlags": ["veteran", "pow_survivor", "war_refugee", "compound_survivor"],
+        "if": "!world.war"
+      },
+      "weight": {
+        "base": 0.25,
+        "noMode": true,
+        "modifiers": [{ "if": "flags.pow_survivor", "x": 2 }, { "if": "flags.ptsd", "x": 1.5 }]
+      },
+      "limit": { "max": 3, "cooldown": 3 },
+      "choices": [
+        {
+          "text": "트라우마센터에서 상담을 받는다",
+          "result": "1년 동안 매주 다녔다. 천둥이 치는 밤에도 잠들 수 있게 됐다.",
+          "effects": { "removeFlags": ["ptsd"], "stats": { "mental": 10, "stress": -10 } }
+        },
+        {
+          "text": "술로 버틴다",
+          "if": "substance.adult",
+          "result": "잠은 들었지만 아침이 더 힘들어졌다.",
+          "effects": { "addFlags": ["heavy_drinker", "ptsd"], "stats": { "health": -4, "stress": -4 } }
+        },
+        {
+          "text": "아무에게도 말하지 않는다",
+          "result": "괜찮은 척하는 데 익숙해졌다.",
+          "effects": { "addFlags": ["ptsd"], "stats": { "mental": -6 } }
+        }
+      ]
+    },
+    {
+      "id": "family_reunion",
+      "type": "consequence",
+      "motif": "이산가족 상봉 (1985년 이후 남북 이산가족 상봉 행사)",
+      "title": "상봉",
+      "text": "적십자에서 전화가 왔다. 헤어진 가족의 소식을 찾았다고 한다. 확인을 위해 오래된 사진을 가져오라고 한다.",
+      "tone": "recovery",
+      "impact": 30,
+      "trigger": { "flags": ["separated_family"], "if": "!world.war" },
+      "weight": { "base": 0.2, "noMode": true, "modifiers": [{ "if": "world.unified", "x": 3 }] },
+      "limit": { "max": 3, "cooldown": 1 },
+      "effects": { "do": [{ "type": "reunite" }] },
+      "choices": [
+        { "text": "사진을 들고 간다", "result": "{상봉}", "effects": { "stats": { "happiness": 6, "mental": 6 } } },
+        { "text": "마음의 준비를 하고 간다", "result": "{상봉} 오래 참았던 숨을 내쉬었다.", "effects": { "stats": { "mental": 8 } } }
+      ]
+    }
+  ]
+}
