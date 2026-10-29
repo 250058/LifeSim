@@ -365,6 +365,126 @@ describe('치료 에피소드: 시작·유지·감량·중단·재개 (R-015)', 
     }
   });
 
+  /** 지금 영양 풀에서 이 치료를 시작·재개할 수 있는 카드들 */
+  function reentryCards(state: GameState, tag: string): string[] {
+    return poolCandidates(state, 'nutrition')
+      .filter(({ ev }) => effectsOf(ev).some(({ fx }) => hasStep(fx, tag, 'start') || hasStep(fx, tag, 'resume')))
+      .map(({ ev }) => ev.id);
+  }
+
+  it('섭식장애 치료를 그만둔 어른: 시작 카드를 다 쓴 뒤에도 다시 흔들리면 치료를 다시 시작할 길이 있다', () => {
+    // 검토 재현: 30세에 숨기는 날들에서 치료 시작, 31세 흔들리는 날에 혼자 버티다 실패
+    const s = personAt('CARE-ED-ADULT', 30);
+    s.ch.flags.nut_ed = { since: 28, until: 34 };
+    play(s, 'nut_mind_secret', '치료를 받겠다고 마음먹는다');
+    expect(s.ch.flags.nut_ed_recovery).toEqual({ since: 30, until: 33 });
+    ageBy(s, 1);
+    const alone = choiceByText(getEvent('nut_mind_wobble'), '혼자 버텨 본다');
+    applyEffects(s, alone.onFail!.effects, { ctx: {}, rng: rngFor('t', 3), changes: [] });
+    s.counts.nut_mind_wobble = 1;
+    s.lastAge.nut_mind_wobble = 31;
+    expect(s.ch.flags.nut_ed).toEqual({ since: 31, until: 37 });
+    expect(s.ch.flags.nut_ed_recovery_stopped).toEqual({ since: 31, until: 34 });
+
+    // 32~36세 해마다: 시작 카드(평생 한 번)는 다 썼어도 다시 도움을 청하는 카드가 후보에 있다
+    let t = roundtrip(s);
+    ageBy(t, 1);
+    for (let age = 32; age <= 36; age++) {
+      const u = roundtrip(t);
+      ageBy(u, age - 32);
+      expect(reentryCards(u, 'nut_ed_recovery'), `${age}세`).toEqual(['nut_mind_return']);
+    }
+    // 처음에는 미룬다: 2년 뒤 다시 묻는 카드가 예약되고, 그사이 같은 카드는 쿨다운에 걸린다
+    play(t, 'nut_mind_return', '아직은 괜찮다고 넘긴다');
+    expect(t.scheduled).toEqual([{ eventId: 'nut_follow_ed_return', atAge: 34, ctx: {} }]);
+    expect(t.ch.flags.nut_ed).toBeDefined();
+    t = roundtrip(t);
+    t.scheduled = [];
+    ageBy(t, 1);
+    expect(reentryCards(t, 'nut_ed_recovery')).toEqual([]);
+    ageBy(t, 1);
+    const card = play(t, 'nut_follow_ed_return', '이번에는 치료를 받는다');
+    // 34세는 아직 '중단 후' 시기라 다시 시작이다
+    expect(card.result!.changes.map((c) => c.text)).toContain('섭식장애 치료 다시 시작');
+    expect(t.ch.flags.nut_ed_recovery_stopped).toBeUndefined();
+    expect(t.ch.flags.nut_ed).toBeUndefined();
+    expect(t.ch.flags.nut_ed_recovery).toEqual({ since: 34, until: 37 });
+    // 치료 중이면 다시 시작 카드는 빠진다
+    expect(triggerOk(getEvent('nut_mind_return'), buildScope(t), t)).toBe(false);
+    expect(triggerOk(getEvent('nut_follow_ed_return'), buildScope(t), t)).toBe(false);
+  });
+
+  it('섭식장애 다시 시작: 중단 후 시기면 "다시 시작", 처음이면 "시작"으로 적힌다 (47세 폭식에서 처음 생긴 경우도)', () => {
+    const s = personAt('CARE-ED-RESUME', 32);
+    s.ch.flags.nut_ed = { since: 31, until: 37 };
+    s.ch.flags.nut_ed_recovery_stopped = { since: 31, until: 34 };
+    const t = roundtrip(s);
+    const card = play(t, 'nut_mind_return', '치료를 받으러 병원을 예약한다');
+    expect(card.result!.changes.map((c) => c.text)).toContain('섭식장애 치료 다시 시작');
+    expect(t.ch.flags.nut_ed_recovery_stopped).toBeUndefined();
+    expect(t.ch.flags.nut_ed_recovery).toEqual({ since: 32, until: 35 });
+
+    // 검토 재현 2: 47세에 폭식으로 섭식장애가 생겼는데 숨기는 날들(45세까지)은 나이가 지났다
+    const b = personAt('CARE-ED-BINGE', 47);
+    play(b, 'nut_mind_binge', '다음 날 더 굶어서 만회하려 한다');
+    expect(b.ch.flags.nut_ed).toBeDefined();
+    const c = roundtrip(b);
+    ageBy(c, 1);
+    expect(reentryCards(c, 'nut_ed_recovery')).toEqual(['nut_mind_return']);
+    const first = play(c, 'nut_mind_return', '치료를 받으러 병원을 예약한다');
+    expect(first.result!.changes.map((x) => x.text)).toContain('섭식장애 치료 시작');
+    // 평생 한 번이 아니다: 쿨다운으로 다시 열린다
+    expect(getEvent('nut_mind_return').limit).toEqual({ cooldown: 6 });
+  });
+
+  it('비만 치료 주사: 재진 카드가 수감 중이라 빠져 기한이 지나도, 출소 뒤 다시 처방받을 길이 있다', () => {
+    const s = personAt('CARE-GLP1-PRISON', 40);
+    play(s, 'nut_diet_glp1', '처방받아 시작한다');
+    s.ch.legal.prisonUntil = 44;
+    ageBy(s, 1);
+    // 41세 재진 카드는 수감 중이라 뜨지 않는다 (예약이 사라진다)
+    expect(presentCard(s, { eventId: 'nut_follow_glp1_year', ctx: {} })).toBe(false);
+    s.scheduled = [];
+    expireFlags(s);
+    expect(s.ch.flags.nut_glp1).toBeUndefined();
+    expect(s.ch.flags.nut_glp1_stopped).toEqual({ since: 41, until: 43 });
+    ageBy(s, 2);
+    expireFlags(s);
+    expect(s.ch.flags.nut_glp1_stopped).toBeUndefined();
+
+    // 출소 뒤: 처음 처방 카드가 쿨다운(마지막으로 본 40세 + 6년) 뒤 다시 후보가 된다
+    let t = roundtrip(s);
+    ageBy(t, 1);
+    expect(t.ch.age).toBe(44);
+    expect(reentryCards(t, 'nut_glp1')).toEqual([]);
+    ageBy(t, 2);
+    expect(reentryCards(t, 'nut_glp1')).toEqual(['nut_diet_glp1']);
+    t = roundtrip(t);
+    const card = play(t, 'nut_diet_glp1', '처방받아 시작한다');
+    expect(card.result!.changes.map((c) => c.text)).toContain('비만 치료 주사 시작');
+    expect(t.ch.flags.nut_glp1).toEqual({ since: 46, until: 47 });
+    expect(t.scheduled).toEqual([{ eventId: 'nut_follow_glp1_year', atAge: 47, ctx: {} }]);
+
+    // 치료 중이거나 그만둔 직후(경과 카드가 맡는 시기)에는 처음 처방 카드가 겹쳐 뜨지 않는다
+    expect(triggerOk(getEvent('nut_diet_glp1'), buildScope(t), t)).toBe(false);
+    const after = roundtrip(t);
+    delete after.ch.flags.nut_glp1;
+    after.ch.flags.nut_glp1_stopped = { since: 46, until: 48 };
+    expect(triggerOk(getEvent('nut_diet_glp1'), buildScope(after), after)).toBe(false);
+  });
+
+  it('다시 열리는 처방·치료 카드는 오래 남는 수치를 거저 주지 않는다 (되풀이로 쌓을 수 없다)', () => {
+    for (const id of ['nut_diet_glp1', 'nut_mind_return', 'nut_follow_ed_return']) {
+      const ev = getEvent(id);
+      expect(ev.limit?.oncePerLife, id).not.toBe(true);
+      for (const { where, fx } of effectsOf(ev)) {
+        for (const k of LASTING_STATS) {
+          expect(fx.stats?.[k] ?? 0, `${where}: ${k}`).toBeLessThanOrEqual(0);
+        }
+      }
+    }
+  });
+
   it('결핵: 약을 일찍 끊으면 치료 중이 아니라 중단으로 남고, 내성 결핵에서 다시 시작한다', () => {
     const s = personAt('CARE-TB', 40);
     const stopped = play(s, 'med_tb_dx', '좋아지자 약을 끊는다');
