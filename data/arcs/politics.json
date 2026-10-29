@@ -1,6 +1,6 @@
 {
   "arc": "정치 → 대통령",
-  "motif": "피선거권 국회의원·지방선거 18세, 대통령 40세 https://www.kyeonggi.com/article/202201031182113 · 정치인은 모두 가상 인물, 정당은 가상 정당",
+  "motif": "피선거권 국회의원·지방선거 18세, 대통령 40세 https://www.kyeonggi.com/article/202201031182113 · 금고 이상의 형을 받고 실효되지 않은 사람은 피선거권이 없다(공직선거법 19조 2호, legal.electionBarred). 일반 범죄의 벌금은 막지 않는다 · 정치인은 모두 가상 인물, 정당은 가상 정당",
   "events": [
     {
       "id": "political_offer",
@@ -10,7 +10,11 @@
       "text": "{정당} 인재영입위원회에서 연락이 왔다. 다음 총선에 고향 {고향} 지역구로 나와 달라고 한다.",
       "tone": "drama",
       "impact": 25,
-      "trigger": { "age": [30, 65], "notFlags": ["lawmaker", "criminal_record"], "if": "!legal.inPrison" },
+      "trigger": {
+        "age": [30, 65],
+        "notFlags": ["lawmaker"],
+        "if": "!legal.inPrison && !legal.electionBarred"
+      },
       "weight": {
         "base": 0.00008,
         "modifiers": [
@@ -57,7 +61,7 @@
         "age": [40, 80],
         "flags": ["lawmaker"],
         "notFlags": ["president"],
-        "if": "world.electionYear && !legal.inPrison"
+        "if": "world.electionYear && !legal.inPrison && !legal.electionBarred"
       },
       "weight": {
         "base": 0.12,

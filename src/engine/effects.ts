@@ -12,10 +12,11 @@ import {
   startBusiness,
   takeJob,
 } from './career';
-import { REGIONS, TAG_BY_ID } from './data';
+import { JOB_BY_ID, REGIONS, TAG_BY_ID } from './data';
 import { addImpact } from './director';
 import { formatWon, HIGH_TYPE_LABEL, josa, signedWon } from './format';
 import { prosecute, payOrBorrow, release } from './justice';
+import { barredFromJob } from './records';
 import {
   addFriend,
   addSibling,
@@ -339,6 +340,11 @@ function runAction(state: GameState, a: Action, ec: EffectContext): void {
       }
       break;
     case 'getJob': {
+      // 공공 부문 결격 기간이면 사건이 주는 직업도 임용되지 않는다 (직업 목록과 같은 조회, records.ts)
+      if (barredFromJob(ch, a.job)) {
+        changes.push({ text: `임용 결격: ${JOB_BY_ID.get(a.job)?.title ?? a.job}`, sign: 'bad' });
+        break;
+      }
       const job = takeJob(state, a.job);
       changes.push({ text: `직업: ${job.title}`, sign: 'good' });
       break;
