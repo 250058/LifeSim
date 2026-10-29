@@ -511,7 +511,10 @@
         {
           "text": "이번엔 그냥 둔다",
           "result": "언젠가 다시 끊을 수 있을 거라고 생각했다. 아직은 아니다.",
-          "effects": { "stats": { "stress": -2 } }
+          "effects": {
+            "stats": { "stress": -2 },
+            "do": [{ "type": "substance", "substance": "ctx", "act": "dropTreatment" }]
+          }
         }
       ]
     },
