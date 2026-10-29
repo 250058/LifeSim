@@ -4,13 +4,15 @@
 // 기다리기 / 빨래방(돈) / 특정 인물에게 옷 빌리기 / 일정 조정 / 다른 옷 입기 중에서 고르고, 실패하면
 // 남은 방법으로 다시 고른다 (daily_laundry_fallback). 고를 때마다 방법이 하나씩 닫히므로 사슬은 반드시 끝난다.
 //
-// 공통 구조 (F-002~F-005는 DailyChainBase에 자기 사정을 더한 새 kind와 ObligationKind로 올린다):
+// 공통 구조 (F-002~F-005는 DailyChainBase에 자기 사정을 더한 새 kind를 CHAIN_KINDS에, 갚을 일을 OBLIGATION_KINDS에 올린다):
 //  - 시각: 사슬은 '첫날 0시부터 센 분'으로 지금(now)과 집을 나서야 하는 때(deadline)를 갖는다.
 //    고른 행동마다 시간이 들고(timeUsed), 시간대(slotOf)가 인물의 반응을 바꾼다 (밤·새벽엔 잠들어 있다).
-//  - 의무: 나중에 갚을 일(빌린 옷 돌려주기)은 id가 있는 의무로 남는다. 활동으로 돌려주면 닫히고,
-//    기한이 지나도록 열려 있으면 독촉 카드가 뜬다. 그사이 상대가 떠났으면 '돌려주지 못한 옷'으로 정리된다.
-//  - 인물: 부탁 상대는 실제 인물 ID로 묶는다. 상대는 자기 일정(잠·야간 근무·자기도 입을 옷·거리·출장)과
-//    성향, 지난 기억(제때 돌려받았는지)으로 스스로 수락·거절한다. 플레이어가 얼마나 급한지는 판정에 넣지 않는다.
+//  - 의무: 나중에 갚을 일(빌린 옷 돌려주기)은 id가 있는 의무로 남고, 생길 때 독촉·정리 사건을 그 id로 예약한다.
+//    활동으로 돌려주면 닫히고(예약 카드는 뜨지 않는다), 기한이 지나도록 열려 있으면 독촉 카드가 뜬다.
+//    그사이 상대가 떠났으면 '돌려주지 못한 옷'으로 정리된다.
+//  - 인물: 부탁 상대는 실제 인물 ID로 묶는다. 상대는 자기 일정(npcSituation: 잠·근무·야근·밤 외출 금지·외박)과
+//    자기도 입을 옷·거리, 성향, 지난 기억(제때 돌려받았는지)으로 스스로 수락·거절한다.
+//    플레이어가 얼마나 급한지는 판정에 넣지 않는다. 한 사슬에서 부탁은 MAX_ASKS명까지다.
 //  - 기억: 빌려줌·거절·반납·늦은 반납·모른 척·약속 미룸·취소를 인물 ID와 나이로 남기고 다음 부탁에 쓴다.
 //  - 난수: rngFor(seed, 'daily', 사슬·의무 id, …)만 쓴다. 같은 시드·같은 선택이면 중간에 저장·불러오기를 해도 같다.
 //
@@ -594,8 +596,12 @@ function canLend(state: GameState, c: DailyChain, npc: Npc): boolean {
   }
 }
 
+/** 한 사슬에서 옷을 부탁해 보는 사람 수. 세 번 거절당하면 더 묻지 않는다 */
+export const MAX_ASKS = 3;
+
 /** 아직 묻지 않은 사람 중 부탁할 사람: 친밀도가 높고 한집에 살수록 먼저 떠오른다 (사슬마다 조금 흔들린다) */
 function pickHelper(state: GameState, c: DailyChain): Npc | undefined {
+  if (c.asked.length >= MAX_ASKS) return undefined;
   let best: Npc | undefined;
   let bestScore = -Infinity;
   for (const n of state.ch.npcs) {
@@ -617,7 +623,7 @@ function timeToFetch(state: GameState, c: DailyChain, npc: Npc): boolean {
 
 function helperOf(state: GameState, c: DailyChain): Npc | undefined {
   const npc = present(state.ch, c.helperId);
-  return npc && !c.asked.includes(npc.id) && canLend(state, c, npc) && timeToFetch(state, c, npc) ? npc : undefined;
+  return npc && c.asked.length < MAX_ASKS && !c.asked.includes(npc.id) && canLend(state, c, npc) && timeToFetch(state, c, npc) ? npc : undefined;
 }
 
 /** 지금 부탁할 사람이 없어졌으면(시간이 지나 멀리 사는 사람에게는 늦었다) 남은 사람 중에서 다시 고른다 */
@@ -831,8 +837,39 @@ export interface NpcAnswer {
   travel: number;
 }
 
+/** 그 시각 그 인물의 사정: 자유로움·잠듦·근무(야간 교대·야근)·외박·출장·(미성년자) 밤 외출 금지 */
+export type NpcSituation = 'free' | 'asleep' | 'working' | 'overtime' | 'away' | 'curfew';
+
+/** 직업 문구로 본 '일하지 않는 사람' ('사무직'에도 '무직'이 들어 있으므로 무직은 통째로만 본다) */
+const NO_WORK = /^무직$|은퇴|주부|학생/;
+
 /**
- * 옷을 빌려 달라는 부탁에 대한 그 사람의 답. 먼저 그 사람 자신의 사정(거리·잠·야간 근무·자기도 입을 옷·출장)을 보고,
+ * 그 인물 자신의 일정으로 본 지금의 사정 (하루 사슬 공통: F-002의 돌봄 부탁도 같은 판단을 쓴다).
+ * 시간대(slotOf)·나이·직업·한집 여부만 보고, 플레이어의 급한 정도는 보지 않는다.
+ * rolls는 호출하는 쪽이 사슬·인물별로 미리 뽑아 둔 굴림 [잠, 근무, (예비), 외출]이다
+ */
+export function npcSituation(state: GameState, npc: Npc, minute: number, together: boolean, rolls: number[]): NpcSituation {
+  const a = npcAge(npc, state.year);
+  const slot = slotOf(minute);
+  const late = slot === 'night' || slot === 'dawn';
+  const sleepy = late ? (a >= 55 || a <= 12 ? 0.55 : 0.25) * (together ? 0.4 : 1) : 0;
+  if (rolls[0] < sleepy) return 'asleep';
+  if (together) return 'free';
+  const job = npc.job ?? '';
+  const shift = SHIFT_TITLE.test(job);
+  // 직업을 모르는 성인도 일을 할 수 있다 (친구·형제의 직업은 기록되지 않는 경우가 많다)
+  const working = job ? !NO_WORK.test(job) : a >= 20 && a < 65;
+  if (shift && rolls[1] < (late ? 0.35 : 0.15)) return 'working';
+  if (!shift && working && slot === 'evening' && rolls[1] < 0.12) return 'overtime';
+  if (!shift && working && late && rolls[1] < 0.04) return 'working';
+  // 미성년자는 밤에 혼자 집을 나서지 않는다 (가져다주지도, 가지러 오게 하지도 않는다)
+  if (a < 19 && late) return 'curfew';
+  if (rolls[3] < 0.05) return 'away';
+  return 'free';
+}
+
+/**
+ * 옷을 빌려 달라는 부탁에 대한 그 사람의 답. 먼저 그 사람 자신의 사정(거리·잠·근무·자기도 입을 옷·출장)을 보고,
  * 사정이 없으면 성향·친밀도·지난 기억으로 정한다. 난수는 사슬 id와 인물 id로 정해져 저장·불러오기 뒤에도 같다.
  */
 export function answerLend(state: GameState, c: DailyChain, npc: Npc): NpcAnswer {
@@ -843,13 +880,10 @@ export function answerLend(state: GameState, c: DailyChain, npc: Npc): NpcAnswer
   // 굴림은 미리 정해 둔다: 앞 조건이 바뀌어도 뒤 굴림이 밀리지 않는다
   const roll = [rng.next(), rng.next(), rng.next(), rng.next(), rng.next(), rng.next()];
   const a = npcAge(npc, state.year);
-  const late = ['night', 'dawn'].includes(slotOf(c.now));
   if (!together && c.deadline - 30 - c.now < travel * 2) return { yes: false, reason: 'far', travel };
-  const sleepy = late ? (a >= 55 || a <= 12 ? 0.55 : 0.25) * (together ? 0.4 : 1) : 0;
-  if (roll[0] < sleepy) return { yes: false, reason: 'asleep', travel };
-  if (!together && SHIFT_TITLE.test(npc.job ?? '') && roll[1] < 0.3) return { yes: false, reason: 'working', travel };
+  const sit = npcSituation(state, npc, c.now, together, roll);
+  if (sit !== 'free') return { yes: false, reason: sit, travel };
   if (roll[2] < (c.item.uniform && a <= 19 ? 0.35 : 0.12)) return { yes: false, reason: 'needsIt', travel };
-  if (!together && roll[3] < 0.05) return { yes: false, reason: 'away', travel };
   const m = memoryOf(state, npc.id);
   let p = 0.15 + 0.45 * disposition(state, npc) + (0.3 * npc.closeness) / 100;
   if (['spouse', 'mother', 'father'].includes(npc.role)) p += 0.15;
@@ -912,7 +946,18 @@ const stepBorrow: Handler = (state, c, ctx, changes) => {
   finish(state, c, 'borrowed');
 };
 
-/** 의무를 연다 (사슬 종류와 무관한 공통 부분): 누구에게(인물 ID) 무엇을 몇 살 연말까지 */
+/**
+ * 의무 종류별 후속 사건: 기한이 지난 다음 해 첫머리에 dueEvent(상대가 곁에 있을 때 독촉)와
+ * lostEvent(상대가 떠나 돌려줄 길이 없을 때 정리)를 함께 예약한다. 둘 다 그 의무가 열려 있을 때만 뜬다
+ */
+export const OBLIGATION_KINDS: Record<ObligationKind, { dueEvent: string; lostEvent: string }> = {
+  return_clothes: { dueEvent: 'daily_return_due', lostEvent: 'daily_return_lost' },
+};
+
+/**
+ * 의무를 연다 (사슬 종류와 무관한 공통 부분): 누구에게(인물 ID) 무엇을 몇 살 연말까지.
+ * 후속 사건은 의무 id를 ctx.dailyOb로 실어 예약한다. 수락했을 때만 예약되므로 거절된 부탁은 흔적을 남기지 않는다
+ */
 export function addObligation(state: GameState, chainId: string, kind: ObligationKind, npc: Npc, what: string, dueAge: number): DailyObligation {
   const d = ensureDaily(state.ch);
   const ob: DailyObligation = {
@@ -927,6 +972,10 @@ export function addObligation(state: GameState, chainId: string, kind: Obligatio
     status: 'open',
   };
   d.obligations.push(ob);
+  const def = OBLIGATION_KINDS[kind];
+  for (const eventId of [def.dueEvent, def.lostEvent]) {
+    state.scheduled.push({ eventId, atAge: dueAge + 1, ctx: { dailyOb: ob.id, 도우미: ob.who, 옷: ob.what } });
+  }
   return ob;
 }
 
@@ -1081,14 +1130,20 @@ const stepCancel: Handler = (state, c, ctx, changes) => {
   finish(state, c, 'cancelled');
 };
 
-const CHAIN_STEPS: Partial<Record<DailyStep, Handler>> = {
-  wait: stepWait,
-  laundromat: stepLaundromat,
-  borrow: stepBorrow,
-  adjust: stepAdjust,
-  wear_damp: stepWearDamp,
-  wear_other: stepWearOther,
-  cancel: stepCancel,
+/**
+ * 사슬 종류별 단계 처리. 새 사슬(F-002 교대 변경과 돌봄 공백 등)은 여기에 kind와 처리 함수를 더하고,
+ * 공통 부분(시각·시간대·부탁 상대·의무·기억·지각·끝내기)은 그대로 쓴다. 연 단위 루프는 바뀌지 않는다
+ */
+const CHAIN_KINDS: Record<DailyChain['kind'], Partial<Record<DailyStep, Handler>>> = {
+  laundry: {
+    wait: stepWait,
+    laundromat: stepLaundromat,
+    borrow: stepBorrow,
+    adjust: stepAdjust,
+    wear_damp: stepWearDamp,
+    wear_other: stepWearOther,
+    cancel: stepCancel,
+  },
 };
 
 // ── 의무 정리 (돌려주기·늦은 반납·새로 사 주기·모른 척·돌려줄 길 없음) ──
@@ -1146,6 +1201,51 @@ const SETTLE_STEP: Partial<Record<DailyStep, Settle>> = {
   void: 'void',
 };
 
+// ── 데이터 검사 (validate.ts) ────────────────────────────
+
+/** 엔진이 읽는 문장 열쇠 (사슬 단계가 lines.say에서 찾는다). 빠지면 빈 문장이 뜬다 */
+const SAY_KEYS = [
+  'stateWet', 'stateDamp', 'waitDry', 'waitDamp', 'waitWet', 'laundromat', 'laundromatGuardian',
+  'lendTogether', 'lendBring', 'lendPickup', 'nobody', 'schoolLate', 'schoolLateGuardian', 'schoolWarn',
+  'univYes', 'univNo', 'bossYes', 'bossNo', 'businessOpen', 'swapYes', 'swapNo', 'postponeYes',
+  'weddingSkip', 'reunionLate', 'dampOk', 'dampSmell', 'dampLate', 'uniformCaught', 'uniformOk', 'gymOther',
+  'otherFine', 'officeOther', 'shiftSpare', 'shiftNoSpare', 'outingOther', 'dateOther', 'cancelled', 'workWarn',
+  'returned', 'returnedLate', 'compensated', 'forgot', 'lostDead', 'lostGone', 'closed', 'gone',
+  // 인물의 거절 이유 (npcSituation·answerLend·answerPostpone)
+  'refuse_far', 'refuse_asleep', 'refuse_working', 'refuse_overtime', 'refuse_curfew', 'refuse_away',
+  'refuse_needsIt', 'refuse_mood', 'refuse_grudge', 'postpone_booked', 'postpone_nextPlan', 'postpone_mood', 'postpone_grudge',
+];
+
+/** 문장 표가 엔진과 맞는지: 일정마다 나서는 시각·문장·조정 문장·옷 목록, 날씨 정의, 단계 문장, 의무의 후속 사건 */
+export function dailyDataIssues(eventIds: Set<string>): string[] {
+  const out: string[] = [];
+  const L = DAILY_LINES;
+  for (const key of Object.keys(LEAVE)) {
+    if (!L.schedule[key]) out.push(`lines.schedule.${key} 없음`);
+    if (!L.adjust[key]) out.push(`lines.adjust.${key} 없음`);
+  }
+  const itemKeys = ['shift', 'office', 'school_elementary', 'school_secondary', 'school_university', 'outing', 'wedding'];
+  for (const key of itemKeys) {
+    const list = L.items[key];
+    if (!list || list.length === 0) out.push(`lines.items.${key} 없음`);
+    for (const it of list ?? []) if (!(it.thick > 0)) out.push(`lines.items.${key} '${it.name}'의 thick가 0 이하`);
+  }
+  // 사무직·교대 근무 옷 목록은 business 일정에도 쓴다 (itemKey가 office)
+  for (const w of WEATHERS) {
+    const def = L.weather[w];
+    if (!def) out.push(`lines.weather.${w} 없음`);
+    else if (!(def.hours[0] > 0 && def.hours[0] <= def.hours[1] && def.w > 0)) out.push(`lines.weather.${w}의 hours·w가 잘못됐다`);
+  }
+  for (const key of SAY_KEYS) if (!L.say[key]) out.push(`lines.say.${key} 없음`);
+  for (const def of Object.values(OBLIGATION_KINDS)) {
+    for (const id of [def.dueEvent, def.lostEvent]) if (!eventIds.has(id)) out.push(`의무 후속 사건 ${id} 없음`);
+  }
+  return out;
+}
+
+/** 엔진이 직접 예약하는 사건 (다른 사건의 next로 이어지지 않는다) */
+export const DAILY_SYSTEM_EVENTS = Object.values(OBLIGATION_KINDS).flatMap((d) => [d.dueEvent, d.lostEvent]);
+
 // ── 진입점 ───────────────────────────────────────────────
 
 /** 사건 효과의 { type: 'daily', step } (effects.ts). 결과 문장은 ctx.결과, 상황은 ctx.상황에 남긴다 */
@@ -1164,8 +1264,8 @@ export function applyDailyAction(state: GameState, a: { step: string }, ec: Effe
     ctx.상황 = text;
     return;
   }
-  const handler = CHAIN_STEPS[step];
   const c = liveChain(state, ctx);
+  const handler = c ? CHAIN_KINDS[c.kind]?.[step] : undefined;
   if (!handler || !c) {
     ctx.결과 = say(state, ctx, 'gone');
     return;

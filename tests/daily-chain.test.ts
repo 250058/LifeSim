@@ -15,13 +15,16 @@ import {
   clockText,
   DAILY_LINES,
   DAILY_STEPS,
+  dailyDataIssues,
   dailyScope,
+  MAX_ASKS,
+  npcSituation,
   readDaily,
   spanText,
   type DailyChain,
   type DailyState,
 } from '../src/engine/daily';
-import { EVENT_FILES, getEvent } from '../src/engine/data';
+import { EVENTS, EVENT_FILES, getEvent } from '../src/engine/data';
 import { eventProbability, presentCard } from '../src/engine/eventEngine';
 import { choose, doActivity, endTurn, newGame, proceed } from '../src/engine/game';
 import { addSibling, makeNpc, startPartner } from '../src/engine/relations';
@@ -615,4 +618,120 @@ describe('준비·도구와 실제 빈도', () => {
     expect(per.filter((n) => n > 0).length).toBeGreaterThanOrEqual(12);
     expect(Math.max(...per)).toBeLessThanOrEqual(12);
   });
+});
+
+// ── 공통 틀: 인물의 자기 일정·부탁 횟수·의무 예약·데이터 검사 ──
+
+describe('하루 사슬 공통 틀', () => {
+  it('인물의 사정은 그 인물의 시간대·나이·직업으로 정해진다 (미성년자는 밤에 나오지 않고, 한집 사람은 외출·근무 사정이 없다)', () => {
+    const s = person('DAILY-SIT', { age: 16, school: 'high' });
+    const kid = makeNpc(s, rngFor('k', 'k'), 'friend', s.ch.sex, s.ch.birthYear, { closeness: 90 });
+    const nurse = makeNpc(s, rngFor('n', 'n'), 'friend', s.ch.sex, s.ch.birthYear - 15, { closeness: 90, job: '간호사' });
+    const free = [0.99, 0.99, 0.99, 0.99];
+    // 밤 11시: 미성년 친구는 나오지 못하고, 저녁 8시에는 나올 수 있다
+    expect(npcSituation(s, kid, 23 * 60, false, free)).toBe('curfew');
+    expect(npcSituation(s, kid, 20 * 60, false, free)).toBe('free');
+    expect(npcSituation(s, kid, 23 * 60, true, free)).toBe('free');
+    // 잠: 밤에만, 한집 사람은 깨우기 쉽다
+    expect(npcSituation(s, nurse, 23 * 60, false, [0.2, 0.99, 0.99, 0.99])).toBe('asleep');
+    expect(npcSituation(s, nurse, 23 * 60, true, [0.2, 0.99, 0.99, 0.99])).toBe('free');
+    expect(npcSituation(s, nurse, 19 * 60, false, [0, 0.99, 0.99, 0.99])).toBe('free');
+    // 교대 근무 직업은 밤에 근무 중일 수 있다
+    expect(npcSituation(s, nurse, 23 * 60, false, [0.99, 0.3, 0.99, 0.99])).toBe('working');
+    expect(npcSituation(s, nurse, 23 * 60, false, [0.99, 0.5, 0.99, 0.99])).toBe('free');
+    // 직장인은 저녁에 야근 중일 수 있다
+    const clerk = makeNpc(s, rngFor('c', 'c'), 'friend', s.ch.sex, s.ch.birthYear - 15, { closeness: 90, job: '중소기업 사무직' });
+    expect(npcSituation(s, clerk, 19 * 60, false, [0.99, 0.1, 0.99, 0.99])).toBe('overtime');
+    const retiree = makeNpc(s, rngFor('r', 'r'), 'friend', s.ch.sex, s.ch.birthYear - 15, { closeness: 90, job: '무직' });
+    expect(npcSituation(s, retiree, 19 * 60, false, [0.99, 0.1, 0.99, 0.99])).toBe('free');
+  });
+
+  it(`옷은 한 사슬에서 ${MAX_ASKS}명까지만 부탁한다 (그다음엔 빌리기 선택지가 사라진다)`, () => {
+    const s = find('DAILY-ASKS', (seed) => {
+      const x = person(seed, { age: 30 });
+      for (let i = 0; i < 6; i++) x.ch.npcs.push(makeNpc(x, rngFor(seed, 'f', i), 'friend', x.ch.sex, x.ch.birthYear, { closeness: 40 }));
+      return x;
+    }, (x) => {
+      open(x);
+      for (let k = 0; k < MAX_ASKS; k++) {
+        if (stepIndex(x, 'borrow') < 0) return false;
+        act(x, 'borrow');
+        if (x.ch.daily!.chain!.stage !== 'fallback') return false;
+      }
+      return true;
+    });
+    const c = s.ch.daily!.chain!;
+    expect(c.asked).toHaveLength(MAX_ASKS);
+    expect(new Set(c.asked).size).toBe(MAX_ASKS);
+    expect(scope(s).canBorrow).toBe(false);
+    expect(stepIndex(s, 'borrow')).toBe(-1);
+    // 거절은 각 인물 ID로 기억되고, 의무도 예약된 후속 사건도 없다
+    expect(readDaily(s.ch).memory.filter((m) => m.kind === 'refused').map((m) => m.npcId)).toEqual(c.asked);
+    expect(readDaily(s.ch).obligations).toHaveLength(0);
+    expect(s.scheduled.filter((e) => e.eventId.startsWith('daily_'))).toHaveLength(0);
+    // 남은 방법(다른 옷)으로 반드시 끝난다
+    act(s, 'wear_other');
+    expect(c.stage).toBe('done');
+  });
+
+  it('문장 표 검사는 지금 데이터에서 문제가 없고, 빠진 문장을 찾아낸다', () => {
+    const ids = new Set(EVENTS.map((e) => e.id));
+    expect(dailyDataIssues(ids)).toEqual([]);
+    const saved = DAILY_LINES.say.refuse_curfew;
+    delete DAILY_LINES.say.refuse_curfew;
+    try {
+      expect(dailyDataIssues(ids)).toContain('lines.say.refuse_curfew 없음');
+    } finally {
+      DAILY_LINES.say.refuse_curfew = saved;
+    }
+    ids.delete('daily_return_lost');
+    expect(dailyDataIssues(ids)).toContain('의무 후속 사건 daily_return_lost 없음');
+  });
+});
+
+// ── 교대 근무·등교·외출 맥락에서 사슬 중간 저장 ──────────
+
+describe('맥락마다 사슬 중간에 저장·불러오기를 해도 일정 충돌이 그대로 재현된다', () => {
+  const contexts: [string, (seed: string) => GameState, string][] = [
+    ['교대 근무', (seed) => person(seed, { age: 35, job: 'factory', friend: 60 }), 'shift'],
+    ['등교', (seed) => person(seed, { age: 16, school: 'high', friend: 70 }), 'school'],
+    ['외출', (seed) => person(seed, { age: 70, retired: true, friend: 60 }), 'outing'],
+  ];
+  for (const [label, make, kind] of contexts) {
+    it(label, () => {
+      // 첫 선택(기다리기 또는 일정 조정) 뒤 다시 고르는 카드에서 저장한다
+      const a = find(`DAILY-CTXSAVE-${kind}`, make, (x) => {
+        const c = open(x);
+        if (c.schedule.kind !== kind) return false;
+        const first = stepIndex(x, 'wait') >= 0 ? 'wait' : 'adjust';
+        if (stepIndex(x, first) < 0) return false;
+        act(x, first);
+        return x.card?.eventId === 'daily_laundry_fallback';
+      });
+      const c = a.ch.daily!.chain!;
+      expect(c.stage).toBe('fallback');
+      expect(c.now).toBeLessThan(c.deadline);
+      const b = roundTrip(a);
+      const cb = b.ch.daily!.chain!;
+      // 같은 시각·마감·옷 상태·남은 방법
+      expect(cb).toEqual(c);
+      expect(b.card).toEqual(a.card);
+      expect(scope(b)).toEqual(scope(a));
+      // 이어서 같은 순서로 고르면 같은 결과·같은 상태
+      const picks = ['borrow', 'laundromat', 'adjust', 'wear_damp', 'cancel', 'wear_other'];
+      const run = (s: GameState) => {
+        const out: string[] = [];
+        for (let g = 0; g < 10 && s.phase === 'event' && s.card?.eventId.startsWith('daily_laundry'); g++) {
+          const step = picks.find((p) => stepIndex(s, p) >= 0);
+          if (!step) break;
+          out.push(act(s, step));
+        }
+        return out;
+      };
+      expect(run(b)).toEqual(run(a));
+      expect(JSON.stringify(b.ch)).toBe(JSON.stringify(a.ch));
+      expect(JSON.stringify(b.scheduled)).toBe(JSON.stringify(a.scheduled));
+      expect(a.ch.daily!.chain!.stage).toBe('done');
+    });
+  }
 });

@@ -83,10 +83,12 @@
       "lendBring": "{도우미}이/가 \"문 앞에 걸어 둘게\" 하고 답했다. {이동} 뒤 현관 손잡이에 쇼핑백이 걸려 있었다.",
       "lendPickup": "{도우미}이/가 가지러 오라고 했다. 왕복 {왕복}을 서둘러 다녀왔다.",
       "refuse_asleep": "{도우미}은/는 답이 없다. 벌써 잠든 모양이다.",
-      "refuse_working": "{도우미}은/는 야간 근무 중이라 휴대폰을 볼 수 없다고 했다.",
+      "refuse_working": "{도우미}은/는 근무 중이었다. 한참 뒤에야 \"지금 일하는 중이라 안 돼\" 하는 답이 왔다.",
+      "refuse_overtime": "{도우미}은/는 아직 회사에서 야근 중이라 집에 없다고 했다.",
+      "refuse_curfew": "\"이 시간엔 부모님이 못 나가게 해.\" {도우미}의 답이 왔다.",
       "refuse_needsIt": "\"미안, 나도 그거 입고 나가야 해.\" {도우미}의 답이 바로 왔다.",
       "refuse_far": "{도우미}은/는 지금 가져다주기엔 너무 멀다고 했다.",
-      "refuse_away": "{도우미}은/는 출장 중이라 집에 없다고 했다.",
+      "refuse_away": "{도우미}은/는 오늘 밤 집에 없다고 했다. 멀리 와 있다고 한다.",
       "refuse_mood": "\"그건 좀…\" {도우미}의 답장이 짧았다. 더 묻지 않았다.",
       "refuse_grudge": "\"저번에 빌려 간 것도 아직 안 돌려줬잖아.\" {도우미}의 답이 차가웠다.",
       "nobody": "부탁할 만한 사람이 떠오르지 않았다.",
@@ -171,13 +173,7 @@
         {
           "text": "{도우미}에게 비슷한 옷이 있으면 빌려 달라고 연락한다",
           "if": "daily.canBorrow",
-          "effects": {
-            "do": [{ "type": "daily", "step": "borrow" }],
-            "later": [
-              { "event": "daily_return_due", "inYears": 2 },
-              { "event": "daily_return_lost", "inYears": 2 }
-            ]
-          },
+          "effects": { "do": [{ "type": "daily", "step": "borrow" }] },
           "result": "{결과}",
           "next": "daily_laundry_fallback"
         },
@@ -222,13 +218,7 @@
         {
           "text": "{도우미}에게 비슷한 옷이 있으면 빌려 달라고 연락한다",
           "if": "daily.canBorrow",
-          "effects": {
-            "do": [{ "type": "daily", "step": "borrow" }],
-            "later": [
-              { "event": "daily_return_due", "inYears": 2 },
-              { "event": "daily_return_lost", "inYears": 2 }
-            ]
-          },
+          "effects": { "do": [{ "type": "daily", "step": "borrow" }] },
           "result": "{결과}",
           "next": "daily_laundry_fallback"
         },

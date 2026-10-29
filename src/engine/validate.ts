@@ -11,7 +11,7 @@ import type { Action, ChoiceDef, Effects, EventDef, NextRef } from './schema';
 import { effectsOf, targetRolesOf } from './text';
 import { HIDDEN_KEYS, STATE_KEYS, STAT_KEYS, SUBSTANCE_ACTS, SUBSTANCE_IDS, TALENT_KEYS } from './types';
 import { POOL_IDS } from './pools';
-import { DAILY_STEPS } from './daily';
+import { DAILY_STEPS, DAILY_SYSTEM_EVENTS, dailyDataIssues } from './daily';
 
 export interface Issue {
   level: 'error' | 'warn';
@@ -32,6 +32,8 @@ const SYSTEM_EVENTS = new Set([
   'sub_relapse',
   'sub_drug_arrest',
   'sub_drug_emergency',
+  // daily.ts: 빌린 옷 같은 의무의 독촉·정리 (의무가 생길 때 엔진이 예약한다)
+  ...DAILY_SYSTEM_EVENTS,
 ]);
 /** 본인의 술·담배·약물 사용을 뜻하는 태그 */
 const USE_TAGS = new Set(['smoker', 'vaper', 'heavy_drinker', 'drug_use']);
@@ -473,6 +475,9 @@ export function validateData(): Issue[] {
       choices.forEach((c, i) => checkChoice(`${where} › 선택지 ${i + 1}`, c));
     }
   }
+
+  // 하루 사슬(daily.ts): 문장 표가 엔진의 일정·단계·거절 이유와 맞는지
+  for (const msg of dailyDataIssues(new Set(EVENTS.map((e) => e.id)))) err('events/daily.json', msg);
 
   for (const ev of EVENTS) {
     if (ev.type === 'chain' && !referenced.has(ev.id) && !SYSTEM_EVENTS.has(ev.id)) {
