@@ -2,6 +2,7 @@
 // 'stats.intelligence', 'family.siblings', 'world.economy' 처럼 쓴다.
 
 import { contraceptionMethod } from './contraception';
+import { crimeScope } from './crime';
 import { dailyScope } from './daily';
 import { REGION_BY_ID } from './data';
 import { familySupport, alive, npcAge, partnerOf, spouseOf } from './relations';
@@ -180,6 +181,8 @@ export function buildScope(state: GameState, ctx: Record<string, string> = {}): 
       publicBarred: publicSectorBarred(ch),
       electionBarred: electionBarred(ch),
     },
+    // 범죄 피해·목격·지원: crime.cases, crime.victim … ctx.caseId가 있으면 crime.case.canReport 같은 사건별 값
+    crime: crimeScope(state, ctx),
     world: {
       economy: state.world.economy.phase,
       tension: state.world.tension,

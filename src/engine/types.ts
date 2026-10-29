@@ -357,6 +357,8 @@ export interface Character {
   career: Career;
   military: Military;
   legal: Legal;
+  /** 범죄 피해·목격·지원 사건 기록 (crime.ts). 사건이 없었거나 옛 저장이면 없다 (읽을 때 빈 기록으로 본다) */
+  crime?: import('./crime').CrimeLedger;
   /** 술·담배·약물 기록. 한 번도 권유·사용이 없었거나 옛 저장이면 없다 (읽을 때 빈 기록으로 본다) */
   substances?: Substances;
   /** 하루 사슬(빨래·다음 날 일정)과 빌린 옷 같은 의무·인물 기억. 옛 저장에는 없다 (daily.ts readDaily가 빈 기록으로 본다) */

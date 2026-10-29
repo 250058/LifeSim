@@ -3,6 +3,8 @@
 
 import type { EventDef, TagDef } from '../schema';
 import physiology from '../../../data/catalog/physiology.json';
+import crime from '../../../data/catalog/crime.json';
+import { expandCrime, type CrimeCatalog } from './crime';
 import medical from '../../../data/catalog/medical.json';
 import nutrition from '../../../data/catalog/nutrition.json';
 import romance from '../../../data/catalog/romance.json';
@@ -15,6 +17,7 @@ import { expandParenting, type ParentingCatalog } from './parenting';
 
 const SOURCES = {
   'catalog/physiology.json': [physiology as unknown as PhysiologyCatalog, expandPhysiology],
+  'catalog/crime.json': [crime as unknown as CrimeCatalog, expandCrime],
   'catalog/medical.json': [medical as unknown as MedicalCatalog, expandMedical],
   'catalog/nutrition.json': [nutrition as unknown as NutritionCatalog, expandNutrition],
   'catalog/romance.json': [romance as unknown as RomanceCatalog, expandRomance],

@@ -2,6 +2,7 @@
 // 생애 단계별 사건 수를 잡아낸다. 사건 작성 도구와 테스트가 함께 쓴다.
 
 import { referencedPaths } from './conditions';
+import { CRIME_SYSTEM_EVENTS, crimeActionProblem, crimeDataProblems } from './crime';
 import { CRIMES } from './justice';
 import { ACTIVITIES, EVENT_FILES, EVENTS, JOB_BY_ID, TAG_BY_ID, TAGS } from './data';
 import { STAGES } from './format';
@@ -35,6 +36,8 @@ const SYSTEM_EVENTS = new Set([
   // daily.ts: 빌린 옷 같은 의무의 독촉·정리 (의무가 생길 때 엔진이 예약한다)
   ...DAILY_SYSTEM_EVENTS,
 ]);
+// crime.ts: 사건 번호를 붙여 예약하는 단계 카드 (수사·재판·조직 조사·재발·회복 등)
+for (const id of CRIME_SYSTEM_EVENTS) SYSTEM_EVENTS.add(id);
 /** 본인의 술·담배·약물 사용을 뜻하는 태그 */
 const USE_TAGS = new Set(['smoker', 'vaper', 'heavy_drinker', 'drug_use']);
 /** 물질을 정하지 않아도 되는 행동 (치료 중·끊는 중인 물질 전부에 적용) */
@@ -153,6 +156,9 @@ const ACTION_TYPES = new Set([
   'buyHome', 'debtRelief', 'earlyAdmit', 'passGed', 'separateFamily', 'reunite', 'setStyle', 'substance',
   'daily',
 ]);
+
+// 범죄 피해·목격·지원 사건 (crime.ts)
+ACTION_TYPES.add('crime');
 
 const HIGH_TYPES = new Set(['general', 'foreign', 'autonomous', 'gifted', 'science', 'arts', 'sports', 'vocational', 'meister', 'alternative']);
 
@@ -351,6 +357,10 @@ export function validateData(): Issue[] {
     if (a.type === 'daily' && !(DAILY_STEPS as readonly string[]).includes(a.step)) err(where, `없는 하루 사슬 단계: ${a.step}`);
     if (a.type === 'enroll' && a.highType && !HIGH_TYPES.has(a.highType)) err(where, `없는 고등학교 유형: ${a.highType}`);
     if (a.type === 'prosecute' && a.crime !== 'ctx' && !CRIMES[a.crime]) err(where, `없는 범죄: ${a.crime}`);
+    if (a.type === 'crime') {
+      const problem = crimeActionProblem(a);
+      if (problem) err(where, problem);
+    }
     if (a.type === 'discoverTalent' && a.talent && !(TALENT_KEYS as readonly string[]).includes(a.talent)) {
       err(where, `없는 재능: ${a.talent}`);
     }
@@ -484,6 +494,9 @@ export function validateData(): Issue[] {
       warn(`${ev.id}`, '어느 사건도 이 연속 사건으로 이어지지 않는다');
     }
   }
+
+  // 범죄 피해·목격·지원 사건표: 신고 강요 없음, 성인 장면과 아동·청소년 보호 장면의 나이·대응·표현 규칙 (crime.ts)
+  for (const problem of crimeDataProblems()) err('catalog/crime.json', problem);
 
   // 대상 인물: 새로 생기는 사람을 대상으로 삼는 사건, 물려받은 자녀의 나이가 맞지 않는 연속·예약 사건
   const fileOf = new Map<string, string>();

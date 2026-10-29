@@ -286,6 +286,20 @@
     { "id": "war_abroad", "name": "해외 피신", "visible": true, "sign": "info" },
     { "id": "ptsd", "name": "PTSD", "desc": "악몽과 불면. 상담을 받으면 나아질 수 있다", "visible": true, "sign": "bad" },
     {
+      "id": "crime_aftermath",
+      "name": "사건 후유증",
+      "desc": "그날의 일이 아직 일상에 남아 있다. 곁의 도움과 상담, 시간이 회복을 앞당긴다 (crime.ts가 회복에 맞춰 붙이고 뗀다)",
+      "visible": true,
+      "sign": "bad"
+    },
+    {
+      "id": "protective_order",
+      "name": "보호조치 중",
+      "desc": "접근금지·신변보호 같은 보호조치가 걸려 있다",
+      "visible": true,
+      "sign": "info"
+    },
+    {
       "id": "disaster_victim",
       "name": "이재민",
       "visible": true,

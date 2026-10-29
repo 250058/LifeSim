@@ -117,6 +117,8 @@ export type Action =
   | { type: 'separateFamily' }
   /** 헤어진 가족을 다시 만난다 */
   | { type: 'reunite' }
+  /** 범죄 피해·목격·지원 사건 (crime.ts): open 장면으로 사건을 연다, respond 대응, advance 기관 단계. inst는 그 대응이 연락하는 기관 id */
+  | { type: 'crime'; op: 'open' | 'respond' | 'advance'; scene?: string; act?: string; step?: string; inst?: string }
   /** 스타일을 바꾼다 (다른 스타일 태그는 지운다) */
   | { type: 'setStyle'; style: 'basic' | 'trendy' | 'luxury' | 'comfort' }
   | { type: 'buyHome'; downPct: number }
