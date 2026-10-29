@@ -4,7 +4,7 @@
 import { evaluate } from './conditions';
 import { ACTIVITIES, ACTIVITY_BY_ID } from './data';
 import { addFlag, applyEffects, removeFlag } from './effects';
-import { formatWon, signedWon } from './format';
+import { formatWon, josa, signedWon } from './format';
 import { addFriend, alive, changeCloseness, partnerOf, spouseOf, startPartner } from './relations';
 import { rngFor } from './rng';
 import { buildScope, inPrison } from './scope';
@@ -97,11 +97,11 @@ export function performActivity(state: GameState, id: string): ActivityResult | 
       if (friends.length < 5 && rng.chance(0.35)) {
         const f = addFriend(state, rng);
         changes.push({ text: `새 친구: ${f.name}`, sign: 'good' });
-        text = `${f.name}와(과) 친해졌다.`;
+        text = `${josa(f.name, '와/과')} 친해졌다.`;
       } else if (friends.length > 0) {
         const f = rng.pick(friends);
         f.closeness = Math.min(100, f.closeness + 10);
-        text = `${f.name}와(과) 시간을 보냈다.`;
+        text = `${josa(f.name, '와/과')} 시간을 보냈다.`;
       }
       break;
     }
@@ -111,7 +111,7 @@ export function performActivity(state: GameState, id: string): ActivityResult | 
       if (rng.chance(Math.max(0.05, Math.min(0.6, p)))) {
         const partner = startPartner(state, rng);
         changes.push({ text: `연인: ${partner.name}`, sign: 'good' });
-        text = `소개팅에서 만난 ${partner.name}와(과) 사귀기로 했다.`;
+        text = `소개팅에서 만난 ${josa(partner.name, '와/과')} 사귀기로 했다.`;
       } else {
         text = '애프터 신청은 읽고 답이 없었다.';
       }

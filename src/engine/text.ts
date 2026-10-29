@@ -243,7 +243,7 @@ function dynamicValue(state: GameState, key: string): string | undefined {
     case '학교':
       return ch.edu.highType ? HIGH_TYPE_LABEL[ch.edu.highType] : '학교';
     case '수능백분위':
-      return ch.edu.csat ? String(ch.edu.csat.percentile) : '';
+      return ch.edu.csat ? String(Math.round(ch.edu.csat.percentile)) : '';
     case '연인':
       return partnerOf(ch)?.name;
     case '배우자':

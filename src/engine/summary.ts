@@ -5,7 +5,7 @@ import { JOB_BY_ID, REGION_BY_ID, TAG_BY_ID } from './data';
 import { DEGREE_LABEL } from './career';
 import { alive, spouseOf } from './relations';
 import { netWorth } from './scope';
-import type { GameState, LifeSummary } from './types';
+import type { GameState, LifeSummary, LogEntry } from './types';
 
 const HARDSHIP = [
   'bullying_victim',
@@ -74,11 +74,38 @@ export function achievements(state: GameState): string[] {
   return list;
 }
 
+/**
+ * 인생 연표: 충격이 큰 사건부터 고르되 같은 제목은 한 번만, 10년마다 3개까지만 넣어
+ * 생애 전체가 고르게 보이게 한다. 출생과 사망은 항상 넣는다.
+ */
+function pickHighlights(log: LogEntry[]): LogEntry[] {
+  const birth = log.find((e) => e.kind === 'birth');
+  const death = [...log].reverse().find((e) => e.kind === 'death');
+  const seen = new Set<string>();
+  const candidates: { e: LogEntry; i: number }[] = [];
+  log.forEach((e, i) => {
+    if ((e.kind !== 'event' && e.kind !== 'milestone') || (e.impact ?? 0) < 15) return;
+    const key = e.title ?? e.text;
+    if (seen.has(key)) return;
+    seen.add(key);
+    candidates.push({ e, i });
+  });
+  const perDecade = new Map<number, number>();
+  const picked: { e: LogEntry; i: number }[] = [];
+  for (const c of [...candidates].sort((a, b) => (b.e.impact ?? 0) - (a.e.impact ?? 0))) {
+    const decade = Math.floor(c.e.age / 10);
+    if ((perDecade.get(decade) ?? 0) >= 3) continue;
+    perDecade.set(decade, (perDecade.get(decade) ?? 0) + 1);
+    picked.push(c);
+    if (picked.length >= 14) break;
+  }
+  picked.sort((a, b) => a.i - b.i);
+  return [birth, ...picked.map((c) => c.e), death].filter((e): e is LogEntry => e !== undefined);
+}
+
 export function buildSummary(state: GameState): LifeSummary {
   const ch = state.ch;
-  const highlights = state.log
-    .filter((e) => e.kind === 'birth' || e.kind === 'death' || ((e.kind === 'event' || e.kind === 'milestone') && (e.impact ?? 0) >= 20))
-    .slice(-14);
+  const highlights = pickHighlights(state.log);
   const visibleTags = Object.keys(ch.flags)
     .map((id) => TAG_BY_ID.get(id))
     .filter((t) => t?.visible)

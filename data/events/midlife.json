@@ -191,9 +191,9 @@
         "ageCurve": { "30": 0.25, "40": 0.5, "50": 1, "60": 2, "70": 3.2, "80": 4 },
         "modifiers": [
           { "if": "flags.smoker", "x": 1.8 },
-          { "if": "sex == 'M'", "x": 1.25 },
+          { "if": "sex == 'M'", "x": 1.15 },
           { "if": "flags.cancer_survivor", "x": 1.5 },
-          { "if": "sex == 'F'", "x": 0.8 }
+          { "if": "sex == 'F'", "x": 0.6 }
         ]
       },
       "limit": { "max": 2, "cooldown": 5 },

@@ -21,6 +21,25 @@ export function annualIncome(state: GameState): number {
   return (c.jobId ? c.salary : 0) + pension;
 }
 
+/**
+ * 주택담보대출 한도. 총부채원리금상환비율(DSR) 40%, 30년 상환을 어림잡아 연 소득의 7배.
+ * 소득이 없으면 대출이 나오지 않는다.
+ */
+export function mortgageLimit(state: GameState): number {
+  return Math.max(0, annualIncome(state)) * 7;
+}
+
+/**
+ * 계약금 비율과 대출 한도 안에서 살 수 있는 집값이 이 지역 평균 집값의 몇 배인가.
+ * 1이면 평균 집을 살 수 있고, 0.5면 절반 값 집까지. 사건 선택지가 '집을 산다'를 보여 줄지 정한다.
+ */
+export function homeReach(state: GameState, downPct: number): number {
+  const price = homePrice(state);
+  if (price <= 0) return 0;
+  const cash = Math.max(0, state.ch.res.cash);
+  return Math.min(cash / downPct, cash + mortgageLimit(state)) / price;
+}
+
 /** 지금 사는 지역의 집값 (2026년 지역 평균 × 집값지수) */
 export function homePrice(state: GameState): number {
   const region = REGION_BY_ID.get(state.ch.region);
@@ -78,6 +97,7 @@ export function buildScope(state: GameState, ctx: Record<string, string> = {}): 
       ...ch.res,
       netWorth: netWorth(state),
       income: annualIncome(state),
+      homeReach: homeReach(state, 0.2),
     },
     flags,
     talents,

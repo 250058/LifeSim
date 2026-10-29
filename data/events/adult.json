@@ -13,12 +13,13 @@
       "weight": {
         "base": 0.24,
         "noMode": true,
-        "ageCurve": { "22": 0.2, "26": 0.6, "30": 1.2, "34": 1.3, "40": 0.8, "50": 0.4, "70": 0.2 },
+        "ageCurve": { "22": 0.3, "26": 0.9, "29": 1.4, "32": 1.4, "36": 1, "40": 0.7, "50": 0.4, "70": 0.2 },
         "modifiers": [
-          { "if": "family.partnerYears < 2", "x": 0.4 },
-          { "if": "money.cash < 20000000", "x": 0.6 },
+          { "if": "family.partnerYears < 2", "x": 0.5 },
+          { "if": "money.cash < 20000000", "x": 0.7 },
           { "if": "job.employed", "x": 1.3 },
           { "if": "sex == 'M' && age < 31", "x": 0.6 },
+          { "if": "sex == 'F' && age < 32", "x": 1.3 },
           { "if": "sex == 'F' && age >= 34", "x": 0.85 }
         ]
       },
@@ -75,7 +76,7 @@
       "impact": 20,
       "trigger": { "age": [20, 60], "if": "family.married && family.fertile && !legal.inPrison" },
       "weight": {
-        "base": 0.18,
+        "base": 0.24,
         "noMode": true,
         "ageCurve": { "20": 0.6, "28": 1, "33": 1, "38": 0.6, "42": 0.25, "45": 0.1 },
         "modifiers": [

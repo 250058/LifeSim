@@ -16,6 +16,7 @@ npm run validate     # 사건 데이터 검사 (스키마·조건식·확률 상
 npm run sim -- --n 10000 --mode drama   # 1만 명 자동 플레이, 보정표와 비교
 npm test             # vitest
 npm run build        # 타입 검사 + 정적 빌드 (dist/)
+npm run build:artifact   # JS·CSS를 넣은 HTML 한 장 (dist-artifact/lifesim.html)
 ```
 
 Node 22 기준. `.npmrc`의 `legacy-peer-deps=true`는 npm의 피어 의존성 해석 버그를 피하려는 것이다.
@@ -31,8 +32,8 @@ Node 22 기준. `.npmrc`의 `legacy-peer-deps=true`는 npm의 피어 의존성 �
 | 생활: 교복·옷 스타일, 식단(집밥·야식·채식·저염식), 반려동물, 층간소음, 사이비 포교, 영끌 | 완료 |
 | 밸런스 시뮬레이터, 이벤트 검증기 | 완료 |
 | 보정 (평균 수명·암 사망·초혼 나이·출산) | 진행 중 — 아래 표 |
-| 화면 (React + Zustand, 휴대폰 세로) | 다음 작업 |
-| 테스트 (결정성, 기획서 확률 예시, 데이터 검증, 저장 왕복, 조사 교정) | 다음 작업 |
+| 화면 (React + Zustand, 휴대폰 세로): 시작·게임·사건 카드·시트 5종·사망 화면, 밝은/어두운 테마 | 완료 |
+| 테스트 (시드 재현, 기획서 확률 예시, 데이터 검증, 저장 왕복, 조사, 1,000명 평균 수명) | 완료 (`npm test`) |
 
 ## 폴더
 
@@ -46,7 +47,7 @@ data/
   world.json           모드 곡선, 정당·대학 이름(가상), 뉴스 문구, 사망 원인표
   tags.json, names.json
 src/engine/            게임 규칙 (화면과 무관, Node에서도 돈다)
-src/ui/                화면 (작업 예정)
+src/ui/                화면 (store.ts가 엔진 상태를 복사해 넘기고 저장한다)
 tools/event-editor/    validate.ts (검증), format.mjs (JSON 정렬)
 tools/simulator/       run.ts (밸런스 시뮬레이터)
 tests/                 vitest
@@ -60,7 +61,7 @@ tests/                 vitest
 **1년 루프** (`src/engine/game.ts`): ① 연초(나이 +1, 마일스톤) → ② 세계 갱신(경제·정치·안보·재난 뉴스) → ③ 자유 행동(시간 포인트) → ④ 사건 0~3개 → ⑤ 연말 결산(성장·노화·돈·관계·건강) → ⑥ 사망 판정.
 
 **시드**: `cyrb128 + sfc32`. 난수는 용도마다 다른 스트림에서 뽑는다(`rngFor(seed, 'events', age)` 등).
-그래서 활동을 하나 더 해도 그해의 사건 추첨은 바뀌지 않고, 같은 시드·같은 선택이면 같은 인생이 나온다.
+활동이 난수를 몇 번 쓰든 사건 추첨용 주사위 순서는 밀리지 않고, 같은 시드·같은 선택이면 같은 인생이 나온다.
 
 **사건 확률** (`eventEngine.ts`): `P = p0 × A(나이) × Π보정 × D(디렉터) × M(모드)`, 하한 1e-6, 상한 0.95.
 조건식은 `eval` 없이 작은 파서로 해석한다(`conditions.ts`).

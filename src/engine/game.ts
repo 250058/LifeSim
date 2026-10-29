@@ -17,11 +17,11 @@ import { ACTIVITY_BY_ID, JOB_BY_ID, REGION_BY_ID } from './data';
 import { directorYearEnd, initDirector } from './director';
 import { addFlag, changeAttr, killCharacter, removeFlag } from './effects';
 import { chooseOption, dismissCard, drawYearEvents, milestonesFor, presentCard } from './eventEngine';
-import { ELITE_HIGH, formatWon, signedWon } from './format';
+import { ELITE_HIGH, formatWon, josa, signedWon } from './format';
 import { agingDeltas, deathProbability, pickCause, yearlyHealthDelta } from './health';
 import { alive, npcYear } from './relations';
 import { rngFor, type Rng } from './rng';
-import { annualIncome, homePrice, inPrison } from './scope';
+import { annualIncome, homePrice, inPrison, mortgageLimit } from './scope';
 import { SAVE_VERSION } from './save';
 import { buildSummary } from './summary';
 import type { Change, GameState, HighType, PendingCard } from './types';
@@ -104,8 +104,8 @@ export function applyForJob(state: GameState, jobId: string): ActionResult {
       ch.edu.status = 'dropout';
     }
     takeJob(state, jobId);
-    state.log.push({ year: state.year, age: ch.age, kind: 'event', title: '합격', text: `${job.title}(으)로 일하게 됐다. 연봉 ${formatWon(ch.career.salary)}.`, tone: 'positive', impact: 15 });
-    return { ok: true, text: `합격. ${job.title}(으)로 출근한다.`, changes: [{ text: `직업: ${job.title}`, sign: 'good' }] };
+    state.log.push({ year: state.year, age: ch.age, kind: 'event', title: '합격', text: `${josa(job.title, '으로/로')} 일하게 됐다. 연봉 ${formatWon(ch.career.salary)}.`, tone: 'positive', impact: 15 });
+    return { ok: true, text: `합격. ${josa(job.title, '으로/로')} 출근한다.`, changes: [{ text: `직업: ${job.title}`, sign: 'good' }] };
   }
   return { ok: false, text: `${job.title} 불합격. 다음에 다시 지원할 수 있다.` };
 }
@@ -115,7 +115,7 @@ export function quitJob(state: GameState): ActionResult {
   if (!c.jobId || c.business || state.phase !== 'action') return { ok: false, text: '그만둘 일이 없다.' };
   const title = c.title;
   const pay = leaveJob(state, 0);
-  state.log.push({ year: state.year, age: state.ch.age, kind: 'event', title: '퇴사', text: `${title}을(를) 그만뒀다. 퇴직금 ${formatWon(pay)}.`, tone: 'neutral', impact: 10 });
+  state.log.push({ year: state.year, age: state.ch.age, kind: 'event', title: '퇴사', text: `${josa(title ?? '일', '을/를')} 그만뒀다. 퇴직금 ${formatWon(pay)}.`, tone: 'neutral', impact: 10 });
   return { ok: true, text: `사표를 냈다. 퇴직금 ${formatWon(pay)}.` };
 }
 
@@ -160,10 +160,14 @@ export { homePrice };
 export function buyHome(state: GameState): ActionResult {
   const ch = state.ch;
   const price = homePrice(state);
-  const down = Math.round(price * 0.3);
   if (ch.age < 25 || ch.flags.homeowner) return { ok: false, text: '지금은 집을 살 수 없다.' };
-  if (ch.res.cash < down) return { ok: false, text: `계약금과 중도금으로 ${formatWon(down)}이 필요하다.` };
-  if (annualIncome(state) <= 0 && ch.res.cash < price) return { ok: false, text: '소득이 없으면 주택담보대출이 나오지 않는다.' };
+  // 계약금 30%와 소득 대비 대출 한도 중 더 많이 드는 쪽만큼 현금이 있어야 한다
+  const maxLoan = Math.min(mortgageLimit(state), Math.round(price * 0.7));
+  const needCash = price - maxLoan;
+  if (ch.res.cash < needCash) {
+    if (annualIncome(state) <= 0) return { ok: false, text: `소득이 없으면 주택담보대출이 나오지 않는다. 집값 ${formatWon(price)}을 현금으로 내야 한다.` };
+    return { ok: false, text: `대출은 ${formatWon(maxLoan)}까지 나온다. 현금 ${formatWon(needCash)}이 필요하다.` };
+  }
   const loan = Math.max(0, price - Math.min(ch.res.cash, price));
   ch.res.cash -= price - loan;
   ch.res.debt += loan;
@@ -198,7 +202,7 @@ export function spendTime(state: GameState, npcId: string): ActionResult {
   const changes: Change[] = [{ text: `${npc.name} 친밀도 +${gain}`, sign: 'good' }];
   changeAttr(state, 'happiness', 2, changes);
   changeAttr(state, 'stress', -3, changes);
-  return { ok: true, text: `${npc.name}와(과) 시간을 보냈다.`, changes };
+  return { ok: true, text: `${josa(npc.name, '와/과')} 시간을 보냈다.`, changes };
 }
 
 // ── 진행 ─────────────────────────────────────────────────

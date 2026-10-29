@@ -31,6 +31,7 @@ import {
   startPartner,
 } from './relations';
 import type { Rng } from './rng';
+import { mortgageLimit } from './scope';
 import type { Action, Effects, Range } from './schema';
 import type { AttrKey, Change, GameState, TalentKey, UnivTier } from './types';
 import { STAT_KEYS, HIDDEN_KEYS, STATE_KEYS } from './types';
@@ -221,7 +222,7 @@ function runAction(state: GameState, a: Action, ec: EffectContext): void {
     }
     case 'loseFriend': {
       const f = loseFriend(state, rng, ctx.friendId);
-      if (f) changes.push({ text: `${f.name}와(과) 멀어졌다`, sign: 'bad' });
+      if (f) changes.push({ text: `${josa(f.name, '와/과')} 멀어졌다`, sign: 'bad' });
       break;
     }
     case 'startPartner': {
@@ -231,7 +232,7 @@ function runAction(state: GameState, a: Action, ec: EffectContext): void {
     }
     case 'breakUp': {
       const p = breakUp(state);
-      if (p) changes.push({ text: `${p.name}와(과) 헤어졌다`, sign: 'bad' });
+      if (p) changes.push({ text: `${josa(p.name, '와/과')} 헤어졌다`, sign: 'bad' });
       break;
     }
     case 'marry': {
@@ -326,7 +327,7 @@ function runAction(state: GameState, a: Action, ec: EffectContext): void {
       if (!ch.career.jobId) break;
       const title = ch.career.title;
       const pay = ch.career.business ? closeBusiness(state, 0.1) : leaveJob(state, a.severanceMonths ?? 0);
-      changes.push({ text: `${title ?? '일'}을(를) 그만뒀다`, sign: 'bad' });
+      changes.push({ text: `${josa(title ?? '일', '을/를')} 그만뒀다`, sign: 'bad' });
       if (pay > 0) changes.push({ text: `퇴직금 ${formatWon(pay)}`, sign: 'good' });
       break;
     }
@@ -507,13 +508,24 @@ function runAction(state: GameState, a: Action, ec: EffectContext): void {
       changes.push({ text: `내신 ${a.delta > 0 ? '+' : '−'}${Math.abs(a.delta)}`, sign: a.delta > 0 ? 'good' : 'bad' });
       break;
     case 'buyHome': {
-      const price = Number(ctx.homePrice ?? 0);
-      if (price <= 0) break;
-      const down = Math.round(price * a.downPct);
-      payOrBorrow(state, down);
+      // 계약금 비율(LTV)과 소득 대비 대출 한도(DSR)를 모두 넘지 않는 선에서 산다.
+      // 모자라면 더 작은 집으로 낮추고, 그래도 안 되면 계약을 못 한다.
+      const listed = Number(ctx.homePrice ?? 0);
+      if (listed <= 0 || ch.flags.homeowner) break;
+      const cash = Math.max(0, ch.res.cash);
+      const maxLoan = mortgageLimit(state);
+      const affordable = Math.min(listed, cash / a.downPct, cash + maxLoan);
+      if (affordable < listed * 0.4) {
+        changes.push({ text: '대출 한도가 모자라 계약하지 못했다', sign: 'bad' });
+        break;
+      }
+      const price = Math.round(affordable / 1_000_000) * 1_000_000;
+      const down = Math.min(cash, Math.max(Math.round(price * a.downPct), price - maxLoan));
+      ch.res.cash -= down;
       ch.res.debt += price - down;
       ch.res.realEstate += price;
       addFlag(state, 'homeowner', changes);
+      if (price < listed) changes.push({ text: '돈에 맞춰 더 작은 집을 골랐다', sign: 'info' });
       changes.push({ text: `집 ${formatWon(price)} (대출 ${formatWon(price - down)})`, sign: 'info' });
       break;
     }

@@ -536,6 +536,7 @@
       "choices": [
         {
           "text": "영혼까지 끌어모아 산다",
+          "if": "money.homeReach >= 0.6",
           "result": "주택담보대출, 신용대출, 부모님 돈까지. 등기를 친 날 밤 잠이 오지 않았다.",
           "effects": {
             "do": [{ "type": "buyHome", "downPct": 0.2 }],
@@ -547,7 +548,13 @@
           "result": "단톡방에서 '벼락거지'라는 말이 나왔다.",
           "effects": { "stats": { "stress": 6 } }
         },
-        { "text": "청약 가점을 계속 모은다", "result": "무주택 기간 1년이 또 쌓였다.", "effects": { "stats": { "stress": 2 } } }
+        { "text": "청약 가점을 계속 모은다", "result": "무주택 기간 1년이 또 쌓였다.", "effects": { "stats": { "stress": 2 } } },
+        {
+          "text": "은행에 대출 한도를 물어본다",
+          "if": "money.homeReach < 0.6",
+          "result": "창구 직원이 계산기를 두드리더니 고개를 저었다. 소득 대비 한도가 모자랐다.",
+          "effects": { "stats": { "stress": 5, "happiness": -3 } }
+        }
       ]
     },
     {

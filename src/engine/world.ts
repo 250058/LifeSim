@@ -164,7 +164,7 @@ export function updateWorld(state: GameState, rng: Rng): LogEntry[] {
     w.tension = Math.max(5, Math.min(99, w.tension + rng.normal((45 - w.tension) * 0.2, 9)));
     if (w.tension >= 75 && rng.chance(0.18)) skirmish = true;
     // 전면전: 현실 모드에서 평생 1~2%, 드라마 모드 4~6%가 되도록 맞췄다
-    if (w.tension >= 85 && rng.chance(0.012 * modeMultiplier(state.mode, 0.00015, 85))) {
+    if (w.tension >= 85 && rng.chance(0.01 * modeMultiplier(state.mode, 0.00015, 85))) {
       w.war = { active: true, yearsLeft: rng.chance(0.4) ? 2 : 1, startYear: year };
       warStart = true;
     }

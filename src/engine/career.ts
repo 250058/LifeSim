@@ -97,9 +97,9 @@ export function csatSummary(state: GameState): string {
   const c = state.ch.edu.csat;
   if (!c) return '';
   const tierText = c.tier
-    ? `${TIER_LABEL[c.tier]} 대학을 노려볼 만하다.`
+    ? `${c.tier === 'D' ? '전문대를' : `${TIER_LABEL[c.tier]} 대학을`} 노려볼 만하다.`
     : '어느 대학도 장담하기 어려운 점수다.';
-  return `평균 ${c.grade}등급, 백분위 ${c.percentile}. ${tierText}`;
+  return `평균 ${c.grade}등급, 백분위 ${Math.round(c.percentile)}. ${tierText}`;
 }
 
 /** 수능 등급에 맞는 대학 이름 (가상 대학) */

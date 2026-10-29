@@ -93,7 +93,7 @@ export function pickCause(ch: Character, rng: Rng): string {
 export function pickCauseByAge(age: number, sex: Sex, rng: Rng): string {
   const table = WORLD.causesOfDeath.find((t) => age <= t.maxAge) ?? WORLD.causesOfDeath[WORLD.causesOfDeath.length - 1];
   // 남성은 암 사망 비중이 높다 (보정표: 암 사망 확률 남 24.5%, 여 15.2%)
-  const cancerX = sex === 'M' ? 0.95 : 0.3;
+  const cancerX = sex === 'M' ? 0.8 : 0.2;
   const picked = rng.weighted(table.causes, ([cause, w]) => (cause === '암' ? w * cancerX : w));
   return picked ? picked[0] : '노환';
 }
